@@ -1,25 +1,13 @@
-import { createClient } from '@supabase/supabase-js';
+// LEGACY: Supabase integration DISABLED for v3 deployment
+// Reason: Submissions and community runs are now handled via external Luma service.
+// Do NOT rely on these functions in production builds. They are kept for reference only.
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+export const LEGACY_SUPABASE_DISABLED = true;
 
-// Bulletproof: Create a mock client during build if env vars are missing
-const isBuildTime = !supabaseUrl || !supabaseKey;
-
-export const supabase = isBuildTime
-  ? ({
-      from: () => ({
-        select: () => ({ data: [], error: null }),
-        insert: () => ({ data: null, error: null }),
-      }),
-    } as any)
-  : createClient(supabaseUrl, supabaseKey);
-
-// Database types
-type Difficulty = 'Beginner' | 'Moderate' | 'Advanced' | 'Extreme';
-type TrailStatus = 'Open' | 'Closed' | 'Seasonal';
-type SubmissionType = 'run' | 'trail';
-type SubmissionStatus = 'pending' | 'approved' | 'rejected';
+export type Difficulty = 'Beginner' | 'Moderate' | 'Advanced' | 'Extreme';
+export type TrailStatus = 'Open' | 'Closed' | 'Seasonal';
+export type SubmissionType = 'run' | 'trail';
+export type SubmissionStatus = 'pending' | 'approved' | 'rejected';
 
 export interface Trail {
   id: string;
@@ -66,36 +54,11 @@ export interface Submission {
   reviewed_by?: string;
 }
 
-// Helper functions
-export async function getTrails() {
-  const { data, error } = await supabase
-    .from('trails')
-    .select('*')
-    .order('title', { ascending: true });
-  
-  if (error) throw error;
-  return data as Trail[];
+// All helper functions intentionally throw. Use static data in src/data or the Luma integration.
+function disabled() {
+  throw new Error('Supabase integration disabled for this branch. Use static data (src/data/trails.json) or the Luma RSVP/submission flow.');
 }
 
-export async function getRuns() {
-  const { data, error } = await supabase
-    .from('runs')
-    .select('*')
-    .eq('is_verified', true)
-    .gte('date', new Date().toISOString())
-    .order('date', { ascending: true });
-  
-  if (error) throw error;
-  return data as Run[];
-}
-
-export async function createSubmission(submission: Omit<Submission, 'id' | 'created_at'>) {
-  const { data, error } = await supabase
-    .from('submissions')
-    .insert([submission])
-    .select()
-    .single();
-  
-  if (error) throw error;
-  return data as Submission;
-}
+export async function getTrails(): Promise<Trail[]> { disabled(); return [] as Trail[]; }
+export async function getRuns(): Promise<Run[]> { disabled(); return [] as Run[]; }
+export async function createSubmission(_submission: Omit<Submission, 'id' | 'created_at'>) { disabled(); return null; }
