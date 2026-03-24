@@ -49,7 +49,7 @@ export default function SubmissionHub() {
                 width="100%"
                 height="450"
                 frameBorder="0"
-                style={{ border: '1px solid #bfcbda88', borderRadius: '4px' }}
+                style={{ border: '1px solid rgba(255,255,255,0.08)', borderRadius: '4px' }}
                 allowFullScreen={false}
                 aria-hidden="false"
                 tabIndex={0}
