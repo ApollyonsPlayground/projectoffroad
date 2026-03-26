@@ -60,18 +60,14 @@ export default function HeroCinematic() {
           </div>
 
           {/* Stats */}
-          <div className="grid grid-cols-3 gap-8 max-w-lg mx-auto">
+          <div className="grid grid-cols-2 gap-8 max-w-lg mx-auto">
             <div className="text-center">
-              <div className="text-3xl md:text-4xl font-bold text-orange-500 mb-1">22+</div>
+              <div className="text-3xl md:text-4xl font-bold text-orange-500 mb-1">79+</div>
               <div className="text-stone-400 text-sm uppercase tracking-wider">Trails</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl md:text-4xl font-bold text-emerald-500 mb-1">4</div>
-              <div className="text-stone-400 text-sm uppercase tracking-wider">Skill Levels</div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl md:text-4xl font-bold text-stone-300 mb-1">SoCal</div>
-              <div className="text-stone-400 text-sm uppercase tracking-wider">Wilderness</div>
+              <div className="text-3xl md:text-4xl font-bold text-emerald-500 mb-1">2</div>
+              <div className="text-stone-400 text-sm uppercase tracking-wider">Guides</div>
             </div>
           </div>
         </div>
