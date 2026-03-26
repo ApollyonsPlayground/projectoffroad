@@ -1,11 +1,42 @@
+'use client';
+
+import { useState } from 'react';
 import HeroCinematic from '../components/HeroCinematic';
 import TrailCard from '../components/TrailCard';
+import RegionFilter from '../components/RegionFilter';
 import SubmissionHub from '../components/SubmissionHub';
 import DisclaimerModal from '../components/DisclaimerModal';
 import trailsData from '../data/trails.json';
 import { MapPin, Instagram, Wrench, AlertTriangle, ExternalLink, TreePine, Mountain, Shield } from 'lucide-react';
 
+// Region filter function
+function filterTrailsByRegion(trails: typeof trailsData, regionId: string) {
+  if (regionId === 'all') return trails;
+  
+  return trails.filter(trail => {
+    const loc = (trail.location || '').toLowerCase();
+    const tags = (trail.tags || []).map(t => t.toLowerCase());
+    
+    switch (regionId) {
+      case 'big-bear':
+        return loc.includes('big bear') || tags.includes('big bear');
+      case 'san-diego':
+        return loc.includes('san diego') || tags.includes('san diego');
+      case 'palm-springs':
+        return loc.includes('palm springs') || loc.includes('idyllwild') || tags.includes('palm springs') || tags.includes('idyllwild');
+      case 'joshua-tree':
+        return loc.includes('joshua tree') || tags.includes('joshua tree');
+      case 'san-bernardino':
+        return loc.includes('san bernardino') || loc.includes('cajon') || loc.includes('lytle') || tags.includes('san bernardino');
+      default:
+        return true;
+    }
+  });
+}
+
 export default function HomePage() {
+  const [selectedRegion, setSelectedRegion] = useState('all');
+  const filteredTrails = filterTrailsByRegion(trailsData, selectedRegion);
   return (
     <main className="min-h-screen bg-stone-950">
       {/* Legal Disclaimer Modal - Page Load Gate */}
@@ -30,7 +61,7 @@ export default function HomePage() {
       <section id="trail-explorer" className="py-20 px-4 bg-stone-950">
         <div className="container mx-auto max-w-6xl">
           {/* Section Header */}
-          <div className="text-center mb-16">
+          <div className="text-center mb-8">
             <span className="inline-block px-4 py-2 rounded-full bg-orange-600/10 border border-orange-600/30 text-orange-400 text-sm font-medium uppercase tracking-wider mb-4">
               Trail Explorer
             </span>
@@ -43,12 +74,51 @@ export default function HomePage() {
             </p>
           </div>
 
-          {/* Trail Cards Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8">
-            {trailsData.map((trail, index) => (
-              <TrailCard key={trail.id} trail={trail} index={index} />
-            ))}
+          {/* Guide Quick Links */}
+          <div className="flex flex-wrap justify-center gap-4 mb-12">
+            <a 
+              href="/guides/beginner"
+              className="inline-flex items-center gap-2 px-5 py-3 bg-stone-800 hover:bg-stone-700 text-stone-200 rounded-lg border border-stone-600 hover:border-orange-500/50 transition-all"
+            >
+              <span>📖</span>
+              <span className="font-medium">Beginner's Guide</span>
+            </a>
+            <a 
+              href="/guides/truck-buying"
+              className="inline-flex items-center gap-2 px-5 py-3 bg-stone-800 hover:bg-stone-700 text-stone-200 rounded-lg border border-stone-600 hover:border-orange-500/50 transition-all"
+            >
+              <span>🚚</span>
+              <span className="font-medium">Truck Buying Guide</span>
+            </a>
           </div>
+
+          {/* Region Filter Tabs */}
+          <RegionFilter 
+            selectedRegion={selectedRegion} 
+            onRegionChange={setSelectedRegion} 
+          />
+
+          {/* Trail Count */}
+          <div className="text-center mb-8">
+            <p className="text-stone-400">
+              Showing <span className="text-orange-400 font-bold">{filteredTrails.length}</span> trails
+              {selectedRegion !== 'all' && ' in selected region'}
+            </p>
+          </div>
+
+          {/* Trail Cards Grid */}
+          {filteredTrails.length > 0 ? (
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8">
+              {filteredTrails.map((trail, index) => (
+                <TrailCard key={trail.id} trail={trail} index={index} />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-16 bg-stone-900/30 rounded-2xl border border-stone-800">
+              <p className="text-stone-400 text-lg">No trails found in this region yet.</p>
+              <p className="text-stone-500 text-sm mt-2">Check back soon for more trails!</p>
+            </div>
+          )}
         </div>
       </section>
 
