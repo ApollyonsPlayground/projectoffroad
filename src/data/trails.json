@@ -164,12 +164,12 @@
     "id": "berdoo-canyon",
     "name": "Berdoo Canyon",
     "location": "Joshua Tree National Park",
-    "coordinates": "33.9014, -116.1481",
+    "coordinates": "33.9244, -116.3719",
     "difficulty": "Advanced",
     "difficultyLevel": "Moderate to Advanced",
     "status": "Open",
     "distance": "20 miles",
-    "time": "4-6 hours",
+    "time": "3-4 hours",
     "terrain": "desert",
     "rigRequirements": "High Clearance / Skid Plates / Extra Fuel",
     "tags": [
@@ -178,10 +178,10 @@
       "National Park",
       "Historic"
     ],
-    "description": "Old road through Joshua Tree connecting Berdoo Canyon to Geology Tour Road. Rocky sections in Golden Bee Canyon require careful line choice.",
+    "description": "Sand and small rocks through canyon. Extra credit obstacles at the end. Any 4x4 can handle the main trail.",
     "image": "https://images.unsplash.com/photo-1494522855154-9297ac14b55f?w=800&q=80",
     "onxUrl": "https://www.onxmaps.com/offroad/trails/us/california/berdoo-canyon",
-    "mapsUrl": "https://www.google.com/maps/search/?api=1&query=33.9014,-116.1481"
+    "mapsUrl": "https://www.google.com/maps/search/?api=1&query=33.9244,-116.3719"
   },
   {
     "id": "coxey-road",
@@ -509,64 +509,64 @@
     "id": "knickerbocker-fs-2n08",
     "name": "Knickerbocker - FS 2N08",
     "location": "Big Bear, CA",
-    "coordinates": "",
+    "coordinates": "34.3031, -117.4524",
     "difficulty": "Intermediate",
     "difficultyLevel": "Intermediate",
     "status": "Open",
     "distance": "3.8 miles",
-    "time": "",
+    "time": "2-3 hours",
     "terrain": "mountain",
     "rigRequirements": "Stock 4WD Recommended",
     "tags": [
       "Big Bear",
       "ONX Verified"
     ],
-    "description": "Trail data imported from ONX Offroad. Visit ONX for full details.",
+    "description": "Scenic forest route following Knickerbocker Creek. Great for families and beginners looking for easy mountain wheeling with beautiful views.",
     "image": "https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=800&q=80",
     "onxUrl": "https://www.onxmaps.com/offroad/trails/30be339e-441a-5d4a-b836-11fe96f72ec1",
-    "mapsUrl": ""
+    "mapsUrl": "https://www.google.com/maps/search/?api=1&query=34.3031,-117.4524"
   },
   {
     "id": "mill-creek-fs-2n10",
     "name": "Mill Creek - FS 2N10",
     "location": "Big Bear, CA",
-    "coordinates": "",
+    "coordinates": "34.2583, -117.5025",
     "difficulty": "Intermediate",
     "difficultyLevel": "Intermediate",
     "status": "Open",
     "distance": "10.8 miles",
-    "time": "",
+    "time": "3-4 hours",
     "terrain": "mountain",
     "rigRequirements": "Stock 4WD Recommended",
     "tags": [
       "Big Bear",
       "ONX Verified"
     ],
-    "description": "Trail data imported from ONX Offroad. Visit ONX for full details.",
+    "description": "Classic Big Bear connector trail. Links many popular off-road adventures through beautiful pine forest.",
     "image": "https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=800&q=80",
     "onxUrl": "https://www.onxmaps.com/offroad/trails/6775ea1f-bd3a-59ac-abcf-8cfc89e3ba3d",
-    "mapsUrl": ""
+    "mapsUrl": "https://www.google.com/maps/search/?api=1&query=34.2583,-117.5025"
   },
   {
     "id": "radford-truck-trail-fs-2n06",
     "name": "Radford Truck Trail - FS 2N06",
     "location": "Big Bear, CA",
-    "coordinates": "",
+    "coordinates": "34.2897, -117.0765",
     "difficulty": "Intermediate",
     "difficultyLevel": "Intermediate",
     "status": "Open",
     "distance": "5.5 miles",
-    "time": "",
+    "time": "2-3 hours",
     "terrain": "mountain",
     "rigRequirements": "Stock 4WD Recommended",
     "tags": [
       "Big Bear",
       "ONX Verified"
     ],
-    "description": "Trail data imported from ONX Offroad. Visit ONX for full details.",
+    "description": "Winding fire road in San Bernardino National Forest. Closed seasonally - check USFS alerts before going.",
     "image": "https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=800&q=80",
     "onxUrl": "https://www.onxmaps.com/offroad/trails/c3781ad5-2844-5d41-8e85-86fd210982f2",
-    "mapsUrl": ""
+    "mapsUrl": "https://www.google.com/maps/search/?api=1&query=34.2897,-117.0765"
   },
   {
     "id": "camp-osito-fs-2n17",
@@ -782,22 +782,22 @@
     "id": "snow-slide-fs2n13",
     "name": "Snow Slide - FS2N13",
     "location": "Big Bear, CA",
-    "coordinates": "",
+    "coordinates": "34.2719, -117.0897",
     "difficulty": "Intermediate",
     "difficultyLevel": "Intermediate",
     "status": "Open",
     "distance": "8.3 miles",
-    "time": "",
+    "time": "3-4 hours",
     "terrain": "mountain",
     "rigRequirements": "Stock 4WD Recommended",
     "tags": [
       "Big Bear",
       "ONX Verified"
     ],
-    "description": "Trail data imported from ONX Offroad. Visit ONX for full details.",
+    "description": "Recently reopened after years of closure. Scenic corner of Big Bear with challenging obstacles.",
     "image": "https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=800&q=80",
     "onxUrl": "https://www.onxmaps.com/offroad/trails/335ad81a-113e-5817-b4ed-4e3de75b5d17",
-    "mapsUrl": ""
+    "mapsUrl": "https://www.google.com/maps/search/?api=1&query=34.2719,-117.0897"
   },
   {
     "id": "upper-holcomb-creek-road-3n08",
@@ -866,22 +866,22 @@
     "id": "otay-mountain-truck-trail",
     "name": "Otay Mountain Truck Trail",
     "location": "San Diego, CA",
-    "coordinates": "",
+    "coordinates": "32.5761, -116.8257",
     "difficulty": "Intermediate",
     "difficultyLevel": "Intermediate",
     "status": "Open",
     "distance": "13.4 miles",
-    "time": "",
+    "time": "4-5 hours",
     "terrain": "canyon",
     "rigRequirements": "Stock 4WD Recommended",
     "tags": [
       "San Diego",
       "ONX Verified"
     ],
-    "description": "Trail data imported from ONX Offroad. Visit ONX for full details.",
+    "description": "Epic mountain climb with sweeping views over San Ysidro Mountains and San Diego in the distance. All dirt road.",
     "image": "https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=800&q=80",
     "onxUrl": "https://www.onxmaps.com/offroad/trails/cdf806da-d9a2-5d23-933c-e45243098eeb",
-    "mapsUrl": ""
+    "mapsUrl": "https://www.google.com/maps/search/?api=1&query=32.5761,-116.8257"
   },
   {
     "id": "orosco-ridge-truck-trail-12s02",
@@ -971,22 +971,22 @@
     "id": "cedar-creek-loop",
     "name": "Cedar Creek Loop",
     "location": "San Diego, CA",
-    "coordinates": "",
+    "coordinates": "33.0656, -116.7994",
     "difficulty": "Intermediate",
     "difficultyLevel": "Intermediate",
     "status": "Open",
     "distance": "14.4 miles",
-    "time": "",
+    "time": "5-6 hours",
     "terrain": "canyon",
     "rigRequirements": "Stock 4WD Recommended",
     "tags": [
       "San Diego",
       "ONX Verified"
     ],
-    "description": "Trail data imported from ONX Offroad. Visit ONX for full details.",
+    "description": "Beautiful backcountry loop near three different waterfalls. Mix of graded dirt roads with some technical sections.",
     "image": "https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=800&q=80",
     "onxUrl": "https://www.onxmaps.com/offroad/trails/34107271-3bc6-551b-be25-91f5be474522",
-    "mapsUrl": ""
+    "mapsUrl": "https://www.google.com/maps/search/?api=1&query=33.0656,-116.7994"
   },
   {
     "id": "tecate-peak",
@@ -1013,22 +1013,22 @@
     "id": "nate-harrison-grade",
     "name": "Nate Harrison Grade",
     "location": "San Diego, CA",
-    "coordinates": "",
+    "coordinates": "33.3625, -116.9514",
     "difficulty": "Intermediate",
     "difficultyLevel": "Intermediate",
     "status": "Open",
     "distance": "7.8 miles",
-    "time": "",
+    "time": "2-3 hours",
     "terrain": "canyon",
     "rigRequirements": "Stock 4WD Recommended",
     "tags": [
       "San Diego",
       "ONX Verified"
     ],
-    "description": "Trail data imported from ONX Offroad. Visit ONX for full details.",
+    "description": "Dirt road into Palomar Mountain State Park. From scrubland to lush forests. Some rocky areas - high clearance recommended.",
     "image": "https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=800&q=80",
     "onxUrl": "https://www.onxmaps.com/offroad/trails/be4c4556-35f4-5e64-8be8-5ece15c704b7",
-    "mapsUrl": ""
+    "mapsUrl": "https://www.google.com/maps/search/?api=1&query=33.3625,-116.9514"
   },
   {
     "id": "corral-canyon-road",
@@ -1228,14 +1228,14 @@
     "difficultyLevel": "Intermediate",
     "status": "Open",
     "distance": "26.9 miles",
-    "time": "",
+    "time": "3-4 hours",
     "terrain": "canyon",
-    "rigRequirements": "Stock 4WD Recommended",
+    "rigRequirements": "Stock 4WD",
     "tags": [
       "San Diego",
       "ONX Verified"
     ],
-    "description": "Trail data imported from ONX Offroad. Visit ONX for full details.",
+    "description": "Scenic high desert drive with two overlooks of Carrizo Canyon. Great lunch spot at Corrizo Overlook.",
     "image": "https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=800&q=80",
     "onxUrl": "https://www.onxmaps.com/offroad/trails/c3104fdc-f080-5b29-9a97-7f3f78843877",
     "mapsUrl": ""
@@ -1270,14 +1270,14 @@
     "difficultyLevel": "Intermediate",
     "status": "Open",
     "distance": "43.8 miles",
-    "time": "",
+    "time": "5-6 hours",
     "terrain": "canyon",
-    "rigRequirements": "Stock 4WD Recommended",
+    "rigRequirements": "Stock 4WD",
     "tags": [
       "San Diego",
       "ONX Verified"
     ],
-    "description": "Trail data imported from ONX Offroad. Visit ONX for full details.",
+    "description": "Well-maintained dirt road stretching from El Hongo to Oso Negro. Gateway to numerous ranches.",
     "image": "https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=800&q=80",
     "onxUrl": "https://www.onxmaps.com/offroad/trails/4105ef53-4c47-5f93-a920-d49515630d6b",
     "mapsUrl": ""
@@ -1291,14 +1291,14 @@
     "difficultyLevel": "Intermediate",
     "status": "Open",
     "distance": "11.1 miles",
-    "time": "",
+    "time": "4-5 hours",
     "terrain": "desert",
-    "rigRequirements": "Stock 4WD Recommended",
+    "rigRequirements": "Stock 4WD / All-Terrain Tires",
     "tags": [
       "Palm Springs",
       "ONX Verified"
     ],
-    "description": "Trail data imported from ONX Offroad. Visit ONX for full details.",
+    "description": "Scales Rouse Ridge/Thomas Mountain with stunning 360 views. Great combination trail.",
     "image": "https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=800&q=80",
     "onxUrl": "https://www.onxmaps.com/offroad/trails/0e2c522f-838e-5c96-93a4-d97af8454559",
     "mapsUrl": ""
@@ -1312,14 +1312,14 @@
     "difficultyLevel": "Intermediate",
     "status": "Open",
     "distance": "10.4 miles",
-    "time": "",
+    "time": "3-4 hours",
     "terrain": "desert",
-    "rigRequirements": "Stock 4WD Recommended",
+    "rigRequirements": "Stock 4WD / High-Clearance Recommended",
     "tags": [
       "Palm Springs",
       "ONX Verified"
     ],
-    "description": "Trail data imported from ONX Offroad. Visit ONX for full details.",
+    "description": "Two-way trail between Banning-Idyllwild Highway and Bee Canyon. Mostly hard-pack dirt with stunning mountain views.",
     "image": "https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=800&q=80",
     "onxUrl": "https://www.onxmaps.com/offroad/trails/a3d01a08-82ff-5592-8614-aef114e79deb",
     "mapsUrl": ""
@@ -1333,14 +1333,14 @@
     "difficultyLevel": "Intermediate",
     "status": "Open",
     "distance": "5.1 miles",
-    "time": "",
+    "time": "2-3 hours",
     "terrain": "desert",
-    "rigRequirements": "Stock 4WD Recommended",
+    "rigRequirements": "Stock 4WD",
     "tags": [
       "Palm Springs",
       "ONX Verified"
     ],
-    "description": "Trail data imported from ONX Offroad. Visit ONX for full details.",
+    "description": "Well-maintained fire road to Boulder Basin. Turnouts for rock climbing along the way.",
     "image": "https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=800&q=80",
     "onxUrl": "https://www.onxmaps.com/offroad/trails/822e05c3-fc97-5f2a-9f27-0dd2f3719e80",
     "mapsUrl": ""
@@ -1354,14 +1354,14 @@
     "difficultyLevel": "Intermediate",
     "status": "Open",
     "distance": "7.6 miles",
-    "time": "",
+    "time": "3-4 hours",
     "terrain": "desert",
-    "rigRequirements": "Stock 4WD Recommended",
+    "rigRequirements": "High-Clearance Recommended",
     "tags": [
       "Palm Springs",
       "ONX Verified"
     ],
-    "description": "Trail data imported from ONX Offroad. Visit ONX for full details.",
+    "description": "Uneven, rutted dirt trail with loose rocks and sand. Muddy in rain season. Steep sections.",
     "image": "https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=800&q=80",
     "onxUrl": "https://www.onxmaps.com/offroad/trails/2fd283ae-508d-58aa-b2c9-7de3c6d5f766",
     "mapsUrl": ""
@@ -1412,22 +1412,22 @@
     "id": "eureka-peak",
     "name": "Eureka Peak",
     "location": "Palm Springs, CA",
-    "coordinates": "",
+    "coordinates": "34.1597, -116.8203",
     "difficulty": "Intermediate",
     "difficultyLevel": "Intermediate",
     "status": "Open",
     "distance": "8.6 miles",
-    "time": "",
+    "time": "2-3 hours",
     "terrain": "desert",
     "rigRequirements": "Stock 4WD Recommended",
     "tags": [
       "Palm Springs",
       "ONX Verified"
     ],
-    "description": "Trail data imported from ONX Offroad. Visit ONX for full details.",
+    "description": "360-degree views from the top. Multiple hiking trails throughout. Best at sunset.",
     "image": "https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=800&q=80",
     "onxUrl": "https://www.onxmaps.com/offroad/trails/b689320e-dcd3-5702-bb56-88e11749bb24",
-    "mapsUrl": ""
+    "mapsUrl": "https://www.google.com/maps/search/?api=1&query=34.1597,-116.8203"
   },
   {
     "id": "rockhouse-canyon-road",
@@ -1438,14 +1438,14 @@
     "difficultyLevel": "Intermediate",
     "status": "Open",
     "distance": "9.4 miles",
-    "time": "",
+    "time": "4-5 hours",
     "terrain": "desert",
     "rigRequirements": "Stock 4WD Recommended",
     "tags": [
       "Palm Springs",
       "ONX Verified"
     ],
-    "description": "Trail data imported from ONX Offroad. Visit ONX for full details.",
+    "description": "19.8-mile out-and-back in Anza Borrego. Starts at Clark Dry Lake. Street-legal vehicles only.",
     "image": "https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=800&q=80",
     "onxUrl": "https://www.onxmaps.com/offroad/trails/dfbaa5d1-da63-5bd9-b348-508f85e8c8cd",
     "mapsUrl": ""
@@ -1459,14 +1459,14 @@
     "difficultyLevel": "Intermediate",
     "status": "Open",
     "distance": "5 miles",
-    "time": "",
+    "time": "2-3 hours",
     "terrain": "desert",
-    "rigRequirements": "Stock 4WD Recommended",
+    "rigRequirements": "Stock 2WD OK",
     "tags": [
       "Palm Springs",
       "ONX Verified"
     ],
-    "description": "Trail data imported from ONX Offroad. Visit ONX for full details.",
+    "description": "Part of the famous wildflowers tour in Anza Borrego. Highway legal only. Smooth dirt surface.",
     "image": "https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=800&q=80",
     "onxUrl": "https://www.onxmaps.com/offroad/trails/6a909ff3-b482-5a76-9452-f5065e4f5392",
     "mapsUrl": ""
@@ -1475,22 +1475,22 @@
     "id": "geology-tour-road",
     "name": "Geology Tour Road",
     "location": "Palm Springs, CA",
-    "coordinates": "",
+    "coordinates": "33.8736, -115.9010",
     "difficulty": "Intermediate",
     "difficultyLevel": "Intermediate",
     "status": "Open",
     "distance": "8.8 miles",
-    "time": "",
+    "time": "2-3 hours",
     "terrain": "desert",
     "rigRequirements": "Stock 4WD Recommended",
     "tags": [
       "Palm Springs",
       "ONX Verified"
     ],
-    "description": "Trail data imported from ONX Offroad. Visit ONX for full details.",
+    "description": "Family-friendly loop inside Joshua Tree National Park. Scenic with volcanic lava rocks and interesting rock formations.",
     "image": "https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=800&q=80",
     "onxUrl": "https://www.onxmaps.com/offroad/trails/be0a4710-cb18-5ebc-8c23-97a2dd7a171c",
-    "mapsUrl": ""
+    "mapsUrl": "https://www.google.com/maps/search/?api=1&query=33.8736,-115.9010"
   },
   {
     "id": "new-dixie-mine-road-blm-c2330",
@@ -1564,14 +1564,14 @@
     "difficultyLevel": "Intermediate",
     "status": "Open",
     "distance": "9.2 miles",
-    "time": "",
+    "time": "2-3 hours",
     "terrain": "desert",
-    "rigRequirements": "Stock 4WD Recommended",
+    "rigRequirements": "High-Clearance Recommended",
     "tags": [
       "Joshua Tree",
       "ONX Verified"
     ],
-    "description": "Trail data imported from ONX Offroad. Visit ONX for full details.",
+    "description": "Cross Means Lakebed to reach Giant Rock. Smooth desert sand with small washes. Lots of trail choices.",
     "image": "https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=800&q=80",
     "onxUrl": "https://www.onxmaps.com/offroad/trails/5516ddac-1f06-5056-b5ed-72e62078d4ad",
     "mapsUrl": ""
