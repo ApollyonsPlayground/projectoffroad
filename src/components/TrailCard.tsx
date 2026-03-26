@@ -43,7 +43,7 @@ export default function TrailCard({ trail, index }: TrailCardProps) {
   return (
     <div className="group bg-stone-800/40 backdrop-blur-sm rounded-2xl border border-stone-700 overflow-hidden hover:border-orange-600/50 transition-all duration-300 hover:shadow-2xl hover:shadow-orange-900/10">
       {/* Image Section with Fallback */}
-      <div className="relative h-64 overflow-hidden">
+      <div className="relative h-48 overflow-hidden">
         {!imageError ? (
           <>
             <img 
