@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
-import { AlertTriangle, ArrowLeft, CheckCircle, XCircle, Car, Truck, MapPin } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, CheckCircle, XCircle, Car, Truck, Gauge } from 'lucide-react';
 
 export const metadata: Metadata = {
   title: "Truck Buying Guide | SoCal Off-Roaders",
@@ -80,7 +80,7 @@ export default function TruckBuyingGuidePage() {
 
               <div className="bg-stone-900/50 rounded-xl border border-stone-700 p-6">
                 <div className="flex items-center gap-3 mb-3">
-                  <TruckFront className="text-green-400" size={28} />
+                  <Gauge className="text-green-400" size={28} />
                   <h3 className="text-xl font-bold text-stone-50">Jeep Wrangler / Gladiator</h3>
                 </div>
                 <p className="text-stone-400 mb-3"><span className="font-semibold text-orange-400">Models:</span> Wrangler 2-door, 4-door Unlimited, Gladiator</p>
