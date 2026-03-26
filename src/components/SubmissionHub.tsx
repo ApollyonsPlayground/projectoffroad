@@ -60,7 +60,7 @@ export default function SubmissionHub() {
               <iframe
                 src="https://luma.com/embed/calendar/cal-HOBQ0OOIQFzOFrw/events"
                 width="100%"
-                height="400"
+                height="600"
                 frameBorder="0"
                 style={{ border: '1px solid rgba(255,255,255,0.08)', borderRadius: '4px' }}
                 allowFullScreen={false}

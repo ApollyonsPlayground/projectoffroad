@@ -2,41 +2,13 @@
 
 import { useState } from 'react';
 import HeroCinematic from '../components/HeroCinematic';
-import TrailCard from '../components/TrailCard';
-import RegionFilter from '../components/RegionFilter';
+import RegionCards from '../components/RegionCards';
 import SubmissionHub from '../components/SubmissionHub';
 import DisclaimerModal from '../components/DisclaimerModal';
 import trailsData from '../data/trails.json';
 import { MapPin, Instagram, Wrench, AlertTriangle, ExternalLink, TreePine, Mountain, Shield } from 'lucide-react';
 
-// Region filter function
-function filterTrailsByRegion(trails: typeof trailsData, regionId: string) {
-  if (regionId === 'all') return trails;
-  
-  return trails.filter(trail => {
-    const loc = (trail.location || '').toLowerCase();
-    const tags = (trail.tags || []).map(t => t.toLowerCase());
-    
-    switch (regionId) {
-      case 'big-bear':
-        return loc.includes('big bear') || tags.includes('big bear');
-      case 'san-diego':
-        return loc.includes('san diego') || tags.includes('san diego');
-      case 'palm-springs':
-        return loc.includes('palm springs') || loc.includes('idyllwild') || tags.includes('palm springs') || tags.includes('idyllwild');
-      case 'joshua-tree':
-        return loc.includes('joshua tree') || tags.includes('joshua tree');
-      case 'san-bernardino':
-        return loc.includes('san bernardino') || loc.includes('cajon') || loc.includes('lytle') || tags.includes('san bernardino');
-      default:
-        return true;
-    }
-  });
-}
-
 export default function HomePage() {
-  const [selectedRegion, setSelectedRegion] = useState('all');
-  const filteredTrails = filterTrailsByRegion(trailsData, selectedRegion);
   return (
     <main className="min-h-screen bg-stone-950">
       {/* Legal Disclaimer Modal - Page Load Gate */}
@@ -92,33 +64,8 @@ export default function HomePage() {
             </a>
           </div>
 
-          {/* Region Filter Tabs */}
-          <RegionFilter 
-            selectedRegion={selectedRegion} 
-            onRegionChange={setSelectedRegion} 
-          />
-
-          {/* Trail Count */}
-          <div className="text-center mb-8">
-            <p className="text-stone-400">
-              Showing <span className="text-orange-400 font-bold">{filteredTrails.length}</span> trails
-              {selectedRegion !== 'all' && ' in selected region'}
-            </p>
-          </div>
-
-          {/* Trail Cards Grid */}
-          {filteredTrails.length > 0 ? (
-            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8">
-              {filteredTrails.map((trail, index) => (
-                <TrailCard key={trail.id} trail={trail} index={index} />
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-16 bg-stone-900/30 rounded-2xl border border-stone-800">
-              <p className="text-stone-400 text-lg">No trails found in this region yet.</p>
-              <p className="text-stone-500 text-sm mt-2">Check back soon for more trails!</p>
-            </div>
-          )}
+          {/* Region Cards - Mobile First */}
+          <RegionCards trails={trailsData} />
         </div>
       </section>
 
