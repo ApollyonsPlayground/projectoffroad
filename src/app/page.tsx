@@ -57,6 +57,17 @@ export default function HomePage() {
       {/* Hero Section */}
       <HeroCinematic />
 
+      {/* Floating Help Button */}
+      <a 
+        href="https://instagram.com/socal_crwlr"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="fixed bottom-6 right-6 z-40 flex items-center gap-2 px-4 py-3 bg-orange-600 hover:bg-orange-700 text-stone-50 font-semibold rounded-full shadow-lg shadow-orange-600/30 transition-all hover:scale-105"
+      >
+        <span className="text-xl">🆘</span>
+        <span className="font-medium">Help I'm Stuck!</span>
+      </a>
+
       {/* Trail Explorer Section */}
       <section id="trail-explorer" className="py-20 px-4 bg-stone-950">
         <div className="container mx-auto max-w-6xl">
@@ -184,19 +195,22 @@ export default function HomePage() {
 
           {/* Recovery Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto mb-12">
-            {/* SoCal Crwlr */}
+            {/* Combined: SoCal Crwlr + Rugged Repair */}
             <div className="bg-stone-900/50 backdrop-blur-sm rounded-2xl border border-stone-700 p-8 hover:border-orange-600/30 transition-all">
-              <div className="mb-6">
-                <h3 className="text-2xl font-bold text-stone-50">SoCal Crwlr</h3>
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-2xl font-bold text-stone-50">SoCal Crwlr + Rugged Repair</h3>
+                <span className="px-3 py-1 bg-orange-600/20 text-orange-400 rounded-full text-sm font-medium border border-orange-600/30">
+                  Mobile Tech
+                </span>
               </div>
               
               <p className="text-stone-400 mb-6">
-                Full-service recovery throughout Southern California OHV areas. 
-                Winch, tow straps, hi-lift, and recovery rig ready to roll.
+                Full-service recovery and trail-side repairs. Winch, tow straps, 
+                welding, and mobile mechanic services. Serving the IE/Riverside area.
               </p>
 
               <div className="flex flex-wrap gap-2 mb-6">
-                {['Winch', 'Tow Straps', 'Hi-Lift', 'Recovery Rig', 'Riverside'].map((tag) => (
+                {['Winch', 'Tow Straps', 'Hi-Lift', 'Welding', 'Mobile Repair', 'Recovery', 'Riverside'].map((tag) => (
                   <span key={tag} className="px-3 py-1 bg-stone-800 text-stone-400 rounded-full text-xs border border-stone-700">
                     {tag}
                   </span>
@@ -214,49 +228,14 @@ export default function HomePage() {
               </a>
             </div>
 
-            {/* Rugged Repair */}
+            {/* Add Your Own Card */}
             <div className="bg-stone-900/50 backdrop-blur-sm rounded-2xl border border-stone-700 p-8 hover:border-orange-600/30 transition-all">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-2xl font-bold text-stone-50">Rugged Repair</h3>
-                <span className="px-3 py-1 bg-orange-600/20 text-orange-400 rounded-full text-sm font-medium border border-orange-600/30">
-                  Mobile Tech
-                </span>
-              </div>
-              
-              <p className="text-stone-400 mb-6">
-                Trail-side repairs and mobile mechanic services. Welding, tools, 
-                and expertise to get you rolling again. No trail too remote.
-              </p>
-
-              <div className="flex flex-wrap gap-2 mb-6">
-                {['Mobile Repair', 'Welding', 'Tools', 'Trail-Side', 'Riverside'].map((tag) => (
-                  <span key={tag} className="px-3 py-1 bg-stone-800 text-stone-400 rounded-full text-xs border border-stone-700">
-                    {tag}
-                  </span>
-                ))}
-              </div>
-
-              <a 
-                href="https://instagram.com/rugged_repair"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 w-full py-3 bg-stone-800 hover:bg-stone-700 text-stone-200 rounded-lg transition-all border border-stone-600"
-              >
-                <Wrench size={18} />
-                <span className="font-medium">@rugged_repair</span>
-              </a>
-            </div>
-          </div>
-
-          {/* Add Your Own Card */}
-          <div className="max-w-2xl mx-auto mb-12">
-            <div className="bg-stone-900/50 backdrop-blur-sm rounded-2xl border border-stone-700 p-8 hover:border-orange-600/30 transition-all text-center">
               <div className="mb-6">
-                <h3 className="text-2xl font-bold text-stone-50">Are you a mobile mechanic, repair, or recovery service?</h3>
-                <p className="text-stone-400 mt-4">DM us on Instagram to be added to the list.</p>
+                <h3 className="text-2xl font-bold text-stone-50">Are you a mobile mechanic?</h3>
+                <p className="text-stone-400 mt-4">DM me on Instagram to be added to the list.</p>
               </div>
               
-              <div className="flex flex-wrap gap-2 justify-center mb-6">
+              <div className="flex flex-wrap gap-2 mb-6">
                 {['Mobile Repair', 'Welding', 'Recovery', 'Trail-Side'].map((tag) => (
                   <span key={tag} className="px-3 py-1 bg-stone-800 text-stone-400 rounded-full text-xs border border-stone-700">
                     {tag}
@@ -268,7 +247,7 @@ export default function HomePage() {
                 href="https://instagram.com/noah2131"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center justify-center gap-2 w-full py-3 bg-stone-800 hover:bg-stone-700 text-stone-200 rounded-lg transition-all border border-stone-600"
+                className="flex items-center justify-center gap-2 w-full py-3 bg-stone-800 hover:bg-stone-700 text-stone-200 rounded-lg transition-all border border-stone-600"
               >
                 <Instagram size={18} />
                 <span className="font-medium">@noah2131</span>
