@@ -78,7 +78,7 @@ export default function SubmissionHub() {
               className="flex items-center justify-center gap-2 w-full py-3 px-4 bg-orange-600 hover:bg-orange-700 text-stone-50 font-semibold rounded-lg transition-all shadow-lg shadow-orange-600/20"
             >
               <ExternalLink size={18} />
-              Host Your Own Run
+              Want Others to Join You?
             </a>
           </div>
         ) : activeTab === 'trail' ? (
