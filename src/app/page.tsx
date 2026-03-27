@@ -57,15 +57,12 @@ export default function HomePage() {
       {/* Hero Section */}
       <HeroCinematic />
 
-      {/* Floating Help Button */}
+      {/* Help I'm Stuck Button (top) */}
       <a 
-        href="https://instagram.com/socal_crwlr"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="fixed bottom-6 right-6 z-40 flex items-center gap-2 px-4 py-3 bg-orange-600 hover:bg-orange-700 text-stone-50 font-semibold rounded-full shadow-lg shadow-orange-600/30 transition-all hover:scale-105"
+        href="#recovery"
+        className="inline-block mb-4 px-4 py-2 bg-orange-600 hover:bg-orange-700 text-stone-50 font-semibold rounded-lg shadow-md transition-colors"
       >
-        <span className="text-xl">🆘</span>
-        <span className="font-medium">Help I'm Stuck!</span>
+        🆘 Help I'm Stuck!
       </a>
 
       {/* Trail Explorer Section */}
@@ -194,7 +191,7 @@ export default function HomePage() {
           </div>
 
           {/* Recovery Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto mb-12">
+          <div id="recovery" className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto mb-12">
             {/* Combined: SoCal Crwlr + Rugged Repair */}
             <div className="bg-stone-900/50 backdrop-blur-sm rounded-2xl border border-stone-700 p-8 hover:border-orange-600/30 transition-all">
               <div className="flex items-center justify-between mb-6">
