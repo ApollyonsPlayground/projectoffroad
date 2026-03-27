@@ -182,7 +182,73 @@ export default function HomePage() {
             </p>
           </div>
 
-          {/* Recovery Resource */}
+          {/* Recovery Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto mb-12">
+            {/* SoCal Crwlr */}
+            <div className="bg-stone-900/50 backdrop-blur-sm rounded-2xl border border-stone-700 p-8 hover:border-orange-600/30 transition-all">
+              <div className="mb-6">
+                <h3 className="text-2xl font-bold text-stone-50">SoCal Crwlr</h3>
+              </div>
+              
+              <p className="text-stone-400 mb-6">
+                Full-service recovery throughout Southern California OHV areas. 
+                Winch, tow straps, hi-lift, and recovery rig ready to roll.
+              </p>
+
+              <div className="flex flex-wrap gap-2 mb-6">
+                {['Winch', 'Tow Straps', 'Hi-Lift', 'Recovery Rig', 'Riverside'].map((tag) => (
+                  <span key={tag} className="px-3 py-1 bg-stone-800 text-stone-400 rounded-full text-xs border border-stone-700">
+                    {tag}
+                  </span>
+                ))}
+              </div>
+
+              <a 
+                href="https://instagram.com/socal_crwlr"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-2 w-full py-3 bg-stone-800 hover:bg-stone-700 text-stone-200 rounded-lg transition-all border border-stone-600"
+              >
+                <Instagram size={18} />
+                <span className="font-medium">@socal_crwlr</span>
+              </a>
+            </div>
+
+            {/* Rugged Repair */}
+            <div className="bg-stone-900/50 backdrop-blur-sm rounded-2xl border border-stone-700 p-8 hover:border-orange-600/30 transition-all">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-2xl font-bold text-stone-50">Rugged Repair</h3>
+                <span className="px-3 py-1 bg-orange-600/20 text-orange-400 rounded-full text-sm font-medium border border-orange-600/30">
+                  Mobile Tech
+                </span>
+              </div>
+              
+              <p className="text-stone-400 mb-6">
+                Trail-side repairs and mobile mechanic services. Welding, tools, 
+                and expertise to get you rolling again. No trail too remote.
+              </p>
+
+              <div className="flex flex-wrap gap-2 mb-6">
+                {['Mobile Repair', 'Welding', 'Tools', 'Trail-Side', 'Riverside'].map((tag) => (
+                  <span key={tag} className="px-3 py-1 bg-stone-800 text-stone-400 rounded-full text-xs border border-stone-700">
+                    {tag}
+                  </span>
+                ))}
+              </div>
+
+              <a 
+                href="https://instagram.com/rugged_repair"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-2 w-full py-3 bg-stone-800 hover:bg-stone-700 text-stone-200 rounded-lg transition-all border border-stone-600"
+              >
+                <Wrench size={18} />
+                <span className="font-medium">@rugged_repair</span>
+              </a>
+            </div>
+          </div>
+
+          {/* Add Your Own Card */}
           <div className="max-w-2xl mx-auto mb-12">
             <div className="bg-stone-900/50 backdrop-blur-sm rounded-2xl border border-stone-700 p-8 hover:border-orange-600/30 transition-all text-center">
               <div className="mb-6">
