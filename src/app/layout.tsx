@@ -1,9 +1,12 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { AuthProvider } from "@/context/AuthContext";
+import Navbar from "@/components/Navbar";
 
 export const metadata: Metadata = {
-  title: "SoCal Off-Roaders | Wilderness Trail Guides",
-  description: "Discover Southern California's best off-road trails. From desert dunes to mountain peaks, explore with confidence using our trail guides and navigation tools.",
+  title: "SoCal Offroaders | Community App",
+  description: "Southern California Offroad Community - Find trails, join runs, connect with clubs",
+  manifest: "/manifest.json",
 };
 
 export default function RootLayout({
@@ -13,8 +16,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="antialiased bg-stone-950 text-stone-50">
-        {children}
+      <body className="antialiased bg-gray-900 text-white">
+        <AuthProvider>
+          <Navbar />
+          {children}
+        </AuthProvider>
       </body>
     </html>
   );

@@ -1,0 +1,17 @@
+{
+  "name": "SoCal Offroaders",
+  "short_name": "SoCalOR",
+  "description": "Southern California Offroad Community - Find trails, join runs, connect with clubs",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1a1a1a",
+  "theme_color": "#f59e0b",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    }
+  ]
+}

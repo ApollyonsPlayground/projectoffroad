@@ -1,36 +1,69 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# SoCal Offroaders - Community App
+
+Full-featured offroad community platform for Southern California.
+
+## Features
+
+- **User Accounts** - Registration, profiles, vehicle management
+- **Clubs** - Create and join offroad clubs with verification
+- **Runs** - Create and join offroad runs with RSVP
+- **Real-time Chat** - Run chat with live messaging
+- **PWA** - Installable as native app
+
+## Tech Stack
+
+- Next.js 14 (App Router)
+- Supabase (Auth, Database, Realtime)
+- Tailwind CSS
+- TypeScript
+- Capacitor (Android build)
 
 ## Getting Started
 
-First, run the development server:
+1. **Set up Supabase:**
+   - Create a new Supabase project
+   - Run `src/lib/db/schema.sql` in the SQL Editor
+   - Get your URL and anon key
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+2. **Configure environment:**
+   ```bash
+   cp .env.example .env.local
+   # Edit .env.local with your Supabase credentials
+   ```
+
+3. **Run development server:**
+   ```bash
+   npm run dev
+   ```
+
+4. **Open:** http://localhost:3000
+
+## Project Structure
+
+```
+src/
+├── app/              # Next.js App Router pages
+│   ├── api/          # API routes
+│   ├── login/        # Login page
+│   ├── register/     # Registration page
+│   ├── dashboard/    # Main dashboard
+│   ├── profile/      # User profile
+│   ├── runs/         # Runs listing
+│   └── clubs/        # Clubs listing
+├── components/       # React components
+├── context/          # React contexts (Auth)
+└── lib/              # Utilities & database
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Deployment
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Build for production:
+```bash
+npm run build
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Deploy to Vercel or any Next.js hosting.
 
-## Learn More
+## PWA
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The app is configured as a PWA. Visit in Chrome on Android and select "Add to Home Screen" for an app-like experience.
