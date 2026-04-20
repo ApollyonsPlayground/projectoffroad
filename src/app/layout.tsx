@@ -17,6 +17,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <script src="https://cdn.tailwindcss.com"></script>
       <body className="antialiased bg-gray-900 text-white">
         <AuthProvider>
           <div className="flex flex-col min-h-screen">
