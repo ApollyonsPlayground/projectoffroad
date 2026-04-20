@@ -204,7 +204,7 @@ export default function CreateRunPage() {
               value={formData.vehicle_requirements}
               onChange={(e) => setFormData({ ...formData, vehicle_requirements: e.target.value })}
               className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white"
-              placeholder="e.g., 33\" tires, winch, front/rear lockers"
+              placeholder="e.g., 33 inch tires, winch, front/rear lockers"
             />
           </div>
 
