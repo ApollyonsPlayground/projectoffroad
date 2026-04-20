@@ -1,12 +1,9 @@
 [build]
   command = "yarn build"
-  publish = "dist"
+  publish = ".next"
 
 [build.environment]
   NODE_VERSION = "20"
 
 [[plugins]]
   package = "@netlify/nextjs"
-
-[functions]
-  directory = "dist/server"

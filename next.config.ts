@@ -4,6 +4,7 @@ import withPWA from "next-pwa";
 const nextConfig: NextConfig = {
   basePath: "/offroad",
   trailingSlash: true,
+  turbopack: {},
   images: {
     unoptimized: true,
     remotePatterns: [
@@ -17,7 +18,6 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  turbopack: {},
 };
 
 const pwaConfig = withPWA({
