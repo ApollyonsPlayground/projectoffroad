@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { useAuth } from '@/context/AuthContext'
 import { createClient } from '@supabase/supabase-js'
 
@@ -112,9 +113,9 @@ export default function RunsPage() {
                 </div>
 
                 <div className="px-6 py-4 bg-gray-700/50 border-t border-gray-700">
-                  <button className="w-full py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-sm font-medium transition">
+                  <Link href={`/runs/${run.id}`} className="w-full py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-sm font-medium transition text-center block">
                     View Details
-                  </button>
+                  </Link>
                 </div>
               </div>
             ))}
