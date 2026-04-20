@@ -29,6 +29,9 @@ export default function Navbar() {
                 <Link href="/achievements" className="text-gray-300 hover:text-amber-500 transition">
                   Badges
                 </Link>
+                <Link href="/leaderboard" className="text-gray-300 hover:text-amber-500 transition">
+                  Leaderboard
+                </Link>
               </div>
             )}
           </div>
