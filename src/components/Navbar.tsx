@@ -26,6 +26,9 @@ export default function Navbar() {
                 <Link href="/clubs" className="text-gray-300 hover:text-amber-500 transition">
                   Clubs
                 </Link>
+                <Link href="/achievements" className="text-gray-300 hover:text-amber-500 transition">
+                  Badges
+                </Link>
               </div>
             )}
           </div>
@@ -47,6 +50,9 @@ export default function Navbar() {
               </>
             ) : (
               <>
+                <Link href="/search" className="text-gray-300 hover:text-amber-500 transition">
+                  Search
+                </Link>
                 <Link href="/login" className="text-gray-300 hover:text-amber-500 transition">
                   Sign In
                 </Link>
