@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useState, useSearchParams } from 'react'
+import { useEffect, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@supabase/supabase-js'
 
@@ -51,7 +52,7 @@ export default function SearchPage() {
           type: 'run',
           id: run.id,
           title: run.title,
-          subtitle: run.club?.name || 'Independent'
+          subtitle: (run.club as { name?: string })?.name || 'Independent'
         })
       })
     }
