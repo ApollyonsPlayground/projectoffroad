@@ -152,6 +152,40 @@ CREATE TABLE subscriptions (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- USER LOCATIONS (Live GPS during runs)
+CREATE TABLE user_locations (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  run_id UUID REFERENCES runs(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  latitude DECIMAL(10, 8) NOT NULL,
+  longitude DECIMAL(11, 8) NOT NULL,
+  accuracy DECIMAL(5, 2),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- VOICE SESSIONS (Voice chat rooms)
+CREATE TABLE voice_sessions (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  run_id UUID REFERENCES runs(id) ON DELETE CASCADE,
+  room_id TEXT NOT NULL,
+  provider TEXT DEFAULT 'livekit', -- livekit, daily, etc.
+  active BOOLEAN DEFAULT true,
+  started_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  ended_at TIMESTAMP WITH TIME ZONE
+);
+
+-- SOS ALERTS (Emergency alerts during runs)
+CREATE TABLE sos_alerts (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  run_id UUID REFERENCES runs(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  latitude DECIMAL(10, 8),
+  longitude DECIMAL(11, 8),
+  message TEXT,
+  acknowledged BOOLEAN DEFAULT false,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- Enable RLS
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE vehicles ENABLE ROW LEVEL SECURITY;
@@ -166,6 +200,9 @@ ALTER TABLE achievements ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_achievements ENABLE ROW LEVEL SECURITY;
 ALTER TABLE reviews ENABLE ROW LEVEL SECURITY;
 ALTER TABLE subscriptions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_locations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE voice_sessions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sos_alerts ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policies (basic - can be expanded)
 CREATE POLICY "Users can read all users" ON users FOR SELECT USING (true);
@@ -185,11 +222,21 @@ INSERT INTO achievements (name, description, icon) VALUES
   ('Social Butterfly', 'Added 10 friends', '🦋'),
   ('Club Founder', 'Created a club', '🏠'),
   ('Offroad Veteran', 'Attended 50 runs', '🎖️'),
-  ('Wheelin Master', 'Completed an extreme run', '🚙');
+  ('Wheelin Master', 'Completed an extreme run', '🚙'),
+  ('Lifesaver', 'Sent an SOS alert that helped someone', '🆘'),
+  ('Voice Commander', 'Used voice chat during a run', '🎙️');
+
+
+-- Add status column to runs for run lifecycle
+ALTER TABLE runs ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'upcoming' CHECK (status IN ('upcoming', 'active', 'completed', 'cancelled'));
 
 -- Create indexes for performance
 CREATE INDEX idx_runs_date ON runs(date);
 CREATE INDEX idx_runs_club ON runs(club_id);
+CREATE INDEX idx_runs_status ON runs(status);
 CREATE INDEX idx_messages_run ON messages(run_id);
 CREATE INDEX idx_club_members_user ON club_members(user_id);
 CREATE INDEX idx_follows_following ON follows(following_id);
+CREATE INDEX idx_user_locations_run ON user_locations(run_id);
+CREATE INDEX idx_user_locations_updated ON user_locations(updated_at);
+CREATE INDEX idx_sos_alerts_run ON sos_alerts(run_id);
