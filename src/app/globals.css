@@ -29,9 +29,33 @@
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background: #0a0a0a;
+  background: #050705;
   color: #e5e5e5;
   line-height: 1.6;
+}
+
+/* Deep Earth palette */
+:root {
+  --color-deep-earth: #050705;
+  --color-muted-gold: #a89f6d;
+  --color-forest-green: #2d4a3e;
+  --color-moss: #4a5d4a;
+}
+
+/* Slide up and fade in animation */
+@keyframes slideUpFade {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-up {
+  animation: slideUpFade 0.5s ease-out forwards;
 }
 
 a {
