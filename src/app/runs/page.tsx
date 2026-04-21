@@ -83,37 +83,37 @@ export default function RunsPage() {
         {runs.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {runs.map((run) => (
-              <div key={run.id} className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden hover:border-amber-500 transition">
+              <div key={run.id} className="bg-neutral-800 rounded-none border-2 border-neutral-700 hover:border-orange-500 transition">
                 <div className="p-6">
                   <div className="flex justify-between items-start mb-3">
-                    <h3 className="text-lg font-semibold text-white">{run.title}</h3>
-                    <span className={`px-2 py-1 rounded text-xs font-medium ${getDifficultyColor(run.difficulty)}`}>
+                    <h3 className="text-lg font-bold text-white uppercase tracking-wide">{run.title}</h3>
+                    <span className={`px-2 py-1 rounded-none text-xs font-black uppercase ${getDifficultyColor(run.difficulty)}`}>
                       {run.difficulty}
                     </span>
                   </div>
                   
-                  <p className="text-gray-400 text-sm mb-4 line-clamp-2">
+                  <p className="text-neutral-400 text-sm mb-4 line-clamp-2">
                     {run.description || 'No description'}
                   </p>
 
                   <div className="space-y-2 text-sm">
-                    <div className="flex items-center text-gray-400">
+                    <div className="flex items-center text-neutral-400">
                       <span className="mr-2">📅</span>
                       {new Date(run.date).toLocaleDateString()}
                     </div>
-                    <div className="flex items-center text-gray-400">
+                    <div className="flex items-center text-neutral-400">
                       <span className="mr-2">📍</span>
                       {run.meetup_location || 'TBD'}
                     </div>
-                    <div className="flex items-center text-gray-400">
+                    <div className="flex items-center text-neutral-400">
                       <span className="mr-2">🏠</span>
                       {run.club?.name || 'Independent'}
                     </div>
                   </div>
                 </div>
 
-                <div className="px-6 py-4 bg-gray-700/50 border-t border-gray-700">
-                  <Link href={`/runs/${run.id}`} className="w-full py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-sm font-medium transition text-center block">
+                <div className="px-6 py-4 bg-neutral-900/50 border-t-2 border-neutral-700">
+                  <Link href={`/runs/${run.id}`} className="w-full py-2 bg-neutral-700 hover:bg-neutral-600 text-white text-xs font-bold uppercase tracking-widest transition text-center block">
                     View Details
                   </Link>
                 </div>
@@ -121,8 +121,16 @@ export default function RunsPage() {
             ))}
           </div>
         ) : (
-          <div className="text-center py-16 text-gray-400">
-            No {filter} runs at the moment. Check back later!
+          <div className="border-2 border-dashed border-neutral-700 p-12 text-center">
+            <p className="text-neutral-500 text-lg font-black uppercase tracking-widest mb-4">
+              No {filter} runs right now
+            </p>
+            <p className="text-neutral-600 text-sm mb-6">Be the first to hit the dirt.</p>
+            {user && (
+              <Link href="/runs/create" className="inline-block px-6 py-3 bg-orange-600 hover:bg-orange-700 text-white text-sm font-black uppercase tracking-widest transition">
+                + New Run
+              </Link>
+            )}
           </div>
         )}
       </div>

@@ -114,8 +114,18 @@ export default function ClubsPage() {
             ))}
           </div>
         ) : (
-          <div className="text-center py-16 text-gray-400">
-            {search ? 'No clubs found matching your search.' : 'No clubs yet. Be the first to create one!'}
+          <div className="border-2 border-dashed border-neutral-700 p-12 text-center">
+            <p className="text-neutral-500 text-lg font-black uppercase tracking-widest mb-4">
+              {search ? 'No clubs found' : 'No clubs yet'}
+            </p>
+            <p className="text-neutral-600 text-sm mb-6">
+              {search ? 'Try a different search term.' : 'Be the first to start a club.'}
+            </p>
+            {!search && user && (
+              <Link href="/clubs/create" className="inline-block px-6 py-3 bg-orange-600 hover:bg-orange-700 text-white text-sm font-black uppercase tracking-widest transition">
+                + Create Club
+              </Link>
+            )}
           </div>
         )}
       </div>
