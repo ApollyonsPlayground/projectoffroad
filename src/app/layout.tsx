@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 
 export const metadata: Metadata = {
   title: "SoCal Offroaders | Community App",
@@ -18,13 +16,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <script src="https://cdn.tailwindcss.com"></script>
-      <body className="antialiased bg-gray-900 text-white">
+      <body className="antialiased bg-black text-white">
         <AuthProvider>
-          <div className="flex flex-col min-h-screen">
-            <Navbar />
-            <main className="flex-1">{children}</main>
-            <Footer />
-          </div>
+          {children}
         </AuthProvider>
       </body>
     </html>

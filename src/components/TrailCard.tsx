@@ -41,7 +41,7 @@ export default function TrailCard({ trail, index }: TrailCardProps) {
   // Use the trail's specific image
 
   return (
-    <div className="group bg-stone-800/40 backdrop-blur-sm rounded-2xl border border-stone-700 overflow-hidden hover:border-orange-600/50 transition-all duration-300 hover:shadow-2xl hover:shadow-orange-900/10">
+    <div className="rounded-none border-2 border-neutral-800 bg-neutral-900 mb-4">
       {/* Image Section with Fallback */}
       <div className="relative h-48 overflow-hidden">
         {!imageError ? (
@@ -65,8 +65,8 @@ export default function TrailCard({ trail, index }: TrailCardProps) {
         
         {/* Status Badge */}
         <div className="absolute top-4 left-4">
-          <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${
-            trail.status === 'Open' ? 'bg-emerald-600/90 text-emerald-50' : 'bg-red-600/90 text-red-50'
+          <span className={`px-3 py-1 rounded-none text-xs font-black uppercase tracking-widest border-2 ${
+            trail.status === 'Open' ? 'bg-emerald-600 border-emerald-600 text-white' : 'bg-red-600 border-red-600 text-white'
           }`}>
             {trail.status}
           </span>
@@ -74,7 +74,7 @@ export default function TrailCard({ trail, index }: TrailCardProps) {
 
         {/* Difficulty Badge */}
         <div className="absolute top-4 right-4">
-          <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${colors.bg} ${colors.text} ${colors.border}`}>
+          <span className={`px-3 py-1 rounded-none text-xs font-black uppercase tracking-widest border-2 ${colors.bg} ${colors.text} ${colors.border}`}>
             {trail.difficultyLevel}
           </span>
         </div>
@@ -133,12 +133,11 @@ export default function TrailCard({ trail, index }: TrailCardProps) {
         {/* Navigation Suite */}
         <div className="grid grid-cols-2 gap-3">
           <a href={trail.mapsUrl} target="_blank" rel="noopener noreferrer"
-            className="flex items-center justify-center gap-2 px-4 py-3 bg-stone-700 hover:bg-stone-600 text-stone-200 rounded-lg transition-all border border-stone-600">
-            <Navigation size={18} />
-            <span className="font-medium">Google Maps</span>
+            className="flex-1 py-2 bg-neutral-800 hover:bg-neutral-700 text-center text-neutral-300 text-xs font-bold uppercase border border-neutral-700 transition-colors">
+            Google Maps
           </a>
           <a href={trail.onxUrl} target="_blank" rel="noopener noreferrer"
-            className="flex items-center justify-center gap-2 px-4 py-3 bg-orange-600 hover:bg-orange-700 text-stone-50 rounded-lg transition-all shadow-lg shadow-orange-600/20">
+            className="flex-1 py-2 bg-orange-600 hover:bg-orange-700 text-center text-white text-xs font-bold uppercase transition-colors">
             <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
               <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/>
             </svg>
