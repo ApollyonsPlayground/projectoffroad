@@ -75,7 +75,7 @@ export default function HomePage() {
       await Haptics.impact({ style: ImpactStyle.Medium });
     } catch (e) {}
     // Refetch posts
-    const { data } = await supabase!.from('posts').select('*').order('created_at', { ascending: false }).limit(50);
+    const { data } = await supabase!.from('posts').select('*').eq('is_flagged', false).order('created_at', { ascending: false }).limit(50);
     setPosts(data || []);
     setTimeout(() => setIsRefreshing(false), 500);
   };
@@ -108,6 +108,7 @@ export default function HomePage() {
         const { data, error } = await supabase!
           .from('posts')
           .select('*')
+          .eq('is_flagged', false)
           .order('created_at', { ascending: false })
           .limit(50);
         
