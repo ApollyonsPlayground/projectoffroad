@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { MapPin, Flag, Heart, MessageCircle, Share2, MoreHorizontal } from 'lucide-react';
 import Link from 'next/link';
+import { Haptics, ImpactStyle } from '@capacitor/haptics';
 
 interface RigPost {
   id: string;
@@ -28,6 +29,26 @@ interface RigPostCardProps {
 export default function RigPostCard({ post }: RigPostCardProps) {
   const [liked, setLiked] = useState(false);
   const [showReport, setShowReport] = useState(false);
+  const [likeCount, setLikeCount] = useState(post.likes);
+
+  // Trigger haptic feedback
+  const triggerHaptic = async () => {
+    try {
+      await Haptics.impact({ style: ImpactStyle.Light });
+    } catch (e) {
+      // Haptics not available (web/desktop)
+    }
+  };
+
+  const handleLike = async () => {
+    // Optimistic UI: immediate visual feedback
+    const wasLiked = liked;
+    setLiked(!wasLiked);
+    setLikeCount(prev => wasLiked ? prev - 1 : prev + 1);
+    
+    // Trigger haptic
+    await triggerHaptic();
+  };
 
   return (
     <div className="bg-neutral-900 border-2 border-neutral-800 mb-6 max-w-md mx-auto">
@@ -94,8 +115,8 @@ export default function RigPostCard({ post }: RigPostCardProps) {
       <div className="p-3">
         <div className="flex items-center gap-4 mb-2">
           <button 
-            onClick={() => setLiked(!liked)}
-            className={`${liked ? 'text-red-500' : 'text-neutral-300'} hover:text-red-400 transition`}
+            onClick={handleLike}
+            className={`${liked ? 'text-[#FF8C00]' : 'text-neutral-300'} hover:text-[#FF8C00] transition`}
           >
             <Heart size={22} fill={liked ? "currentColor" : "none"} />
           </button>
@@ -109,7 +130,7 @@ export default function RigPostCard({ post }: RigPostCardProps) {
 
         {/* Likes */}
         <p className="text-sm font-bold text-neutral-200 mb-1">
-          {post.likes} likes
+          {likeCount} likes
         </p>
 
         {/* Caption */}

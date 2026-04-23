@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import LeftNav, { DesktopNav } from '@/components/LeftNav';
 import RightSidebar from '@/components/RightSidebar';
 import RigPost from '@/components/RigPost';
@@ -8,6 +8,8 @@ import DisclaimerModal from '@/components/DisclaimerModal';
 import trailsData from '@/data/trails.json';
 import { AlertTriangle, Plus, Menu, Home, Compass, Users, User, Settings } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '@/lib/db/supabase';
+import { Haptics, ImpactStyle } from '@capacitor/haptics';
+import { motion, useMotionValue, useTransform, useSpring } from 'framer-motion';
 import Link from 'next/link';
 
 // Posts will be fetched from Supabase
@@ -51,7 +53,30 @@ export default function HomePage() {
   const [posts, setPosts] = useState<any[]>([]);
   const [feedType, setFeedType] = useState<'rigs' | 'trails'>('rigs');
   const [menuOpen, setMenuOpen] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const filteredTrails = filterTrailsByRegion(trailsData, selectedRegion);
+  
+  // Pull-to-refresh
+  const y = useMotionValue(0);
+  const ySpring = useSpring(y, { stiffness: 300, damping: 30 });
+  
+  // Haptic feedback for mobile nav
+  const triggerTabHaptic = async () => {
+    try {
+      await Haptics.impact({ style: ImpactStyle.Light });
+    } catch (e) {}
+  };
+  
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await Haptics.impact({ style: ImpactStyle.Medium });
+    } catch (e) {}
+    // Refetch posts
+    const { data } = await supabase!.from('posts').select('*').order('created_at', { ascending: false }).limit(50);
+    setPosts(data || []);
+    setTimeout(() => setIsRefreshing(false), 500);
+  };
   
   // Pre-compute posts content to avoid JSX ternary nesting issues
   const postsContent = posts.length === 0 ? (
@@ -148,8 +173,26 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Feed Content */}
-        <div className="p-4 space-y-4">
+        {/* Feed Content with Pull-to-Refresh */}
+        <motion.div 
+          className="p-4 space-y-4"
+          style={{ y }}
+          drag="y"
+          dragConstraints={{ top: 0, bottom: 0 }}
+          dragElastic={0.2}
+          onDragEnd={(e, { offset, velocity }) => {
+            if (offset.y > 100 || velocity.y > 500) {
+              handleRefresh();
+            }
+          }}
+        >
+          {/* Pull indicator */}
+          {isRefreshing && (
+            <div className="text-center py-2 text-[#FF8C00] font-bold animate-pulse">
+              Refreshing...
+            </div>
+          )}
+          
           <DisclaimerModal />
           
           {feedType === 'rigs' ? (
@@ -239,7 +282,7 @@ export default function HomePage() {
               )}
             </>
           )}
-        </div>
+        </motion.div>
       </main>
 
       {/* Right Sidebar - Desktop Only */}
@@ -261,6 +304,7 @@ export default function HomePage() {
           <Link
             key={item.href}
             href={item.href}
+            onClick={triggerTabHaptic}
             className="flex flex-col items-center gap-1 text-neutral-400 hover:text-orange-500"
           >
             <item.icon size={20} />
