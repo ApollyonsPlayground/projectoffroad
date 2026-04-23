@@ -198,7 +198,6 @@ export default function HomePage() {
               )}
             </>
           )}
-        </div>
       </main>
 
       {/* Right Sidebar */}
