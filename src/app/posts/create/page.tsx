@@ -143,7 +143,7 @@ export default function CreatePostPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-4 bg-muted-gold hover:bg-moss text-black font-black uppercase tracking-widest transition disabled:opacity-50"
+              className="w-full py-4 bg-[#FF8C00] hover:bg-[#FF9D00] text-white font-black uppercase tracking-widest transition disabled:opacity-50"
             >
               {loading ? 'Posting...' : 'Share Rig'}
             </button>

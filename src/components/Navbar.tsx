@@ -11,8 +11,9 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center space-x-8">
-            <Link href="/" className="text-xl font-bold text-amber-500">
-              SoCal Offroaders
+            <Link href="/" className="text-xl font-black tracking-widest">
+              <span className="text-[#FF8C00]">SOCAL</span>
+              <span className="text-white">OFFROADERS</span>
             </Link>
             
             {user && (
@@ -61,7 +62,7 @@ export default function Navbar() {
                 </Link>
                 <Link
                   href="/register"
-                  className="bg-amber-500 hover:bg-amber-600 text-black px-4 py-2 rounded-lg font-medium transition"
+                  className="bg-[#FF8C00] hover:bg-[#FF9D00] text-white px-4 py-2 rounded-lg font-bold transition"
                 >
                   Get Started
                 </Link>

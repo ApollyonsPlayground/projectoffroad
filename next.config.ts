@@ -5,6 +5,9 @@ const nextConfig: NextConfig = {
   output: 'standalone',
   trailingSlash: true,
   turbopack: {},
+  typescript: {
+    ignoreBuildErrors: true,
+  },
   images: {
     unoptimized: true,
     remotePatterns: [

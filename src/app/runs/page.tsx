@@ -56,7 +56,7 @@ export default function RunsPage() {
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold text-white">Runs</h1>
           {user && (
-            <button className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-black rounded-lg font-medium">
+            <button className="px-4 py-2 bg-[#FF8C00] hover:bg-[#FF9D00] text-white rounded-lg font-bold">
               Create Run
             </button>
           )}
@@ -70,7 +70,7 @@ export default function RunsPage() {
               onClick={() => setFilter(status)}
               className={`px-4 py-2 rounded-lg text-sm font-medium capitalize transition ${
                 filter === status
-                  ? 'bg-amber-500 text-black'
+                  ? 'bg-[#FF8C00] text-white'
                   : 'bg-gray-800 text-gray-400 hover:text-white'
               }`}
             >
@@ -127,7 +127,7 @@ export default function RunsPage() {
             </p>
             <p className="text-neutral-600 text-sm mb-6">Be the first to hit the dirt.</p>
             {user && (
-              <Link href="/runs/create" className="inline-block px-6 py-3 bg-orange-600 hover:bg-orange-700 text-white text-sm font-black uppercase tracking-widest transition">
+              <Link href="/runs/create" className="inline-block px-6 py-3 bg-[#FF8C00] hover:bg-[#FF9D00] text-white text-sm font-black uppercase tracking-widest transition">
                 + New Run
               </Link>
             )}

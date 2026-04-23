@@ -136,7 +136,7 @@ export default function CreateClubPage() {
           <button
             type="submit"
             disabled={submitting}
-            className="w-full py-3 bg-amber-500 hover:bg-amber-600 text-black font-semibold rounded-lg transition disabled:opacity-50"
+            className="w-full py-3 bg-[#FF8C00] hover:bg-[#FF9D00] text-white font-bold rounded-lg transition disabled:opacity-50"
           >
             {submitting ? 'Creating...' : 'Create Club'}
           </button>

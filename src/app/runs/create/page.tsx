@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/context/AuthContext'
 import { createClient } from '@supabase/supabase-js'
+import { Users, AlertCircle } from 'lucide-react'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -12,13 +13,16 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey)
 interface Club {
   id: string
   name: string
+  role?: string
+  is_verified?: boolean
 }
 
 export default function CreateRunPage() {
   const router = useRouter()
   const { user, loading: authLoading } = useAuth()
-  const [clubs, setClubs] = useState<Club[]>([])
+  const [userClubs, setUserClubs] = useState<Club[]>([])
   const [submitting, setSubmitting] = useState(false)
+  const [loadingClubs, setLoadingClubs] = useState(true)
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -35,21 +39,45 @@ export default function CreateRunPage() {
     if (!authLoading && !user) {
       router.push('/login')
     }
-    fetchClubs()
-  }, [user, authLoading])
+  }, [user, authLoading, router])
 
-  async function fetchClubs() {
-    const { data } = await supabase
-      .from('clubs')
-      .select('id, name')
-      .order('name')
+  useEffect(() => {
+    if (user) {
+      fetchUserClubs()
+    }
+  }, [user])
+
+  async function fetchUserClubs() {
+    if (!user) return
     
-    if (data) setClubs(data)
+    const { data } = await supabase
+      .from('club_members')
+      .select('*, clubs!inner(id, name, is_verified)')
+      .eq('user_id', user.id)
+      .in('role', ['owner', 'admin', 'leader'])
+
+    setLoadingClubs(false)
+    
+    if (data && data.length > 0) {
+      const clubs = data
+        .filter(item => item.clubs)
+        .map(item => ({
+          id: item.clubs.id,
+          name: item.clubs.name,
+          role: item.role,
+          is_verified: item.clubs.is_verified || false
+        }))
+      setUserClubs(clubs)
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!user) return
+    if (!formData.club_id) {
+      alert('Please select a club to host this run')
+      return
+    }
 
     setSubmitting(true)
     
@@ -58,7 +86,7 @@ export default function CreateRunPage() {
     const { error } = await supabase
       .from('runs')
       .insert({
-        club_id: formData.club_id || null,
+        club_id: formData.club_id,
         title: formData.title,
         description: formData.description,
         date: dateTime,
@@ -78,44 +106,95 @@ export default function CreateRunPage() {
     }
   }
 
-  if (authLoading) {
+  if (authLoading || loadingClubs) {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-        <div className="text-amber-500">Loading...</div>
+      <div className="min-h-screen bg-[#050705] flex items-center justify-center">
+        <div className="text-[#FF8C00]">Loading...</div>
+      </div>
+    )
+  }
+
+  const hasAnyClubs = userClubs.length > 0
+  const verifiedClubs = userClubs.filter(club => club.is_verified)
+  const hasUnverifiedClub = hasAnyClubs && verifiedClubs.length === 0
+
+  if (hasUnverifiedClub) {
+    return (
+      <div className="min-h-screen bg-[#050705] flex items-center justify-center">
+        <div className="text-center max-w-md p-8">
+          <div className="w-16 h-16 bg-neutral-800 rounded-full flex items-center justify-center mx-auto mb-6">
+            <AlertCircle size={32} className="text-[#FF8C00]" />
+          </div>
+          <h1 className="text-2xl font-black uppercase text-white mb-4">
+            Pending Verification
+          </h1>
+          <p className="text-neutral-400 mb-6">
+            Your club is still under review. Only verified clubs can host official runs. Please wait for verification to complete.
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!hasAnyClubs) {
+    return (
+      <div className="min-h-screen bg-[#050705] flex items-center justify-center">
+        <div className="text-center max-w-md p-8">
+          <div className="w-16 h-16 bg-neutral-800 rounded-full flex items-center justify-center mx-auto mb-6">
+            <Users size={32} className="text-[#FF8C00]" />
+          </div>
+          <h1 className="text-2xl font-black uppercase text-white mb-4">
+            Club Required
+          </h1>
+          <p className="text-neutral-400 mb-6">
+            Only verified clubs can host official runs. You need to be an admin or leader of a club to create a run.
+          </p>
+          <button
+            onClick={() => router.push('/clubs/create')}
+            className="px-6 py-3 bg-[#FF8C00] hover:bg-[#FF9D00] text-white font-black uppercase tracking-widest transition"
+          >
+            Register a Club
+          </button>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-900">
+    <div className="min-h-screen bg-[#050705]">
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <h1 className="text-2xl font-bold text-white mb-6">Create a Run</h1>
+        <h1 className="text-2xl font-black uppercase text-[#FF8C00] mb-6">Create a Run</h1>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Title */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">Run Title *</label>
+            <label className="block text-xs font-black uppercase tracking-widest text-neutral-400 mb-2">Run Title *</label>
             <input
               type="text"
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white"
+              className="w-full bg-neutral-900 border-2 border-neutral-800 px-4 py-3 text-white focus:border-[#FF8C00] focus:outline-none transition"
               placeholder="e.g., Mojave Trail Run"
               required
             />
           </div>
 
-          {/* Club */}
+          {/* Club - REQUIRED */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">Club (optional)</label>
+            <label className="block text-xs font-black uppercase tracking-widest text-neutral-400 mb-2">
+              Hosting Club <span className="text-red-500">*</span>
+            </label>
             <select
               value={formData.club_id}
               onChange={(e) => setFormData({ ...formData, club_id: e.target.value })}
-              className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white"
+              className="w-full bg-neutral-900 border-2 border-neutral-800 px-4 py-3 text-white focus:border-[#FF8C00] focus:outline-none transition"
+              required
             >
-              <option value="">Independent (no club)</option>
-              {clubs.map((club) => (
-                <option key={club.id} value={club.id}>{club.name}</option>
+              <option value="">Select a club...</option>
+              {verifiedClubs.map((club) => (
+                <option key={club.id} value={club.id}>
+                  {club.name} ({club.role})
+                </option>
               ))}
             </select>
           </div>
@@ -123,22 +202,22 @@ export default function CreateRunPage() {
           {/* Date & Time */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">Date *</label>
+              <label className="block text-xs font-black uppercase tracking-widest text-neutral-400 mb-2">Date *</label>
               <input
                 type="date"
                 value={formData.date}
                 onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white"
+                className="w-full bg-neutral-900 border-2 border-neutral-800 px-4 py-3 text-white focus:border-[#FF8C00] focus:outline-none transition"
                 required
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">Time *</label>
+              <label className="block text-xs font-black uppercase tracking-widest text-neutral-400 mb-2">Time *</label>
               <input
                 type="time"
                 value={formData.time}
                 onChange={(e) => setFormData({ ...formData, time: e.target.value })}
-                className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white"
+                className="w-full bg-neutral-900 border-2 border-neutral-800 px-4 py-3 text-white focus:border-[#FF8C00] focus:outline-none transition"
                 required
               />
             </div>
@@ -146,11 +225,11 @@ export default function CreateRunPage() {
 
           {/* Difficulty */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">Difficulty *</label>
+            <label className="block text-xs font-black uppercase tracking-widest text-neutral-400 mb-2">Difficulty *</label>
             <select
               value={formData.difficulty}
               onChange={(e) => setFormData({ ...formData, difficulty: e.target.value })}
-              className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white"
+              className="w-full bg-neutral-900 border-2 border-neutral-800 px-4 py-3 text-white focus:border-[#FF8C00] focus:outline-none transition"
             >
               <option>Easy</option>
               <option>Moderate</option>
@@ -161,12 +240,12 @@ export default function CreateRunPage() {
 
           {/* Meetup Location */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">Meetup Location *</label>
+            <label className="block text-xs font-black uppercase tracking-widest text-neutral-400 mb-2">Meetup Location *</label>
             <input
               type="text"
               value={formData.meetup_location}
               onChange={(e) => setFormData({ ...formData, meetup_location: e.target.value })}
-              className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white"
+              className="w-full bg-neutral-900 border-2 border-neutral-800 px-4 py-3 text-white focus:border-[#FF8C00] focus:outline-none transition"
               placeholder="e.g., Chevron station, Hesperia"
               required
             />
@@ -174,12 +253,12 @@ export default function CreateRunPage() {
 
           {/* Max Participants */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">Max Participants</label>
+            <label className="block text-xs font-black uppercase tracking-widest text-neutral-400 mb-2">Max Participants</label>
             <input
               type="number"
               value={formData.max_participants}
               onChange={(e) => setFormData({ ...formData, max_participants: parseInt(e.target.value) })}
-              className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white"
+              className="w-full bg-neutral-900 border-2 border-neutral-800 px-4 py-3 text-white focus:border-[#FF8C00] focus:outline-none transition"
               min={2}
               max={50}
             />
@@ -187,23 +266,24 @@ export default function CreateRunPage() {
 
           {/* Description */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">Description</label>
+            <label className="block text-xs font-black uppercase tracking-widest text-neutral-400 mb-2">Description</label>
             <textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white h-32"
+              className="w-full bg-neutral-900 border-2 border-neutral-800 px-4 py-3 text-white focus:border-[#FF8C00] focus:outline-none transition"
+              rows={3}
               placeholder="Describe the run, trail conditions, what to expect..."
             />
           </div>
 
           {/* Vehicle Requirements */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">Vehicle Requirements</label>
+            <label className="block text-xs font-black uppercase tracking-widest text-neutral-400 mb-2">Vehicle Requirements</label>
             <input
               type="text"
               value={formData.vehicle_requirements}
               onChange={(e) => setFormData({ ...formData, vehicle_requirements: e.target.value })}
-              className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white"
+              className="w-full bg-neutral-900 border-2 border-neutral-800 px-4 py-3 text-white focus:border-[#FF8C00] focus:outline-none transition"
               placeholder="e.g., 33 inch tires, winch, front/rear lockers"
             />
           </div>
@@ -212,7 +292,7 @@ export default function CreateRunPage() {
           <button
             type="submit"
             disabled={submitting}
-            className="w-full py-3 bg-amber-500 hover:bg-amber-600 text-black font-semibold rounded-lg transition disabled:opacity-50"
+            className="w-full py-4 bg-[#FF8C00] hover:bg-[#FF9D00] text-white font-black uppercase tracking-widest transition disabled:opacity-50"
           >
             {submitting ? 'Creating...' : 'Create Run'}
           </button>

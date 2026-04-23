@@ -43,6 +43,22 @@ export default function HomePage() {
   const [posts, setPosts] = useState<any[]>([]);
   const [feedType, setFeedType] = useState<'rigs' | 'trails'>('rigs');
   const filteredTrails = filterTrailsByRegion(trailsData, selectedRegion);
+  
+  // Pre-compute posts content to avoid JSX ternary nesting issues
+  const postsContent = posts.length === 0 ? (
+    <div className="text-center py-12">
+      <p className="text-neutral-400 text-lg">No posts yet</p>
+      <p className="text-neutral-500 text-sm mt-2">Be the first to share your rig!</p>
+    </div>
+  ) : (
+    <>
+      {posts.map((post, index) => (
+        <div key={post.id} className="animate-slide-up" style={{ animationDelay: `${index * 0.1}s` }}>
+          <RigPost post={post} />
+        </div>
+      ))}
+    </>
+  );
 
   useEffect(() => {
     // Skip if Supabase not configured
@@ -53,7 +69,7 @@ export default function HomePage() {
     // Fetch posts from Supabase
     async function fetchPosts() {
       try {
-        const { data, error } = await supabase
+        const { data, error } = await supabase!
           .from('posts')
           .select('*')
           .order('created_at', { ascending: false })
@@ -121,7 +137,7 @@ export default function HomePage() {
               <div className="flex justify-center mb-6">
                 <Link 
                   href="/posts/create"
-                  className="flex items-center gap-2 px-6 py-3 bg-muted-gold hover:bg-moss text-black font-black uppercase tracking-widest transition"
+                  className="flex items-center gap-2 px-6 py-3 bg-[#FF8C00] hover:bg-[#FF9D00] text-white font-black uppercase tracking-widest transition"
                 >
                   <Plus size={18} />
                   Share Your Rig
@@ -129,22 +145,8 @@ export default function HomePage() {
               </div>
 
               {/* Posts */}
-              {posts.length === 0 ? (
-                <div className="text-center py-12">
-                  <p className="text-neutral-400 text-lg">No posts yet</p>
-                  <p className="text-neutral-500 text-sm mt-2">Be the first to share your rig!</p>
-                </div>
-              ) : (
-              posts.map((post, index) => (
-                <div 
-                  key={post.id} 
-                  className="animate-slide-up"
-                  style={{ animationDelay: `${index * 0.1}s` }}
-                >
-                  <RigPost post={post} />
-                </div>
-              ))}
-              )}
+              {postsContent}
+            </>
           ) : (
             // Trails Feed
             <>

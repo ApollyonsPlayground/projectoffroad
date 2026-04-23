@@ -63,14 +63,7 @@ export default function TrailCard({ trail, index }: TrailCardProps) {
           </div>
         )}
         
-        {/* Status Badge */}
-        <div className="absolute top-4 left-4">
-          <span className={`px-3 py-1 rounded-none text-xs font-black uppercase tracking-widest border-2 ${
-            trail.status === 'Open' ? 'bg-emerald-600 border-emerald-600 text-white' : 'bg-red-600 border-red-600 text-white'
-          }`}>
-            {trail.status}
-          </span>
-        </div>
+        {/* Removed static status badges - showing external links instead */}
 
         {/* Difficulty Badge */}
         <div className="absolute top-4 right-4">
