@@ -1,12 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import LeftNav from '@/components/LeftNav';
+import LeftNav, { DesktopNav } from '@/components/LeftNav';
 import RightSidebar from '@/components/RightSidebar';
 import RigPost from '@/components/RigPost';
 import DisclaimerModal from '@/components/DisclaimerModal';
 import trailsData from '@/data/trails.json';
-import { AlertTriangle, Plus } from 'lucide-react';
+import { AlertTriangle, Plus, Menu, Home, Compass, Users, User, Settings } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '@/lib/db/supabase';
 import Link from 'next/link';
 
@@ -38,10 +38,19 @@ function filterTrailsByRegion(trails: typeof trailsData, regionId: string) {
   });
 }
 
+// Mobile bottom nav items
+const mobileNavItems = [
+  { href: '/', label: 'Home', icon: Home },
+  { href: '/runs', label: 'Runs', icon: Compass },
+  { href: '/clubs', label: 'Clubs', icon: Users },
+  { href: '/profile', label: 'Profile', icon: User },
+];
+
 export default function HomePage() {
   const [selectedRegion, setSelectedRegion] = useState('all');
   const [posts, setPosts] = useState<any[]>([]);
   const [feedType, setFeedType] = useState<'rigs' | 'trails'>('rigs');
+  const [menuOpen, setMenuOpen] = useState(false);
   const filteredTrails = filterTrailsByRegion(trailsData, selectedRegion);
   
   // Pre-compute posts content to avoid JSX ternary nesting issues
@@ -87,11 +96,24 @@ export default function HomePage() {
 
   return (
     <div className="flex min-h-screen bg-[#050705]">
-      {/* Left Navigation */}
-      <LeftNav />
+      {/* Mobile Menu Button */}
+      <button 
+        onClick={() => setMenuOpen(true)}
+        className="fixed top-4 left-4 z-30 p-2 bg-neutral-900/90 rounded-lg border border-neutral-700 md:hidden"
+      >
+        <Menu size={24} className="text-white" />
+      </button>
+
+      {/* Left Navigation (Mobile Drawer, Desktop Sidebar) */}
+      <LeftNav isOpen={menuOpen} onClose={() => setMenuOpen(false)} />
+      
+      {/* Desktop Only LeftNav */}
+      <div className="hidden md:block">
+        <DesktopNav />
+      </div>
 
       {/* Main Feed - Center Column */}
-      <main className="flex-1 max-w-2xl mx-auto w-full border-x-2 border-neutral-800">
+      <main className="flex-1 max-w-2xl mx-auto w-full border-x-2 border-neutral-800 pb-20 md:pb-0">
         {/* Disclaimer Header */}
         <div className="sticky top-0 z-50 bg-moss/90 backdrop-blur-sm border-b-2 border-muted-gold px-4 py-2">
           <div className="flex items-center gap-2 text-muted-gold text-xs font-bold uppercase">
@@ -133,8 +155,8 @@ export default function HomePage() {
           {feedType === 'rigs' ? (
             // Rig Feed - Instagram style
             <>
-              {/* New Post Button */}
-              <div className="flex justify-center mb-6">
+              {/* Desktop New Post Button */}
+              <div className="hidden md:flex justify-center mb-6">
                 <Link 
                   href="/posts/create"
                   className="flex items-center gap-2 px-6 py-3 bg-[#FF8C00] hover:bg-[#FF9D00] text-white font-black uppercase tracking-widest transition"
@@ -220,8 +242,32 @@ export default function HomePage() {
         </div>
       </main>
 
-      {/* Right Sidebar */}
-      <RightSidebar />
+      {/* Right Sidebar - Desktop Only */}
+      <div className="hidden md:block">
+        <RightSidebar />
+      </div>
+
+      {/* Mobile FAB - Share Your Rig */}
+      <Link 
+        href="/posts/create"
+        className="fixed bottom-20 right-4 z-30 flex items-center justify-center w-14 h-14 bg-[#FF8C00] hover:bg-[#FF9D00] rounded-full shadow-lg shadow-orange-900/30 md:hidden"
+      >
+        <Plus size={28} className="text-white" />
+      </Link>
+
+      {/* Mobile Bottom Tab Bar */}
+      <nav className="fixed bottom-0 left-0 right-0 bg-neutral-900 border-t border-neutral-800 flex justify-around py-2 z-30 md:hidden">
+        {mobileNavItems.map((item) => (
+          <Link
+            key={item.href}
+            href={item.href}
+            className="flex flex-col items-center gap-1 text-neutral-400 hover:text-orange-500"
+          >
+            <item.icon size={20} />
+            <span className="text-xs font-bold uppercase">{item.label}</span>
+          </Link>
+        ))}
+      </nav>
     </div>
   );
 }
