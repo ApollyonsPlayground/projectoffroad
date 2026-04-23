@@ -7,7 +7,7 @@ import RigPost from '@/components/RigPost';
 import DisclaimerModal from '@/components/DisclaimerModal';
 import trailsData from '@/data/trails.json';
 import { AlertTriangle, Plus } from 'lucide-react';
-import { supabase } from '@/lib/db/supabase';
+import { supabase, isSupabaseConfigured } from '@/lib/db/supabase';
 import Link from 'next/link';
 
 // Posts will be fetched from Supabase
@@ -45,6 +45,11 @@ export default function HomePage() {
   const filteredTrails = filterTrailsByRegion(trailsData, selectedRegion);
 
   useEffect(() => {
+    // Skip if Supabase not configured
+    if (!supabase || !isSupabaseConfigured()) {
+      return;
+    }
+    
     // Fetch posts from Supabase
     async function fetchPosts() {
       try {

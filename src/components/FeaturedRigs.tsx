@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Award, Plus } from 'lucide-react';
 import Link from 'next/link';
-import { supabase } from '@/lib/db/supabase';
+import { supabase, isSupabaseConfigured } from '@/lib/db/supabase';
 
 interface FeaturedRig {
   id: string;
@@ -18,20 +18,26 @@ export default function FeaturedRigs() {
 
   useEffect(() => {
     async function fetchFeaturedRigs() {
+      // Skip if Supabase not configured
+      if (!supabase || !isSupabaseConfigured()) {
+        setLoading(false);
+        return;
+      }
+      
       try {
         const { data, error } = await supabase
           .from('posts')
-          .select('id, image_url, user_name, rig_specs->vehicle')
+          .select('id, image_url, user_name, rig_specs')
           .limit(4);
         
         if (error) throw error;
         
-        // Map to FeaturedRig format
+        // Map to FeaturedRig format - handle both JSON and text vehicle
         const mapped = (data || []).map((post: any) => ({
           id: post.id,
           image_url: post.image_url,
           user_name: post.user_name,
-          vehicle: post.rig_specs?.vehicle || 'Offroad Rig'
+          vehicle: post.rig_specs?.vehicle || post.rig_specs || 'Offroad Rig'
         }));
         
         setRigs(mapped);
