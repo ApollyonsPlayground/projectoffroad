@@ -135,15 +135,17 @@ export default function HomePage() {
                   <p className="text-neutral-500 text-sm mt-2">Be the first to share your rig!</p>
                 </div>
               ) : (
-              posts.map((post, index) => (
-                <div 
-                  key={post.id} 
-                  className="animate-slide-up"
-                  style={{ animationDelay: `${index * 0.1}s` }}
-                >
-                  <RigPost post={post} />
-                </div>
-              ))}
+                <>
+                  {posts.map((post, index) => (
+                    <div 
+                      key={post.id} 
+                      className="animate-slide-up"
+                      style={{ animationDelay: `${index * 0.1}s` }}
+                    >
+                      <RigPost post={post} />
+                    </div>
+                  ))}
+                </>
               )}
           ) : (
             // Trails Feed
