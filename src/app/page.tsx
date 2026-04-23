@@ -7,47 +7,11 @@ import RigPost from '@/components/RigPost';
 import DisclaimerModal from '@/components/DisclaimerModal';
 import trailsData from '@/data/trails.json';
 import { AlertTriangle, Plus } from 'lucide-react';
+import { supabase } from '@/lib/db/supabase';
 import Link from 'next/link';
 
-// Sample posts - in production would fetch from Supabase posts table
-const samplePosts = [
-  {
-    id: '1',
-    user_id: 'u1',
-    user_name: 'DesertKing',
-    user_avatar: '',
-    image_url: 'https://images.unsplash.com/photo-1600712242805-5f78671b24da?w=600',
-    caption: 'Finally got the suspension dialed in! 🔧 #offroad #jeep',
-    rig_specs: { vehicle: 'Jeep Wrangler Rubicon', mods: '3" Lift, 35s', location: 'Cajon Pass' },
-    likes: 24,
-    comments: 5,
-    created_at: '2026-04-20T10:00:00Z'
-  },
-  {
-    id: '2',
-    user_id: 'u2',
-    user_name: 'RockWalker',
-    user_avatar: '',
-    image_url: 'https://images.unsplash.com/photo-1513106580091-1d82408b8cd9?w=600',
-    caption: 'New rig build starting! 4Runner TRD Pro. Thoughts?',
-    rig_specs: { vehicle: 'Toyota 4Runner TRD Pro', mods: 'Stock for now', location: 'San Diego' },
-    likes: 42,
-    comments: 12,
-    created_at: '2026-04-19T15:30:00Z'
-  },
-  {
-    id: '3',
-    user_id: 'u3',
-    user_name: 'TrailBlazer',
-    user_avatar: '',
-    image_url: 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=600',
-    caption: 'Holcomb Valley trail was no joke today! 🥾',
-    rig_specs: { vehicle: 'Ford Bronco Badlands', mods: ' Sasquatch Package', location: 'Big Bear' },
-    likes: 67,
-    comments: 8,
-    created_at: '2026-04-18T09:00:00Z'
-  }
-];
+// Posts will be fetched from Supabase
+// No hardcoded sample data
 
 // Region filter function for trails
 function filterTrailsByRegion(trails: typeof trailsData, regionId: string) {
@@ -76,13 +40,28 @@ function filterTrailsByRegion(trails: typeof trailsData, regionId: string) {
 
 export default function HomePage() {
   const [selectedRegion, setSelectedRegion] = useState('all');
-  const [posts, setPosts] = useState(samplePosts);
+  const [posts, setPosts] = useState<any[]>([]);
   const [feedType, setFeedType] = useState<'rigs' | 'trails'>('rigs');
   const filteredTrails = filterTrailsByRegion(trailsData, selectedRegion);
 
   useEffect(() => {
-    // In production: fetch from Supabase posts table
-    // For now using samplePosts
+    // Fetch posts from Supabase
+    async function fetchPosts() {
+      try {
+        const { data, error } = await supabase
+          .from('posts')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(50);
+        
+        if (error) throw error;
+        setPosts(data || []);
+      } catch (err) {
+        console.error('Error fetching posts:', err);
+        // Keep empty array on error
+      }
+    }
+    fetchPosts();
   }, []);
 
   return (
@@ -145,7 +124,13 @@ export default function HomePage() {
               </div>
 
               {/* Posts */}
-              {posts.map((post, index) => (
+              {posts.length === 0 ? (
+                <div className="text-center py-12">
+                  <p className="text-neutral-400 text-lg">No posts yet</p>
+                  <p className="text-neutral-500 text-sm mt-2">Be the first to share your rig!</p>
+                </div>
+              ) : (
+              posts.map((post, index) => (
                 <div 
                   key={post.id} 
                   className="animate-slide-up"
@@ -154,7 +139,7 @@ export default function HomePage() {
                   <RigPost post={post} />
                 </div>
               ))}
-            </>
+              )}
           ) : (
             // Trails Feed
             <>

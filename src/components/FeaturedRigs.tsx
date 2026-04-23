@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Award, Plus } from 'lucide-react';
 import Link from 'next/link';
+import { supabase } from '@/lib/db/supabase';
 
 interface FeaturedRig {
   id: string;
@@ -11,24 +12,36 @@ interface FeaturedRig {
   vehicle: string;
 }
 
-// Placeholder - would fetch from posts table in production
-const sampleFeaturedRigs: FeaturedRig[] = [
-  { id: '1', image_url: 'https://images.unsplash.com/photo-1600712242805-5f78671b24da?w=400', user_name: 'DesertKing', vehicle: ' Jeep Wrangler' },
-  { id: '2', image_url: 'https://images.unsplash.com/photo-1513106580091-1d82408b8cd9?w=400', user_name: 'RockWalker', vehicle: 'Toyota 4Runner' },
-  { id: '3', image_url: 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=400', user_name: 'TrailBlazer', vehicle: 'Ford Bronco' },
-];
-
 export default function FeaturedRigs() {
   const [rigs, setRigs] = useState<FeaturedRig[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // In production: fetch from Supabase posts table where status='approved'
-    // For now use placeholders
-    setTimeout(() => {
-      setRigs(sampleFeaturedRigs);
-      setLoading(false);
-    }, 500);
+    async function fetchFeaturedRigs() {
+      try {
+        const { data, error } = await supabase
+          .from('posts')
+          .select('id, image_url, user_name, rig_specs->vehicle')
+          .limit(4);
+        
+        if (error) throw error;
+        
+        // Map to FeaturedRig format
+        const mapped = (data || []).map((post: any) => ({
+          id: post.id,
+          image_url: post.image_url,
+          user_name: post.user_name,
+          vehicle: post.rig_specs?.vehicle || 'Offroad Rig'
+        }));
+        
+        setRigs(mapped);
+      } catch (err) {
+        console.error('Error fetching featured rigs:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchFeaturedRigs();
   }, []);
 
   return (
