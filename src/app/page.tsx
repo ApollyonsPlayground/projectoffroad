@@ -304,6 +304,7 @@ export default function HomePage() {
       <PostCreationModal 
         isOpen={postModalOpen} 
         onClose={() => setPostModalOpen(false)} 
+        onPostSuccess={handleRefresh}
       />
 
       {/* Mobile Bottom Tab Bar */}

@@ -1,17 +1,28 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Image as ImageIcon, Loader2, MapPin, Truck } from 'lucide-react';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import { supabase, isSupabaseConfigured } from '@/lib/db/supabase';
+import { createClient } from '@supabase/supabase-js';
 
 interface PostCreationModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onPostSuccess?: () => void;
 }
 
-export default function PostCreationModal({ isOpen, onClose }: PostCreationModalProps) {
+// Server-side client for uploads (uses service key)
+const getSupabaseAdmin = () => {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !key) return null;
+  return createClient(url, key, { auth: { persistSession: false } });
+};
+
+export default function PostCreationModal({ isOpen, onClose, onPostSuccess }: PostCreationModalProps) {
+  const supabaseAdmin = getSupabaseAdmin();
   const [imageUrl, setImageUrl] = useState('');
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [caption, setCaption] = useState('');
@@ -61,33 +72,75 @@ export default function PostCreationModal({ isOpen, onClose }: PostCreationModal
     setError('');
 
     try {
-      // Upload to Supabase if configured
+      let finalImageUrl = imageUrl || imagePreview;
+
+      // Upload image to rig-photos bucket if we have a file
+      if (imagePreview && supabaseAdmin) {
+        const file = fileInputRef.current?.files?.[0];
+        if (file) {
+          const fileExt = file.name.split('.').pop();
+          const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+          
+          const { data: uploadData, error: uploadError } = await supabaseAdmin
+            .storage
+            .from('rig-photos')
+            .upload(fileName, file, {
+              cacheControl: '3600',
+              upsert: false
+            });
+
+          if (uploadError) {
+            console.error('Upload error:', uploadError);
+            // Fall back to URL
+          } else {
+            // Get public URL
+            const { data: urlData } = supabaseAdmin
+              .storage
+              .from('rig-photos')
+              .getPublicUrl(fileName);
+            
+            finalImageUrl = urlData.publicUrl;
+          }
+        }
+      }
+
+      // Insert post record (matching actual DB schema)
       if (supabase && isSupabaseConfigured()) {
         const { data, error: supabaseError } = await supabase
           .from('posts')
           .insert({
-            image_url: imageUrl || imagePreview,
-            caption,
-            rig_specs: {
-              vehicle,
-              mods: '',
-              location
-            },
-            user_id: 'anonymous',
-            user_name: 'You'
-          });
+            image_url: finalImageUrl,
+            caption: caption || `${vehicle} ${location}`.trim(),
+            likes_count: 0,
+            is_flagged: false
+          })
+          .select()
+          .single();
 
-        if (supabaseError) throw supabaseError;
+        if (supabaseError) {
+          console.error('Insert error:', supabaseError);
+          throw supabaseError;
+        }
+        
+        console.log('Post created:', data);
       }
 
-      // Simulate delay for UX
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Trigger haptic success
+      try {
+        await Haptics.impact({ style: ImpactStyle.Heavy });
+      } catch (e) {}
 
       // Reset and close
       resetForm();
       onClose();
-    } catch (err) {
-      setError('Failed to post. Please try again.');
+      
+      // Notify parent to refresh feed
+      if (onPostSuccess) {
+        onPostSuccess();
+      }
+    } catch (err: any) {
+      console.error('Post error:', err);
+      setError(err.message || 'Failed to post. Please try again.');
       setLoading(false);
     }
   };
