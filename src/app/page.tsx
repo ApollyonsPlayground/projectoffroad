@@ -5,6 +5,7 @@ import LeftNav, { DesktopNav } from '@/components/LeftNav';
 import RightSidebar from '@/components/RightSidebar';
 import RigPost from '@/components/RigPost';
 import DisclaimerModal from '@/components/DisclaimerModal';
+import PostCreationModal from '@/components/PostCreationModal';
 import trailsData from '@/data/trails.json';
 import { AlertTriangle, Plus, Menu, Home, Compass, Users, User, Settings } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '@/lib/db/supabase';
@@ -53,6 +54,7 @@ export default function HomePage() {
   const [posts, setPosts] = useState<any[]>([]);
   const [feedType, setFeedType] = useState<'rigs' | 'trails'>('rigs');
   const [menuOpen, setMenuOpen] = useState(false);
+  const [postModalOpen, setPostModalOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const filteredTrails = filterTrailsByRegion(trailsData, selectedRegion);
   
@@ -291,12 +293,18 @@ export default function HomePage() {
       </div>
 
       {/* Mobile FAB - Share Your Rig */}
-      <Link 
-        href="/posts/create"
+      <button 
+        onClick={() => setPostModalOpen(true)}
         className="fixed bottom-20 right-4 z-30 flex items-center justify-center w-14 h-14 bg-[#FF8C00] hover:bg-[#FF9D00] rounded-full shadow-lg shadow-orange-900/30 md:hidden"
       >
         <Plus size={28} className="text-white" />
-      </Link>
+      </button>
+
+      {/* Post Creation Modal */}
+      <PostCreationModal 
+        isOpen={postModalOpen} 
+        onClose={() => setPostModalOpen(false)} 
+      />
 
       {/* Mobile Bottom Tab Bar */}
       <nav className="fixed bottom-0 left-0 right-0 bg-neutral-900 border-t border-neutral-800 flex justify-around py-2 z-30 md:hidden">
