@@ -13,20 +13,21 @@ This is a PWA app - must feel native on mobile.
 - Matches Instagram/TikTok skeleton style
 - Files: `src/components/SkeletonLoader.tsx`
 
-### 1.2 View Transitions
+### 1.2 View Transitions ✅ DONE
 - Use View Transition API for smooth page navigations
 - Replace instant page loads with animated transitions
-- File: `src/app/layout.tsx`
+- File: `src/components/ViewTransitions.tsx`
 
 ### 1.3 Optimistic UI Feedback
 - Toast/snackbar confirmations for actions (like, comment, post)
 - Success/error feedback without blocking
-- File: `src/components/Toast.tsx`
+- File: `src/components/Toast.tsx` (ready to integrate)
 
-### 1.4 Haptic Hierarchy
+### 1.4 Haptic Hierarchy ✅ DONE
 - Light haptics: navigation taps
 - Medium haptics: button presses, likes
 - Heavy haptics: errors, important actions
+- Hook: `src/hooks/useHaptics.ts`
 
 ---
 

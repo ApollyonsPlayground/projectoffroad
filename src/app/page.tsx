@@ -134,7 +134,7 @@ export default function HomePage() {
       {/* Mobile Menu Button */}
       <button 
         onClick={() => setMenuOpen(true)}
-        className="fixed top-4 left-4 z-30 p-2 bg-neutral-900/90 rounded-lg border border-neutral-700 md:hidden"
+        className="fixed top-14 left-4 z-30 p-2 bg-neutral-900/90 rounded-lg border border-neutral-700 md:hidden"
       >
         <Menu size={24} className="text-white" />
       </button>
