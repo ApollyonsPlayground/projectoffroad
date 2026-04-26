@@ -13,6 +13,7 @@ import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import { motion, useMotionValue, useTransform, useSpring } from 'framer-motion';
 import Link from 'next/link';
 import { FeedSkeleton } from '@/components/SkeletonLoader';
+import { EmptyState } from '@/components/EmptyState';
 
 // Posts will be fetched from Supabase
 // No hardcoded sample data
@@ -86,10 +87,7 @@ export default function HomePage() {
   const postsContent = isLoading ? (
     <FeedSkeleton count={3} />
   ) : posts.length === 0 ? (
-    <div className="text-center py-12">
-      <p className="text-neutral-400 text-lg">No posts yet</p>
-      <p className="text-neutral-500 text-sm mt-2">Be the first to share your rig!</p>
-    </div>
+    <EmptyState type="posts" />
   ) : (
     <>
       {posts.map((post, index) => (
