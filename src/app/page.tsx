@@ -12,6 +12,7 @@ import { supabase, isSupabaseConfigured } from '@/lib/db/supabase';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import { motion, useMotionValue, useTransform, useSpring } from 'framer-motion';
 import Link from 'next/link';
+import { FeedSkeleton } from '@/components/SkeletonLoader';
 
 // Posts will be fetched from Supabase
 // No hardcoded sample data
@@ -56,6 +57,7 @@ export default function HomePage() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [postModalOpen, setPostModalOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const filteredTrails = filterTrailsByRegion(trailsData, selectedRegion);
   
   // Pull-to-refresh
@@ -81,7 +83,9 @@ export default function HomePage() {
   };
   
   // Pre-compute posts content to avoid JSX ternary nesting issues
-  const postsContent = posts.length === 0 ? (
+  const postsContent = isLoading ? (
+    <FeedSkeleton count={3} />
+  ) : posts.length === 0 ? (
     <div className="text-center py-12">
       <p className="text-neutral-400 text-lg">No posts yet</p>
       <p className="text-neutral-500 text-sm mt-2">Be the first to share your rig!</p>
@@ -104,6 +108,7 @@ export default function HomePage() {
     
     // Fetch posts from Supabase
     async function fetchPosts() {
+      setIsLoading(true);
       try {
         const { data, error } = await supabase!
           .from('posts')
@@ -117,6 +122,8 @@ export default function HomePage() {
       } catch (err) {
         console.error('Error fetching posts:', err);
         // Keep empty array on error
+      } finally {
+        setIsLoading(false);
       }
     }
     fetchPosts();
