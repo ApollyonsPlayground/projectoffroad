@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { MapPin, Flag, Heart, MessageCircle, Share2, MoreHorizontal } from 'lucide-react';
 import Link from 'next/link';
-import { Haptics, ImpactStyle } from '@capacitor/haptics';
+import { hapticMedium, hapticLight } from '@/hooks/useHaptics';
 
 interface RigPost {
   id: string;
@@ -31,13 +31,9 @@ export default function RigPostCard({ post }: RigPostCardProps) {
   const [showReport, setShowReport] = useState(false);
   const [likeCount, setLikeCount] = useState(post.likes);
 
-  // Trigger haptic feedback
+  // Trigger haptic feedback - medium for actions like like
   const triggerHaptic = async () => {
-    try {
-      await Haptics.impact({ style: ImpactStyle.Light });
-    } catch (e) {
-      // Haptics not available (web/desktop)
-    }
+    await hapticMedium(); // Like = medium impact
   };
 
   const handleLike = async () => {

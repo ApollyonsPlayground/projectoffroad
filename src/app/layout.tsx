@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
+import { ViewTransitions } from "@/components/ViewTransitions";
 
 export const metadata: Metadata = {
   title: "SoCal Offroaders | Community App",
@@ -18,7 +19,9 @@ export default function RootLayout({
       <script src="https://cdn.tailwindcss.com"></script>
       <body className="antialiased bg-black text-white">
         <AuthProvider>
-          {children}
+          <ViewTransitions>
+            {children}
+          </ViewTransitions>
         </AuthProvider>
       </body>
     </html>

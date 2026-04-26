@@ -8,7 +8,7 @@ This is a PWA app - must feel native on mobile.
 
 ## Phase 1: Smoothness & Feel (Quick Wins)
 
-### 1.1 Skeleton Loaders
+### 1.1 Skeleton Loaders ✅ DONE
 - Add shimmer loading placeholders while Supabase fetches
 - Matches Instagram/TikTok skeleton style
 - Files: `src/components/SkeletonLoader.tsx`
