@@ -17,6 +17,7 @@ function makeSupabaseClient(): SupabaseClient | null {
 
 const supabase = makeSupabaseClient()
 
+// profile is Record<string,unknown> but always contains at least { role?: string }
 interface AuthContextType {
   user: User | null
   profile: Record<string, unknown> | null

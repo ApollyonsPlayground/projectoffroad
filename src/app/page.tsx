@@ -291,6 +291,7 @@ interface Post {
   user_name?: string;
   avatar_url?: string;
   verified?: boolean;
+  role?: string;
 }
 
 // ─── Placeholder data ─────────────────────────────────────────────────────────
@@ -310,6 +311,7 @@ const PLACEHOLDER_POSTS: Post[] = [
     username: 'TrailBlazer_Mike',
     avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120&q=80',
     verified: true,
+    role: 'owner',
   },
   {
     id: '2',
@@ -723,6 +725,11 @@ function RigPostCard({ post, index }: {
                 {post.verified && (
                   <BadgeCheck size={15} className="text-orange-500 flex-shrink-0 mt-px" />
                 )}
+                {post.role === 'owner' && (
+                  <span className="px-2 py-0.5 text-[10px] font-black text-black bg-[#FF8C00] rounded-md leading-none flex-shrink-0">
+                    OWNER
+                  </span>
+                )}
                 {(post.rig_model || post.rig_specs) && (
                   <span className="text-[11px] text-zinc-500 bg-zinc-900 border border-zinc-800 px-1.5 py-px rounded-full font-medium leading-snug truncate max-w-[160px]">
                     {post.rig_model || post.rig_specs}
@@ -991,6 +998,7 @@ export default function HomePage() {
         ...p,
         caption: p.caption ?? p.body ?? '',
         username: p.user_name ?? p.username ?? 'Rider',
+        role: p.role ?? 'user',
       }));
       setPosts(normalised.length ? normalised : PLACEHOLDER_POSTS);
     } catch {

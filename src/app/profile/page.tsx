@@ -63,6 +63,7 @@ const PLACEHOLDER_PROFILE = {
   trails_visited: 27,
   posts_count: 9,
   is_verified: true,
+  role: 'user' as string,
 };
 
 const PLACEHOLDER_VEHICLES: Vehicle[] = [
@@ -380,6 +381,11 @@ export default function ProfilePage() {
                     <BadgeCheck size={17} className="relative text-orange-500 fill-orange-500/20 flex-shrink-0" />
                     <span className="relative ml-1 text-[10px] font-black text-orange-500 uppercase tracking-wider">Verified</span>
                   </div>
+                )}
+                {(profile?.role ?? displayProfile.role) === 'owner' && (
+                  <span className="px-2 py-0.5 text-[11px] font-black text-black bg-[#FF8C00] rounded-md leading-none flex-shrink-0">
+                    OWNER
+                  </span>
                 )}
               </div>
               {displayProfile.location && (
