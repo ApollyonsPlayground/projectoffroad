@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Heart,
@@ -15,13 +15,142 @@ import {
   Plus,
   ZoomIn,
   X,
+  Image as ImageIcon,
+  AlertCircle,
+  ChevronDown,
+  Send,
 } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import BottomNav from '@/components/BottomNav';
 import { FeedSkeleton } from '@/components/SkeletonLoader';
 import DisclaimerModal from '@/components/DisclaimerModal';
 import { supabase, isSupabaseConfigured } from '@/lib/db/supabase';
+import { useAuth } from '@/context/AuthContext';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
+
+// ─── Toast ────────────────────────────────────────────────────────────────────
+
+interface ToastMsg { id: number; message: string; type: 'info' | 'error' }
+
+function Toast({ message, type }: { message: string; type: ToastMsg['type'] }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 24, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: 16, scale: 0.95 }}
+      transition={{ type: 'spring', stiffness: 520, damping: 26 }}
+      className="flex items-center gap-2.5 bg-zinc-900 border border-zinc-700 text-zinc-100 text-[13px] font-medium px-4 py-3 rounded-2xl shadow-xl shadow-black/60 max-w-[320px]"
+    >
+      <AlertCircle size={15} className={type === 'error' ? 'text-red-400 flex-shrink-0' : 'text-orange-400 flex-shrink-0'} />
+      {message}
+    </motion.div>
+  );
+}
+
+// ─── NewPostDrawer ─────────────────────────────────────────────────────────────
+
+function NewPostDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const [body, setBody] = useState('');
+  const [rig, setRig] = useState('');
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    if (open) {
+      document.body.style.overflow = 'hidden';
+      setTimeout(() => textareaRef.current?.focus(), 300);
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [open]);
+
+  const handleSubmit = () => {
+    if (!body.trim()) return;
+    // TODO: wire to Supabase insert once auth is connected
+    setBody('');
+    setRig('');
+    onClose();
+  };
+
+  return (
+    <AnimatePresence>
+      {open && (
+        <>
+          {/* Backdrop */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[9990] bg-black/70 backdrop-blur-sm"
+            onClick={onClose}
+          />
+          {/* Drawer panel */}
+          <motion.div
+            initial={{ y: '100%' }}
+            animate={{ y: 0 }}
+            exit={{ y: '100%' }}
+            transition={{ type: 'spring', stiffness: 420, damping: 36 }}
+            className="fixed bottom-0 left-0 right-0 z-[9991] max-w-md mx-auto bg-zinc-950 border border-zinc-800 rounded-t-2xl overflow-hidden"
+            style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Handle */}
+            <div className="flex justify-center pt-3 pb-1">
+              <div className="w-10 h-1 bg-zinc-700 rounded-full" />
+            </div>
+
+            {/* Header */}
+            <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-900">
+              <button onClick={onClose} aria-label="Close drawer" className="p-1 text-zinc-400 hover:text-white transition-colors">
+                <ChevronDown size={22} />
+              </button>
+              <span className="font-bold text-white text-[15px]">New Post</span>
+              <motion.button
+                whileTap={{ scale: 0.92 }}
+                onClick={handleSubmit}
+                disabled={!body.trim()}
+                className="flex items-center gap-1.5 px-4 py-1.5 bg-orange-500 disabled:bg-zinc-800 disabled:text-zinc-600 text-black font-bold text-[13px] rounded-full transition-colors"
+              >
+                <Send size={13} strokeWidth={2.5} />
+                Post
+              </motion.button>
+            </div>
+
+            {/* Body */}
+            <div className="px-4 pt-4 pb-3">
+              <textarea
+                ref={textareaRef}
+                value={body}
+                onChange={(e) => setBody(e.target.value)}
+                placeholder="What happened on the trail today?"
+                maxLength={500}
+                rows={4}
+                className="w-full bg-transparent text-zinc-100 text-[15px] leading-relaxed placeholder:text-zinc-600 resize-none outline-none"
+              />
+
+              <input
+                value={rig}
+                onChange={(e) => setRig(e.target.value)}
+                placeholder="Vehicle (e.g. 2022 Tacoma TRD Pro)"
+                className="w-full mt-2 bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2.5 text-[13px] text-zinc-300 placeholder:text-zinc-600 outline-none focus:border-orange-500/60 transition-colors"
+              />
+            </div>
+
+            {/* Footer toolbar */}
+            <div className="flex items-center justify-between px-4 py-3 border-t border-zinc-900">
+              <button className="flex items-center gap-2 text-[13px] text-zinc-500 hover:text-orange-400 transition-colors">
+                <ImageIcon size={18} strokeWidth={1.8} />
+                <span>Add Photo</span>
+              </button>
+              <span className="text-[11px] text-zinc-600 font-mono">{body.length}/500</span>
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  );
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -105,9 +234,9 @@ const PLACEHOLDER_POSTS: Post[] = [
 ];
 
 const LIVE_RUNS = [
-  { id: '1', name: 'Big Bear', avatar: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=120&q=80' },
-  { id: '2', name: 'J-Valley', avatar: 'https://images.unsplash.com/photo-1486870591958-9b9d0d1dda99?w=120&q=80' },
-  { id: '3', name: 'Holcomb', avatar: 'https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?w=120&q=80' },
+  { id: 'run-bigbear-001', name: 'Big Bear', avatar: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=120&q=80' },
+  { id: 'run-jvalley-002', name: 'J-Valley', avatar: 'https://images.unsplash.com/photo-1486870591958-9b9d0d1dda99?w=120&q=80' },
+  { id: 'run-holcomb-003', name: 'Holcomb', avatar: 'https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?w=120&q=80' },
 ];
 
 const TRAIL_UPDATES = [
@@ -186,11 +315,22 @@ function ImageLightbox({ src, alt, onClose }: { src: string; alt: string; onClos
 
 // ─── Story Avatar ─────────────────────────────────────────────────────────────
 
-function StoryAvatar({ src, alt, live, label, href }: {
-  src: string; alt: string; live?: boolean; label: string; href: string;
+function StoryAvatar({ src, alt, live, label, href, runId }: {
+  src: string; alt: string; live?: boolean; label: string; href: string; runId?: string;
 }) {
+  const router = useRouter();
+
+  const handleClick = async () => {
+    try { await Haptics.impact({ style: ImpactStyle.Light }); } catch {}
+    if (live && runId) {
+      router.push(`/runs/${runId}`);
+    } else {
+      router.push(href);
+    }
+  };
+
   return (
-    <Link href={href} className="flex flex-col items-center gap-1.5 flex-shrink-0 select-none">
+    <button onClick={handleClick} className="flex flex-col items-center gap-1.5 flex-shrink-0 select-none">
       <motion.div whileTap={{ scale: 0.91 }} className="relative">
         {live && (
           <motion.div
@@ -211,7 +351,7 @@ function StoryAvatar({ src, alt, live, label, href }: {
         )}
       </motion.div>
       <span className="text-[10px] text-zinc-500 truncate w-[58px] text-center font-medium">{label}</span>
-    </Link>
+    </button>
   );
 }
 
@@ -236,7 +376,9 @@ function StoriesBar() {
           <span className="text-[10px] text-zinc-500 font-medium">Runs</span>
         </div>
 
-        {LIVE_RUNS.map((r) => <StoryAvatar key={r.id} src={r.avatar} alt={r.name} live label={r.name} href="/runs" />)}
+        {LIVE_RUNS.map((r) => (
+          <StoryAvatar key={r.id} src={r.avatar} alt={r.name} live label={r.name} href="/runs" runId={r.id} />
+        ))}
 
         <div className="w-px bg-zinc-800 self-stretch my-2 flex-shrink-0 mx-1" />
 
@@ -290,7 +432,12 @@ function StatBtn({
 
 // ─── RigPostCard ──────────────────────────────────────────────────────────────
 
-function RigPostCard({ post, index }: { post: Post; index: number }) {
+function RigPostCard({ post, index, onToast }: {
+  post: Post;
+  index: number;
+  onToast: (message: string, type?: 'info' | 'error') => void;
+}) {
+  const { user, isConfigured } = useAuth();
   const [liked, setLiked] = useState(false);
   const [reposted, setReposted] = useState(false);
   const [trailSaved, setTrailSaved] = useState(false);
@@ -301,18 +448,53 @@ function RigPostCard({ post, index }: { post: Post; index: number }) {
 
   async function haptic(s: ImpactStyle) { try { await Haptics.impact({ style: s }); } catch {} }
 
+  const requireAuth = (action: string): boolean => {
+    if (!isConfigured || !user) {
+      onToast(`Sign in to ${action}`, 'info');
+      return false;
+    }
+    return true;
+  };
+
   const toggleLike = async () => {
     await haptic(ImpactStyle.Medium);
-    setLiked((p) => { setLikesCount((c) => (p ? c - 1 : c + 1)); return !p; });
+
+    // Optimistic update first
+    const nowLiked = !liked;
+    setLiked(nowLiked);
+    setLikesCount((c) => (nowLiked ? c + 1 : c - 1));
+
+    // If authenticated + Supabase configured, persist
+    if (user && isConfigured && supabase) {
+      try {
+        if (nowLiked) {
+          await supabase.from('likes').insert({ post_id: post.id, user_id: user.id });
+        } else {
+          await supabase.from('likes').delete().match({ post_id: post.id, user_id: user.id });
+        }
+      } catch {
+        // Roll back on failure
+        setLiked(!nowLiked);
+        setLikesCount((c) => (nowLiked ? c - 1 : c + 1));
+        onToast('Could not save like. Try again.', 'error');
+      }
+    } else if (!user) {
+      // Not signed in — allow visual toggle but show sign-in nudge
+      onToast('Sign in to sync your likes', 'info');
+    }
   };
 
   const toggleRepost = async () => {
+    if (!requireAuth('repost')) return;
     await haptic(ImpactStyle.Light);
     setReposted((p) => { setRepostsCount((c) => (p ? c - 1 : c + 1)); return !p; });
   };
 
   const toggleTrailSave = async () => {
     await haptic(ImpactStyle.Light);
+    if (!user && isConfigured) {
+      onToast('Sign in to save trails', 'info');
+    }
     setTrailSaved((p) => !p);
   };
 
@@ -529,6 +711,15 @@ function PullToRefreshFeed({ children, onRefresh }: { children: React.ReactNode;
 export default function HomePage() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [toasts, setToasts] = useState<ToastMsg[]>([]);
+  const toastCounter = useRef(0);
+
+  const showToast = useCallback((message: string, type: ToastMsg['type'] = 'info') => {
+    const id = ++toastCounter.current;
+    setToasts((prev) => [...prev, { id, message, type }]);
+    setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 3200);
+  }, []);
 
   const fetchPosts = async () => {
     if (!supabase || !isSupabaseConfigured()) {
@@ -591,7 +782,7 @@ export default function HomePage() {
             <motion.div key="feed" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
               <PullToRefreshFeed onRefresh={fetchPosts}>
                 {posts.map((post, i) => (
-                  <RigPostCard key={post.id} post={post} index={i} />
+                  <RigPostCard key={post.id} post={post} index={i} onToast={showToast} />
                 ))}
               </PullToRefreshFeed>
             </motion.div>
@@ -600,15 +791,27 @@ export default function HomePage() {
       </main>
 
       {/* ── FAB ───────────────────────────────────── */}
-      <Link href="/posts/create" aria-label="Create post">
-        <motion.span
-          whileHover={{ scale: 1.06 }}
-          whileTap={{ scale: 0.92 }}
-          className="fixed bottom-[88px] right-4 z-40 w-[52px] h-[52px] bg-orange-500 hover:bg-orange-600 rounded-full flex items-center justify-center shadow-lg shadow-orange-500/30"
-        >
-          <Plus size={22} className="text-black" strokeWidth={2.5} />
-        </motion.span>
-      </Link>
+      <motion.button
+        whileHover={{ scale: 1.06 }}
+        whileTap={{ scale: 0.92 }}
+        onClick={() => setDrawerOpen(true)}
+        aria-label="Create post"
+        className="fixed bottom-[88px] right-4 z-40 w-[52px] h-[52px] bg-orange-500 hover:bg-orange-600 rounded-full flex items-center justify-center shadow-lg shadow-orange-500/30"
+      >
+        <Plus size={22} className="text-black" strokeWidth={2.5} />
+      </motion.button>
+
+      {/* ── New Post Drawer ────────────────────────── */}
+      <NewPostDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
+
+      {/* ── Toast stack ───────────────────────────── */}
+      <div className="fixed bottom-[80px] left-1/2 -translate-x-1/2 z-[9995] flex flex-col items-center gap-2 pointer-events-none">
+        <AnimatePresence mode="popLayout">
+          {toasts.map((t) => (
+            <Toast key={t.id} message={t.message} type={t.type} />
+          ))}
+        </AnimatePresence>
+      </div>
 
       <DisclaimerModal />
       <BottomNav />
