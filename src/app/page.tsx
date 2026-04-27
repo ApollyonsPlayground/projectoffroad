@@ -72,6 +72,8 @@ function RigPostCard({ post, index }: { post: Post; index: number }) {
   const [liked, setLiked] = useState(false);
   const [saved, setSaved] = useState(false);
   const [likesCount, setLikesCount] = useState(post.likes_count);
+  const [commentsCount] = useState(post.comments_count);
+  const [showCommentHint, setShowCommentHint] = useState(false);
 
   const handleLike = async () => {
     try {
@@ -87,6 +89,41 @@ function RigPostCard({ post, index }: { post: Post; index: number }) {
       await Haptics.impact({ style: ImpactStyle.Light });
     } catch (e) {}
     setSaved(!saved);
+  };
+
+  const handleComment = async () => {
+    try {
+      await Haptics.impact({ style: ImpactStyle.Light });
+    } catch (e) {}
+    setShowCommentHint(true);
+    setTimeout(() => setShowCommentHint(false), 1500);
+  };
+
+  const handleShare = async () => {
+    try {
+      await Haptics.impact({ style: ImpactStyle.Light });
+    } catch (e) {}
+    
+    const shareData = {
+      title: `${post.username}'s Rig`,
+      text: post.caption,
+      url: typeof window !== 'undefined' ? `${window.location.origin}/posts/${post.id}` : '',
+    };
+
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch (err) {
+        // User cancelled or share failed - silently handle
+      }
+    } else {
+      // Fallback: copy to clipboard
+      if (typeof navigator !== 'undefined' && navigator.clipboard) {
+        try {
+          await navigator.clipboard.writeText(shareData.url);
+        } catch (e) {}
+      }
+    }
   };
 
   const timeAgo = (date: string) => {
@@ -146,30 +183,60 @@ function RigPostCard({ post, index }: { post: Post; index: number }) {
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-4">
             <motion.button
-              whileTap={{ scale: 0.9 }}
+              whileTap={{ scale: 1.3 }}
+              transition={{ type: 'spring', stiffness: 500, damping: 15 }}
               onClick={handleLike}
-              className="text-zinc-400 hover:text-white transition-colors"
+              className={`transition-colors ${liked ? 'text-orange-500' : 'text-zinc-400 hover:text-white'}`}
+              aria-label={liked ? 'Unlike post' : 'Like post'}
             >
               <Heart
                 size={24}
-                className={liked ? 'fill-red-500 text-red-500' : ''}
+                className={liked ? 'fill-orange-500' : ''}
               />
             </motion.button>
-            <button className="text-zinc-400 hover:text-white transition-colors">
-              <MessageCircle size={24} />
-            </button>
-            <button className="text-zinc-400 hover:text-white transition-colors">
+            <div className="relative">
+              <motion.button
+                whileTap={{ scale: 1.3 }}
+                transition={{ type: 'spring', stiffness: 500, damping: 15 }}
+                onClick={handleComment}
+                className="text-zinc-400 hover:text-white transition-colors"
+                aria-label="Comment on post"
+              >
+                <MessageCircle size={24} />
+              </motion.button>
+              <AnimatePresence>
+                {showCommentHint && (
+                  <motion.span
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
+                    className="absolute -top-8 left-1/2 -translate-x-1/2 text-xs text-orange-500 whitespace-nowrap bg-zinc-900 px-2 py-1 rounded"
+                  >
+                    Coming soon
+                  </motion.span>
+                )}
+              </AnimatePresence>
+            </div>
+            <motion.button
+              whileTap={{ scale: 1.3 }}
+              transition={{ type: 'spring', stiffness: 500, damping: 15 }}
+              onClick={handleShare}
+              className="text-zinc-400 hover:text-white transition-colors"
+              aria-label="Share post"
+            >
               <Share2 size={24} />
-            </button>
+            </motion.button>
           </div>
           <motion.button
-            whileTap={{ scale: 0.9 }}
+            whileTap={{ scale: 1.3 }}
+            transition={{ type: 'spring', stiffness: 500, damping: 15 }}
             onClick={handleSave}
-            className="text-zinc-400 hover:text-white transition-colors"
+            className={`transition-colors ${saved ? 'text-orange-500' : 'text-zinc-400 hover:text-white'}`}
+            aria-label={saved ? 'Unsave post' : 'Save post'}
           >
             <Bookmark
               size={24}
-              className={saved ? 'fill-white text-white' : ''}
+              className={saved ? 'fill-orange-500' : ''}
             />
           </motion.button>
         </div>
