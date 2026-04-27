@@ -345,7 +345,7 @@ export default function HomePage() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-lg mx-auto pb-safe-nav">
+      <main className="max-w-lg mx-auto pt-14 pb-24">
         {/* App Title */}
         <div className="px-4 py-6 text-center border-b border-zinc-800">
           <h1 className="text-2xl font-bold text-white tracking-tight">

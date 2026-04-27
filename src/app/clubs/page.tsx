@@ -381,7 +381,7 @@ export default function ClubsPage() {
       </header>
 
       {/* Club List */}
-      <main className="max-w-lg mx-auto px-4 py-4 pb-safe-nav">
+      <main className="max-w-lg mx-auto px-4 pt-14 pb-24">
         <AnimatePresence mode="wait">
           {isLoading ? (
             <motion.div

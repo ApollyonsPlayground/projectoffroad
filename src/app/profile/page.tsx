@@ -204,7 +204,7 @@ export default function ProfilePage() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-lg mx-auto pb-safe-nav">
+      <main className="max-w-lg mx-auto pt-14 pb-24">
         {/* Vehicles Section */}
         <section className="p-4 border-b border-zinc-800">
           <div className="flex items-center justify-between mb-3">
