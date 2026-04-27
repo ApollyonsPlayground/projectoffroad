@@ -107,7 +107,8 @@ function NewPostDrawer({ open, onClose, onPosted }: {
       setUploadProgress('inserting');
       const userName = (user.user_metadata?.name as string) || user.email?.split('@')[0] || 'Rider';
       const { error: insertError } = await supabase!.from('posts').insert({
-        caption: body.trim(),
+        body: body.trim(),       // primary text column in schema
+        caption: body.trim(),    // app-facing alias column
         rig_specs: rig.trim() || null,
         rig_name: rig.trim() || null,
         user_id: user.id,
@@ -960,7 +961,13 @@ export default function HomePage() {
         .order('created_at', { ascending: false })
         .limit(30);
       if (error) throw error;
-      setPosts(data?.length ? data : PLACEHOLDER_POSTS);
+      // Normalise: fall back to `body` if `caption` not yet populated
+      const normalised = (data ?? []).map((p) => ({
+        ...p,
+        caption: p.caption ?? p.body ?? '',
+        username: p.user_name ?? p.username ?? 'Rider',
+      }));
+      setPosts(normalised.length ? normalised : PLACEHOLDER_POSTS);
     } catch {
       setPosts(PLACEHOLDER_POSTS);
     } finally {
