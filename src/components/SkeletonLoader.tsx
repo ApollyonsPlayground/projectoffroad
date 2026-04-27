@@ -15,7 +15,7 @@ export function PostSkeleton() {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-zinc-900 border border-zinc-800 mb-4"
+      className="bg-black border-b border-zinc-900 mb-0"
     >
       {/* Header skeleton */}
       <div className="flex items-center justify-between p-3 border-b border-zinc-800">
@@ -29,8 +29,8 @@ export function PostSkeleton() {
         <Skeleton className="w-6 h-6" />
       </div>
 
-      {/* Image skeleton - square aspect ratio */}
-      <div className="aspect-square bg-zinc-800 relative overflow-hidden">
+      {/* Image skeleton - square */}
+      <div className="aspect-square w-full bg-zinc-900 relative overflow-hidden">
         <motion.div
           className="absolute inset-0 bg-gradient-to-r from-zinc-800 via-zinc-700 to-zinc-800"
           style={{ backgroundSize: '200% 100%' }}
