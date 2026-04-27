@@ -1,24 +1,35 @@
 'use client';
 
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { Home, Map, Calendar, Users, User } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
+import { useAuth } from '@/context/AuthContext';
 
 const NAV_ITEMS = [
-  { href: '/',       label: 'Home',   icon: Home     },
-  { href: '/trails', label: 'Trails', icon: Map      },
-  { href: '/runs',   label: 'Runs',   icon: Calendar },
-  { href: '/clubs',  label: 'Clubs',  icon: Users    },
-  { href: '/profile',label: 'Profile',icon: User     },
+  { href: '/',        label: 'Home',    icon: Home,     requiresAuth: false },
+  { href: '/trails',  label: 'Trails',  icon: Map,      requiresAuth: false },
+  { href: '/runs',    label: 'Runs',    icon: Calendar, requiresAuth: false },
+  { href: '/clubs',   label: 'Clubs',   icon: Users,    requiresAuth: false },
+  { href: '/profile', label: 'Profile', icon: User,     requiresAuth: true  },
 ];
 
 export default function BottomNav() {
   const pathname = usePathname();
+  const router = useRouter();
+  const { user } = useAuth();
 
   const triggerHaptic = async () => {
     try { await Haptics.impact({ style: ImpactStyle.Light }); } catch {}
+  };
+
+  const handleNav = async (href: string, requiresAuth: boolean) => {
+    await triggerHaptic();
+    if (requiresAuth && !user) {
+      router.push('/login');
+      return;
+    }
+    router.push(href);
   };
 
   return (
@@ -27,15 +38,14 @@ export default function BottomNav() {
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
     >
       <div className="flex flex-row justify-around items-center pt-3 px-2 pb-2">
-        {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
+        {NAV_ITEMS.map(({ href, label, icon: Icon, requiresAuth }) => {
           const isActive =
             pathname === href || (href !== '/' && pathname.startsWith(href));
 
           return (
-            <Link
+            <button
               key={href}
-              href={href}
-              onClick={triggerHaptic}
+              onClick={() => handleNav(href, requiresAuth)}
               aria-label={label}
               className="flex flex-col items-center gap-1 min-w-[48px] relative"
             >
@@ -67,7 +77,7 @@ export default function BottomNav() {
               >
                 {label}
               </span>
-            </Link>
+            </button>
           );
         })}
       </div>

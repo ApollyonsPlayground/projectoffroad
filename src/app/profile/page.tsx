@@ -559,14 +559,18 @@ export default function ProfilePage() {
         </section>
 
         {/* Sign out ──────────────────────────────── */}
-        <section className="px-4 pb-4">
-          <button
-            onClick={handleSignOut}
-            className="w-full flex items-center justify-center gap-2 py-3 bg-red-500/10 border border-red-500/20 text-red-400 text-[14px] font-semibold rounded-xl hover:bg-red-500/20 transition-colors"
-          >
-            <LogOut size={17} />
-            Sign Out
-          </button>
+        <section className="px-4 pb-10">
+          <div className="border-t border-zinc-900 pt-6">
+            <p className="text-[11px] text-zinc-600 text-center uppercase tracking-widest font-semibold mb-4">Account</p>
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              onClick={handleSignOut}
+              className="w-full flex items-center justify-center gap-3 py-5 bg-zinc-950 border-2 border-zinc-800 hover:border-red-500/50 hover:bg-red-500/5 text-zinc-300 hover:text-red-400 text-[16px] font-bold rounded-2xl transition-colors"
+            >
+              <LogOut size={20} />
+              Log Out
+            </motion.button>
+          </div>
         </section>
       </main>
 

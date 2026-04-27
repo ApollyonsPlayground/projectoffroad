@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Heart,
@@ -22,7 +23,6 @@ import {
   Loader2,
 } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import BottomNav from '@/components/BottomNav';
 import { FeedSkeleton } from '@/components/SkeletonLoader';
 import DisclaimerModal from '@/components/DisclaimerModal';
@@ -244,6 +244,27 @@ function NewPostDrawer({ open, onClose, onPosted }: {
                 )}
               </div>
               <span className="text-[11px] text-zinc-600 font-mono">{body.length}/500</span>
+            </div>
+
+            {/* Sticky Post button */}
+            <div className="px-4 pb-6 pt-2" style={{ paddingBottom: 'max(24px, env(safe-area-inset-bottom))' }}>
+              <motion.button
+                whileTap={{ scale: 0.97 }}
+                onClick={handleSubmit}
+                disabled={!body.trim() || isSubmitting}
+                className="w-full py-4 rounded-2xl font-black text-[16px] flex items-center justify-center gap-2.5 transition-colors
+                  disabled:bg-zinc-900 disabled:text-zinc-600
+                  enabled:bg-orange-500 enabled:text-black enabled:shadow-lg enabled:shadow-orange-500/30 enabled:hover:bg-orange-600"
+              >
+                {isSubmitting ? (
+                  <Loader2 size={18} className="animate-spin" />
+                ) : (
+                  <>
+                    <Send size={16} strokeWidth={2.5} />
+                    {body.trim() ? 'Post to Community' : 'Write something first…'}
+                  </>
+                )}
+              </motion.button>
             </div>
           </motion.div>
         </>
@@ -949,6 +970,8 @@ export default function HomePage() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const { user } = useAuth();
+  const router = useRouter();
 
   const fetchPosts = async () => {
     if (!supabase || !isSupabaseConfigured()) {
@@ -1029,7 +1052,7 @@ export default function HomePage() {
       <motion.button
         whileHover={{ scale: 1.06 }}
         whileTap={{ scale: 0.92 }}
-        onClick={() => setDrawerOpen(true)}
+        onClick={() => user ? setDrawerOpen(true) : router.push('/login')}
         aria-label="Create post"
         className="fixed bottom-[88px] right-4 z-40 w-[52px] h-[52px] bg-orange-500 hover:bg-orange-600 rounded-full flex items-center justify-center shadow-lg shadow-orange-500/30"
       >
