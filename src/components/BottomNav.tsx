@@ -23,7 +23,7 @@ export default function BottomNav() {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 w-full z-50 bg-zinc-950/90 backdrop-blur-md border-t border-zinc-900"
+      className="fixed bottom-0 left-0 w-full z-50 bg-black/80 backdrop-blur-md border-t border-zinc-900"
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
     >
       <div className="flex flex-row justify-around items-center pt-3 px-2 pb-2">
