@@ -1,6 +1,8 @@
-// No postcss plugins needed - using Tailwind CDN instead
 const config = {
-  plugins: [],
+  plugins: {
+    tailwindcss: {},
+    autoprefixer: {},
+  },
 };
 
 export default config;
