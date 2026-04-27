@@ -180,7 +180,7 @@ function StoryAvatar({
 
 function StoriesBar() {
   return (
-    <div className="sticky top-[49px] z-40 bg-black border-b border-zinc-900">
+    <div className="sticky top-[52px] z-40 bg-black border-b border-zinc-900">
       <div className="flex gap-3 px-4 py-3 overflow-x-auto scrollbar-hide">
         {/* Live header bubble */}
         <div className="flex flex-col items-center gap-1.5 flex-shrink-0">
@@ -518,7 +518,7 @@ export default function HomePage() {
       </header>
 
       {/* ── Main ──────────────────────────────────── */}
-      <main className="max-w-md mx-auto pb-24 bg-black">
+      <main className="max-w-md mx-auto min-h-screen bg-black pb-24">
         {/* Stories */}
         <StoriesBar />
 
