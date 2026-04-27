@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Search, 
@@ -9,10 +9,11 @@ import {
   Shield, 
   Star,
   Instagram,
-  Facebook,
   Globe,
   ChevronDown,
-  Plus
+  Plus,
+  Navigation,
+  Loader2
 } from 'lucide-react';
 import Link from 'next/link';
 import BottomNav from '@/components/BottomNav';
@@ -35,9 +36,12 @@ interface Club {
   website_url?: string;
   instagram_url?: string;
   facebook_url?: string;
+  lat?: number;
+  lng?: number;
+  distance?: number;
 }
 
-// Placeholder clubs for demo
+// Placeholder clubs for demo with lat/lng for proximity sorting
 const placeholderClubs: Club[] = [
   {
     id: '1',
@@ -51,9 +55,10 @@ const placeholderClubs: Club[] = [
     verified: true,
     premium: true,
     member_count: 245,
-    website_url: 'https://example.com',
-    instagram_url: 'https://instagram.com',
-    facebook_url: 'https://facebook.com',
+    website_url: 'https://socalcrawlers.com',
+    instagram_url: 'https://instagram.com/socalcrawlers',
+    lat: 34.1083,
+    lng: -117.2898,
   },
   {
     id: '2',
@@ -67,7 +72,9 @@ const placeholderClubs: Club[] = [
     verified: true,
     premium: false,
     member_count: 189,
-    instagram_url: 'https://instagram.com',
+    instagram_url: 'https://instagram.com/desertrunnersoc',
+    lat: 33.6846,
+    lng: -117.8265,
   },
   {
     id: '3',
@@ -81,7 +88,9 @@ const placeholderClubs: Club[] = [
     verified: true,
     premium: false,
     member_count: 156,
-    facebook_url: 'https://facebook.com',
+    website_url: 'https://bigbearwheelers.org',
+    lat: 34.2439,
+    lng: -116.9114,
   },
   {
     id: '4',
@@ -95,7 +104,9 @@ const placeholderClubs: Club[] = [
     verified: false,
     premium: false,
     member_count: 98,
-    instagram_url: 'https://instagram.com',
+    instagram_url: 'https://instagram.com/tacomatrdsd',
+    lat: 32.7157,
+    lng: -117.1611,
   },
   {
     id: '5',
@@ -108,136 +119,145 @@ const placeholderClubs: Club[] = [
     verified: false,
     premium: false,
     member_count: 134,
-    website_url: 'https://example.com',
+    website_url: 'https://laoverlandcollective.com',
+    instagram_url: 'https://instagram.com/laoverland',
+    lat: 34.0522,
+    lng: -118.2437,
   },
 ];
 
 const regions = ['All Regions', 'Inland Empire', 'Orange County', 'Big Bear', 'San Diego', 'Los Angeles', 'High Desert'];
 
-function ClubCard({ club, index }: { club: Club; index: number }) {
+function ClubPosterCard({ club, index }: { club: Club; index: number }) {
   return (
     <motion.article
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ delay: index * 0.08 }}
-      className="bg-zinc-900 border border-zinc-800 overflow-hidden hover:border-orange-500/50 transition-colors"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.1 }}
+      className="relative aspect-[3/4] overflow-hidden rounded-xl group"
     >
-      {/* Club Banner / Poster */}
-      <div className="relative h-36 bg-zinc-800">
+      {/* Full Poster Background */}
+      <div className="absolute inset-0">
         {club.banner_image ? (
           <img
             src={club.banner_image}
             alt={club.name}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
           />
         ) : (
           <div className="w-full h-full bg-gradient-to-br from-zinc-800 to-zinc-900" />
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-zinc-900 via-zinc-900/50 to-transparent" />
-        
-        {/* Badges */}
-        <div className="absolute top-3 right-3 flex gap-2">
+        {/* Gradient Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent" />
+      </div>
+
+      {/* Top Badges */}
+      <div className="absolute top-3 left-3 right-3 flex items-start justify-between">
+        <div className="flex gap-2">
           {club.verified && (
-            <span className="flex items-center gap-1 px-2 py-1 bg-blue-500/20 text-blue-400 text-xs font-semibold border border-blue-500/30">
+            <span className="flex items-center gap-1 px-2 py-1 bg-blue-500/30 backdrop-blur-sm text-blue-400 text-xs font-bold border border-blue-500/40 rounded">
               <Shield size={12} />
               Verified
             </span>
           )}
           {club.premium && (
-            <span className="flex items-center gap-1 px-2 py-1 bg-orange-500/20 text-orange-400 text-xs font-semibold border border-orange-500/30">
+            <span className="flex items-center gap-1 px-2 py-1 bg-orange-500/30 backdrop-blur-sm text-orange-400 text-xs font-bold border border-orange-500/40 rounded">
               <Star size={12} />
               Premium
             </span>
           )}
         </div>
+        {club.distance !== undefined && (
+          <span className="flex items-center gap-1 px-2 py-1 bg-black/50 backdrop-blur-sm text-white text-xs font-semibold rounded">
+            <Navigation size={12} className="text-orange-500" />
+            {club.distance < 1 ? '<1' : Math.round(club.distance)} mi
+          </span>
+        )}
       </div>
 
-      {/* Club Info */}
-      <div className="p-4">
-        <div className="flex items-start gap-4 mb-3">
-          {/* Logo */}
-          <div className="w-14 h-14 rounded-full bg-zinc-800 border-2 border-zinc-700 overflow-hidden flex-shrink-0 -mt-10 relative z-10">
-            {club.logo ? (
-              <img
-                src={club.logo}
-                alt={club.name}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-zinc-500 text-xl font-bold">
-                {club.name[0]}
-              </div>
-            )}
-          </div>
-          
-          {/* Name & Location */}
-          <div className="flex-1 min-w-0 pt-1">
-            <h3 className="font-bold text-white truncate">{club.name}</h3>
-            <div className="flex items-center gap-1 text-sm text-zinc-500">
-              <MapPin size={12} />
-              <span className="truncate">{club.location}</span>
+      {/* Content at Bottom */}
+      <div className="absolute bottom-0 left-0 right-0 p-4">
+        {/* Logo */}
+        <div className="w-16 h-16 rounded-full bg-zinc-900/90 backdrop-blur-sm border-2 border-orange-500/50 overflow-hidden mb-3 shadow-xl">
+          {club.logo ? (
+            <img
+              src={club.logo}
+              alt={club.name}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-orange-500 text-2xl font-bold">
+              {club.name[0]}
             </div>
-          </div>
+          )}
         </div>
 
-        {/* Description */}
-        <p className="text-sm text-zinc-400 line-clamp-2 mb-4">
-          {club.description}
-        </p>
+        {/* Name & Location */}
+        <h3 className="text-xl font-bold text-white mb-1 text-balance">{club.name}</h3>
+        <div className="flex items-center gap-1.5 text-sm text-zinc-300 mb-2">
+          <MapPin size={14} className="text-orange-500" />
+          <span>{club.location}</span>
+        </div>
 
-        {/* Stats & Social */}
-        <div className="flex items-center justify-between">
-          {/* Member Count */}
-          <div className="flex items-center gap-1.5 text-sm text-zinc-500">
-            <Users size={14} />
-            <span>{club.member_count || 0} members</span>
-          </div>
+        {/* Member Count */}
+        <div className="flex items-center gap-1.5 text-sm text-zinc-400 mb-4">
+          <Users size={14} />
+          <span>{club.member_count || 0} members</span>
+        </div>
 
-          {/* Social Links */}
-          <div className="flex items-center gap-2">
-            {club.website_url && (
-              <a
-                href={club.website_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="p-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white transition-colors"
-              >
-                <Globe size={16} />
-              </a>
-            )}
-            {club.instagram_url && (
-              <a
-                href={club.instagram_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="p-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-pink-400 transition-colors"
-              >
-                <Instagram size={16} />
-              </a>
-            )}
-            {club.facebook_url && (
-              <a
-                href={club.facebook_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="p-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-blue-400 transition-colors"
-              >
-                <Facebook size={16} />
-              </a>
-            )}
-          </div>
+        {/* Social Buttons - Prominent */}
+        <div className="flex gap-2 mb-3">
+          {club.instagram_url && (
+            <motion.a
+              whileTap={{ scale: 0.95 }}
+              href={club.instagram_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white text-sm font-semibold rounded-lg transition-all"
+            >
+              <Instagram size={18} />
+              Instagram
+            </motion.a>
+          )}
+          {club.website_url && (
+            <motion.a
+              whileTap={{ scale: 0.95 }}
+              href={club.website_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-zinc-800/80 hover:bg-zinc-700 backdrop-blur-sm text-white text-sm font-semibold rounded-lg transition-colors border border-zinc-700"
+            >
+              <Globe size={18} />
+              Website
+            </motion.a>
+          )}
         </div>
 
         {/* View Club Button */}
-        <Link
-          href={`/clubs/${club.id}`}
-          className="block mt-4 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-center text-sm font-semibold text-white transition-colors"
-        >
-          View Club
+        <Link href={`/clubs/${club.id}`}>
+          <motion.button
+            whileTap={{ scale: 0.98 }}
+            className="w-full py-3 bg-orange-500 hover:bg-orange-600 text-zinc-950 text-sm font-bold rounded-lg transition-colors"
+          >
+            View Club
+          </motion.button>
         </Link>
       </div>
     </motion.article>
   );
+}
+
+// Calculate distance between two coordinates in miles
+function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 3959; // Earth's radius in miles
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = 
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+    Math.sin(dLng/2) * Math.sin(dLng/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
 }
 
 export default function ClubsPage() {
@@ -247,6 +267,33 @@ export default function ClubsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRegion, setSelectedRegion] = useState('All Regions');
   const [showRegionDropdown, setShowRegionDropdown] = useState(false);
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [isLoadingLocation, setIsLoadingLocation] = useState(false);
+
+  // Request user location
+  const requestLocation = useCallback(() => {
+    if (!navigator.geolocation) return;
+    
+    setIsLoadingLocation(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setUserLocation({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+        });
+        setIsLoadingLocation(false);
+      },
+      () => {
+        setIsLoadingLocation(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 }
+    );
+  }, []);
+
+  // Try to get location on mount
+  useEffect(() => {
+    requestLocation();
+  }, [requestLocation]);
 
   useEffect(() => {
     async function fetchClubs() {
@@ -277,8 +324,28 @@ export default function ClubsPage() {
     fetchClubs();
   }, []);
 
+  // Add distance to clubs and sort by proximity
+  const clubsWithDistance = useMemo(() => {
+    if (!userLocation) return clubs;
+    
+    return clubs.map(club => ({
+      ...club,
+      distance: club.lat && club.lng 
+        ? calculateDistance(userLocation.lat, userLocation.lng, club.lat, club.lng)
+        : undefined,
+    })).sort((a, b) => {
+      // Sort by distance if available, otherwise keep original order
+      if (a.distance !== undefined && b.distance !== undefined) {
+        return a.distance - b.distance;
+      }
+      if (a.distance !== undefined) return -1;
+      if (b.distance !== undefined) return 1;
+      return 0;
+    });
+  }, [clubs, userLocation]);
+
   const filteredClubs = useMemo(() => {
-    return clubs.filter((club) => {
+    return clubsWithDistance.filter((club) => {
       const matchesSearch = searchQuery === '' ||
         club.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         club.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -289,22 +356,7 @@ export default function ClubsPage() {
 
       return matchesSearch && matchesRegion;
     });
-  }, [clubs, searchQuery, selectedRegion]);
-
-  // Group clubs by region for display
-  const groupedClubs = useMemo(() => {
-    if (selectedRegion !== 'All Regions') {
-      return { [selectedRegion]: filteredClubs };
-    }
-
-    const groups: Record<string, Club[]> = {};
-    filteredClubs.forEach((club) => {
-      const region = club.region || 'Other';
-      if (!groups[region]) groups[region] = [];
-      groups[region].push(club);
-    });
-    return groups;
-  }, [filteredClubs, selectedRegion]);
+  }, [clubsWithDistance, searchQuery, selectedRegion]);
 
   return (
     <div className="min-h-screen bg-background">
