@@ -1,7 +1,14 @@
 import type { Metadata, Viewport } from "next";
+import { Inter } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import { ViewTransitions } from "@/components/ViewTransitions";
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "SoCal Off-Roaders | Community App",
@@ -29,8 +36,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="bg-black">
-      <body className="antialiased bg-black text-foreground min-h-screen">
+    <html lang="en" className={`bg-black ${inter.variable}`}>
+      <body className="antialiased bg-black text-foreground min-h-screen font-sans">
         <AuthProvider>
           <ViewTransitions>
             {children}
