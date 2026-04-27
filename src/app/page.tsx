@@ -1017,7 +1017,7 @@ export default function HomePage() {
     try {
       const { data, error } = await supabase
         .from('posts')
-        .select('*, users!posts_user_id_fk(id, name, avatar_url, role, is_verified)')
+        .select('*')
         .order('created_at', { ascending: false })
         .limit(30);
       if (error) throw error;
@@ -1025,11 +1025,8 @@ export default function HomePage() {
       const normalised = (data ?? []).map((p: any) => ({
         ...p,
         caption: p.caption ?? p.body ?? '',
-        user_name: p.users?.name ?? p.user_name ?? p.username ?? 'Rider',
-        username: p.users?.name ?? p.user_name ?? p.username ?? 'Rider',
-        avatar_url: p.users?.avatar_url ?? p.avatar_url ?? null,
-        verified: p.users?.is_verified ?? p.verified ?? false,
-        role: p.users?.role ?? p.role ?? 'user',
+        username: p.user_name ?? p.username ?? 'Rider',
+        role: p.role ?? 'user',
       }));
       setPosts(normalised.length ? normalised : PLACEHOLDER_POSTS);
     } catch {
