@@ -264,7 +264,7 @@ export default function RunDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen bg-black flex items-center justify-center">
         <motion.div
           animate={{ rotate: 360 }}
           transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
@@ -276,7 +276,7 @@ export default function RunDetailPage() {
 
   if (!run) {
     return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
+      <div className="min-h-screen bg-black flex flex-col items-center justify-center p-4">
         <AlertTriangle size={48} className="text-zinc-600 mb-4" />
         <h2 className="text-xl font-semibold text-zinc-400 mb-2">Run not found</h2>
         <Link href="/runs" className="text-orange-500 hover:text-orange-400">
@@ -287,7 +287,7 @@ export default function RunDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen bg-black flex flex-col">
       {/* Header */}
       <header className="sticky top-0 z-50 glass border-b border-zinc-800 safe-top">
         <div className="flex items-center justify-between px-4 py-3">

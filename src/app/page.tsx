@@ -84,66 +84,66 @@ const trailUpdates = [
 
 function StoriesBar() {
   return (
-    <div className="border-b border-zinc-800 py-4 overflow-hidden">
-      <div className="flex gap-4 px-4 overflow-x-auto scrollbar-hide">
+    <div className="border-b border-zinc-800 py-4 overflow-hidden bg-black">
+      <div className="flex gap-3 px-4 overflow-x-auto scrollbar-hide">
         {/* Live Runs Section */}
-        <div className="flex flex-col items-center gap-1 flex-shrink-0">
+        <div className="flex flex-col items-center gap-1.5 flex-shrink-0">
           <div className="relative">
-            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-orange-500 to-red-500 p-0.5">
-              <div className="w-full h-full rounded-full bg-zinc-900 flex items-center justify-center">
+            <div className="w-[72px] h-[72px] rounded-full bg-gradient-to-br from-orange-500 to-red-500 p-[3px]">
+              <div className="w-full h-full rounded-full bg-black flex items-center justify-center">
                 <Radio size={24} className="text-orange-500" />
               </div>
             </div>
-            <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 px-1.5 py-0.5 bg-red-500 text-white text-[10px] font-bold uppercase rounded">Live</span>
+            <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 px-1.5 py-0.5 bg-red-500 text-white text-[10px] font-bold uppercase rounded-full">Live</span>
           </div>
-          <span className="text-xs text-zinc-400 truncate w-16 text-center">Live Runs</span>
+          <span className="text-[11px] text-zinc-400 truncate w-[72px] text-center">Live Runs</span>
         </div>
 
-        {/* Live Run Stories */}
+        {/* Live Run Stories - Orange ring for live */}
         {liveRuns.map((run) => (
-          <Link key={run.id} href="/runs" className="flex flex-col items-center gap-1 flex-shrink-0">
+          <Link key={run.id} href="/runs" className="flex flex-col items-center gap-1.5 flex-shrink-0">
             <motion.div
               whileTap={{ scale: 0.95 }}
               className="relative"
             >
-              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-orange-500 via-red-500 to-orange-500 p-0.5 animate-pulse">
-                <div className="w-full h-full rounded-full overflow-hidden">
-                  <img src={run.avatar} alt={run.name} className="w-full h-full object-cover" />
+              <div className="w-[72px] h-[72px] rounded-full bg-gradient-to-br from-orange-500 to-orange-600 p-[3px]">
+                <div className="w-full h-full rounded-full overflow-hidden bg-black">
+                  <img src={run.avatar} alt={run.name} className="w-full h-full object-cover rounded-full" />
                 </div>
               </div>
-              <span className="absolute bottom-0 right-0 w-4 h-4 bg-red-500 border-2 border-zinc-900 rounded-full flex items-center justify-center">
-                <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
+              <span className="absolute bottom-0 right-0 w-5 h-5 bg-red-500 border-[3px] border-black rounded-full flex items-center justify-center">
+                <span className="w-2 h-2 bg-white rounded-full animate-pulse" />
               </span>
             </motion.div>
-            <span className="text-xs text-zinc-400 truncate w-16 text-center">{run.name}</span>
+            <span className="text-[11px] text-zinc-400 truncate w-[72px] text-center">{run.name}</span>
           </Link>
         ))}
 
         {/* Divider */}
-        <div className="w-px bg-zinc-800 flex-shrink-0 mx-1" />
+        <div className="w-px bg-zinc-800 flex-shrink-0 mx-2 my-2" />
 
         {/* Trail Updates Section */}
-        <div className="flex flex-col items-center gap-1 flex-shrink-0">
-          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 p-0.5">
-            <div className="w-full h-full rounded-full bg-zinc-900 flex items-center justify-center">
-              <Mountain size={24} className="text-emerald-500" />
+        <div className="flex flex-col items-center gap-1.5 flex-shrink-0">
+          <div className="w-[72px] h-[72px] rounded-full bg-zinc-800 p-[3px]">
+            <div className="w-full h-full rounded-full bg-black flex items-center justify-center">
+              <Mountain size={24} className="text-zinc-500" />
             </div>
           </div>
-          <span className="text-xs text-zinc-400 truncate w-16 text-center">Updates</span>
+          <span className="text-[11px] text-zinc-400 truncate w-[72px] text-center">Updates</span>
         </div>
 
-        {/* Trail Update Stories */}
+        {/* Trail Update Stories - No colored ring (not live) */}
         {trailUpdates.map((trail) => (
-          <Link key={trail.id} href="/trails" className="flex flex-col items-center gap-1 flex-shrink-0">
+          <Link key={trail.id} href="/trails" className="flex flex-col items-center gap-1.5 flex-shrink-0">
             <motion.div
               whileTap={{ scale: 0.95 }}
-              className="w-16 h-16 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 p-0.5"
+              className="w-[72px] h-[72px] rounded-full bg-zinc-800 p-[3px]"
             >
-              <div className="w-full h-full rounded-full overflow-hidden">
-                <img src={trail.avatar} alt={trail.name} className="w-full h-full object-cover" />
+              <div className="w-full h-full rounded-full overflow-hidden bg-black">
+                <img src={trail.avatar} alt={trail.name} className="w-full h-full object-cover rounded-full" />
               </div>
             </motion.div>
-            <span className="text-xs text-zinc-400 truncate w-16 text-center">{trail.name}</span>
+            <span className="text-[11px] text-zinc-400 truncate w-[72px] text-center">{trail.name}</span>
           </Link>
         ))}
       </div>
@@ -222,12 +222,12 @@ function RigPostCard({ post, index }: { post: Post; index: number }) {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.1 }}
-      className="bg-zinc-900 border border-zinc-800"
+      className="bg-zinc-900 border-b border-zinc-800"
     >
       {/* Post Header */}
-      <div className="flex items-center justify-between p-3 border-b border-zinc-800">
+      <div className="flex items-center justify-between px-4 py-3">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-zinc-800 overflow-hidden ring-2 ring-orange-500/50">
+          <div className="w-10 h-10 rounded-full bg-zinc-800 overflow-hidden ring-2 ring-zinc-700">
             {post.avatar_url ? (
               <img
                 src={post.avatar_url}
@@ -253,7 +253,7 @@ function RigPostCard({ post, index }: { post: Post; index: number }) {
       </div>
 
       {/* Post Image */}
-      <div className="aspect-square bg-zinc-800 relative">
+      <div className="aspect-[4/5] bg-zinc-900 relative">
         <img
           src={post.image_url}
           alt={post.caption}
@@ -262,7 +262,7 @@ function RigPostCard({ post, index }: { post: Post; index: number }) {
       </div>
 
       {/* Actions */}
-      <div className="p-3">
+      <div className="px-4 py-3">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-4">
             <motion.button
@@ -330,7 +330,7 @@ function RigPostCard({ post, index }: { post: Post; index: number }) {
         </p>
 
         {/* Caption */}
-        <p className="text-sm text-zinc-300 mb-1">
+        <p className="text-sm text-zinc-300 mb-1 leading-relaxed">
           <span className="font-semibold text-white">{post.username} </span>
           {post.caption}
         </p>
@@ -350,7 +350,7 @@ function RigPostCard({ post, index }: { post: Post; index: number }) {
         )}
 
         {/* Timestamp */}
-        <p className="text-xs text-zinc-600 mt-2 uppercase tracking-wide">
+        <p className="text-xs text-zinc-600 mt-3 uppercase tracking-wide">
           {timeAgo(post.created_at)}
         </p>
       </div>
@@ -403,7 +403,7 @@ export default function HomePage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-black">
       {/* Safety Disclaimer Header */}
       <header className="sticky top-0 z-50 glass border-b border-zinc-800 safe-top">
         <div className="flex items-center justify-between px-4 py-2">
@@ -428,9 +428,9 @@ export default function HomePage() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-lg mx-auto pt-14 pb-24">
+      <main className="max-w-md mx-auto pt-14 pb-24 bg-black">
         {/* App Title */}
-        <div className="px-4 py-4 text-center">
+        <div className="px-4 py-4 text-center bg-black">
           <h1 className="text-2xl font-bold text-white tracking-tight">
             SoCal Off-Roaders
           </h1>
@@ -443,7 +443,7 @@ export default function HomePage() {
         <StoriesBar />
 
         {/* Feed */}
-        <div className="divide-y divide-zinc-800">
+        <div className="bg-black">
           <AnimatePresence mode="wait">
             {isLoading ? (
               <motion.div
@@ -451,7 +451,7 @@ export default function HomePage() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="p-4"
+                className="px-4 py-4"
               >
                 <FeedSkeleton count={3} />
               </motion.div>

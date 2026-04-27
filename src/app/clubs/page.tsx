@@ -359,7 +359,7 @@ export default function ClubsPage() {
   }, [clubsWithDistance, searchQuery, selectedRegion]);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-black">
       {/* Header */}
       <header className="sticky top-0 z-50 glass border-b border-zinc-800 safe-top">
         <div className="px-4 py-3">
@@ -433,7 +433,7 @@ export default function ClubsPage() {
       </header>
 
       {/* Club List */}
-      <main className="max-w-lg mx-auto px-4 pt-14 pb-24">
+      <main className="max-w-md mx-auto px-4 pt-4 pb-24">
         <AnimatePresence mode="wait">
           {isLoading ? (
             <motion.div

@@ -5,7 +5,7 @@
 
 :root {
   /* Industrial Dark Palette - Slate/Zinc */
-  --background: #09090b;
+  --background: #000000;
   --foreground: #fafafa;
   --card: #18181b;
   --card-foreground: #fafafa;
@@ -64,6 +64,7 @@
 
 html {
   scroll-behavior: smooth;
+  background-color: #000000;
   /* Safe area insets for mobile notches */
   padding-top: env(safe-area-inset-top);
   padding-bottom: env(safe-area-inset-bottom);

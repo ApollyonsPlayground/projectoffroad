@@ -111,7 +111,7 @@ export default function ProfilePage() {
 
   if (isLoading || loading) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-black">
         <div className="max-w-lg mx-auto">
           <ProfileSkeleton />
         </div>
@@ -121,9 +121,9 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-black">
       {/* Profile Header */}
-      <header className="bg-zinc-900 border-b border-zinc-800 safe-top">
+      <header className="bg-black border-b border-zinc-800 safe-top">
         <div className="px-4 py-4">
           <div className="flex items-center justify-between mb-4">
             <h1 className="text-xl font-bold text-white">Profile</h1>
@@ -204,7 +204,7 @@ export default function ProfilePage() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-lg mx-auto pt-14 pb-24">
+      <main className="max-w-md mx-auto px-4 pt-4 pb-24">
         {/* Vehicles Section */}
         <section className="p-4 border-b border-zinc-800">
           <div className="flex items-center justify-between mb-3">

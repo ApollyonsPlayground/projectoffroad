@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#09090b",
+  themeColor: "#000000",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -29,8 +29,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="bg-background">
-      <body className="antialiased bg-background text-foreground min-h-screen">
+    <html lang="en" className="bg-black">
+      <body className="antialiased bg-black text-foreground min-h-screen">
         <AuthProvider>
           <ViewTransitions>
             {children}
