@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Award, Plus } from 'lucide-react';
 import Link from 'next/link';
-import { supabase, isSupabaseConfigured } from '@/lib/db/supabase';
+import { supabase } from '@/lib/db/supabase';
 
 interface FeaturedRig {
   id: string;
@@ -19,7 +19,7 @@ export default function FeaturedRigs() {
   useEffect(() => {
     async function fetchFeaturedRigs() {
       // Skip if Supabase not configured
-      if (!supabase || !isSupabaseConfigured()) {
+      if (!supabase) {
         setLoading(false);
         return;
       }
@@ -86,9 +86,9 @@ export default function FeaturedRigs() {
           <p className="text-neutral-500 text-sm font-bold uppercase tracking-wide mb-3">
             No featured rigs yet
           </p>
-          <Link 
-            href="/posts/create"
-            className="inline-flex items-center gap-2 px-4 py-2 bg-muted-gold hover:bg-moss text-black text-xs font-black uppercase transition-colors"
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-black text-xs font-black uppercase transition-colors rounded"
           >
             <Plus size={14} />
             Share Your Rig

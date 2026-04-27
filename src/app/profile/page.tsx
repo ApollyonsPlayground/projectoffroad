@@ -242,6 +242,7 @@ export default function ProfilePage() {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [posts, setPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(false);
   const [activeTab, setActiveTab] = useState<'posts' | 'runs'>('posts');
   const [editingVehicle, setEditingVehicle] = useState<Vehicle | null | undefined>(undefined); // undefined = closed
 
@@ -250,6 +251,7 @@ export default function ProfilePage() {
   const displayProfile: DisplayProfile = (profile as DisplayProfile | null) || PLACEHOLDER_PROFILE;
 
   const fetchData = useCallback(async () => {
+    // No supabase or no user: show placeholders (demo mode)
     if (!supabase || !user) {
       setVehicles(PLACEHOLDER_VEHICLES);
       setPosts(PLACEHOLDER_POSTS);
@@ -257,15 +259,19 @@ export default function ProfilePage() {
       return;
     }
     try {
+      setFetchError(false);
       const [vehiclesRes, postsRes] = await Promise.all([
         supabase.from('vehicles').select('*').eq('user_id', user.id),
         supabase.from('posts').select('id, image_url, caption, likes_count, created_at').eq('user_id', user.id).order('created_at', { ascending: false }).limit(20),
       ]);
-      setVehicles(vehiclesRes.data?.length ? vehiclesRes.data : PLACEHOLDER_VEHICLES);
-      setPosts(postsRes.data?.length ? postsRes.data : PLACEHOLDER_POSTS);
+      if (vehiclesRes.error) throw vehiclesRes.error;
+      if (postsRes.error) throw postsRes.error;
+      setVehicles(vehiclesRes.data ?? []);
+      setPosts(postsRes.data ?? []);
     } catch {
-      setVehicles(PLACEHOLDER_VEHICLES);
-      setPosts(PLACEHOLDER_POSTS);
+      setFetchError(true);
+      setVehicles([]);
+      setPosts([]);
     } finally {
       setIsLoading(false);
     }
@@ -304,8 +310,9 @@ export default function ProfilePage() {
     );
   }
 
-  // ── Not logged in ──────────────────────────────────────────────────────────
-  if (!user) {
+  // ── Not logged in OR profile failed to load ────────────────────────────────
+  if (!user || fetchError || (!profile && isConfigured)) {
+    const isProfileMissing = user && (!profile || fetchError);
     return (
       <div className="min-h-screen bg-black flex flex-col items-center justify-center px-6">
         <div className="w-full max-w-sm flex flex-col items-center gap-8 text-center">
@@ -313,17 +320,30 @@ export default function ProfilePage() {
             <User size={36} className="text-zinc-600" />
           </div>
           <div className="flex flex-col gap-2">
-            <h2 className="text-[22px] font-black text-white tracking-tight">Your Profile</h2>
+            <h2 className="text-[22px] font-black text-white tracking-tight">
+              {isProfileMissing ? 'Profile Not Found' : 'Your Profile'}
+            </h2>
             <p className="text-[14px] text-zinc-500 leading-relaxed max-w-[260px] mx-auto">
-              Sign in to view your rig portfolio, posts, and community profile.
+              {isProfileMissing
+                ? 'Your account was created but the profile record is missing. Try signing out and back in.'
+                : 'Sign in to view your rig portfolio, posts, and community profile.'}
             </p>
           </div>
-          <Link
-            href="/login"
-            className="w-full flex items-center justify-center gap-3 py-5 rounded-2xl bg-orange-500 hover:bg-orange-600 text-black font-black text-[17px] transition-colors shadow-lg shadow-orange-500/30"
-          >
-            Sign In to View Profile
-          </Link>
+          {isProfileMissing ? (
+            <button
+              onClick={async () => { await signOut(); router.push('/login'); }}
+              className="w-full flex items-center justify-center gap-3 py-5 rounded-2xl bg-zinc-900 border-2 border-zinc-700 hover:border-orange-500 text-white font-black text-[17px] transition-colors"
+            >
+              Sign Out and Try Again
+            </button>
+          ) : (
+            <Link
+              href="/login"
+              className="w-full flex items-center justify-center gap-3 py-5 rounded-2xl bg-orange-500 hover:bg-orange-600 text-black font-black text-[17px] transition-colors shadow-lg shadow-orange-500/30"
+            >
+              Sign In to View Profile
+            </Link>
+          )}
         </div>
         <BottomNav />
       </div>
