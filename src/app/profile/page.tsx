@@ -303,6 +303,32 @@ export default function ProfilePage() {
     );
   }
 
+  // ── Not logged in ──────────────────────────────────────────────────────────
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-black flex flex-col items-center justify-center px-6">
+        <div className="w-full max-w-sm flex flex-col items-center gap-8 text-center">
+          <div className="w-20 h-20 rounded-2xl bg-zinc-950 border-2 border-zinc-800 flex items-center justify-center">
+            <User size={36} className="text-zinc-600" />
+          </div>
+          <div className="flex flex-col gap-2">
+            <h2 className="text-[22px] font-black text-white tracking-tight">Your Profile</h2>
+            <p className="text-[14px] text-zinc-500 leading-relaxed max-w-[260px] mx-auto">
+              Sign in to view your rig portfolio, posts, and community profile.
+            </p>
+          </div>
+          <Link
+            href="/login"
+            className="w-full flex items-center justify-center gap-3 py-5 rounded-2xl bg-orange-500 hover:bg-orange-600 text-black font-black text-[17px] transition-colors shadow-lg shadow-orange-500/30"
+          >
+            Sign In to View Profile
+          </Link>
+        </div>
+        <BottomNav />
+      </div>
+    );
+  }
+
   const isVerified = (displayProfile as typeof PLACEHOLDER_PROFILE).is_verified ?? false;
 
   return (
@@ -559,15 +585,14 @@ export default function ProfilePage() {
         </section>
 
         {/* Sign out ──────────────────────────────── */}
-        <section className="px-4 pb-10">
-          <div className="border-t border-zinc-900 pt-6">
-            <p className="text-[11px] text-zinc-600 text-center uppercase tracking-widest font-semibold mb-4">Account</p>
+        <section className="px-4 pb-12 pt-2">
+          <div className="border-t border-zinc-900 pt-8">
             <motion.button
               whileTap={{ scale: 0.97 }}
               onClick={handleSignOut}
-              className="w-full flex items-center justify-center gap-3 py-5 bg-zinc-950 border-2 border-zinc-800 hover:border-red-500/50 hover:bg-red-500/5 text-zinc-300 hover:text-red-400 text-[16px] font-bold rounded-2xl transition-colors"
+              className="w-full flex items-center justify-center gap-3 py-5 bg-black border-2 border-zinc-800 hover:border-red-500 hover:bg-red-500/8 text-zinc-400 hover:text-red-400 text-[17px] font-black rounded-2xl transition-all"
             >
-              <LogOut size={20} />
+              <LogOut size={22} />
               Log Out
             </motion.button>
           </div>
