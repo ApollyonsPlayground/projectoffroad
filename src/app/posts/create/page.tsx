@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import LeftNav from '@/components/LeftNav';
-import RightSidebar from '@/components/RightSidebar';
 import { Camera, MapPin, Truck, Plus, X } from 'lucide-react';
 
 export default function CreatePostPage() {
@@ -29,9 +28,11 @@ export default function CreatePostPage() {
     }, 1000);
   };
 
+  const [navOpen, setNavOpen] = useState(false);
+
   return (
     <div className="flex min-h-screen bg-[#050705]">
-      <LeftNav />
+      <LeftNav isOpen={navOpen} onClose={() => setNavOpen(false)} />
       
       <main className="flex-1 max-w-2xl mx-auto w-full border-x-2 border-neutral-800">
         <div className="sticky top-0 z-50 bg-moss/90 backdrop-blur-sm border-b-2 border-muted-gold px-4 py-3">
@@ -151,7 +152,6 @@ export default function CreatePostPage() {
         </div>
       </main>
 
-      <RightSidebar />
     </div>
   );
 }

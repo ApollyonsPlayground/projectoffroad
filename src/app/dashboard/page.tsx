@@ -57,7 +57,7 @@ export default function DashboardPage() {
         {/* Welcome Section */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-white">
-            Welcome back, {profile?.name || 'Offroader'}! 👋
+            Welcome back, {(profile?.name as string | undefined) || 'Offroader'}!
           </h1>
           <p className="text-gray-400 mt-2">
             Ready for your next adventure?

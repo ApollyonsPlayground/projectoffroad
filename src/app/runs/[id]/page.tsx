@@ -242,7 +242,7 @@ export default function RunDetailPage() {
       content: newMessage.trim(),
       created_at: new Date().toISOString(),
       user_id: user?.id || 'current',
-      user_name: profile?.name || 'You',
+      user_name: (profile?.name as string | undefined) || 'You',
     };
 
     setMessages([...messages, newMsg]);

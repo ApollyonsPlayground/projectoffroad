@@ -107,7 +107,7 @@ export async function hapticError() {
 export async function hapticSelection() {
   if (!hapticAvailable) return;
   try {
-    await Haptics.selection();
+    await Haptics.selectionStart();
   } catch (e) {
     // Fail silently
   }

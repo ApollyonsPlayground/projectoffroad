@@ -244,7 +244,9 @@ export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState<'posts' | 'runs'>('posts');
   const [editingVehicle, setEditingVehicle] = useState<Vehicle | null | undefined>(undefined); // undefined = closed
 
-  const displayProfile = profile || PLACEHOLDER_PROFILE;
+  // Cast profile (Record<string,unknown>) to a typed shape for safe rendering
+  type DisplayProfile = typeof PLACEHOLDER_PROFILE & { avatar_url?: string | null };
+  const displayProfile: DisplayProfile = (profile as DisplayProfile | null) || PLACEHOLDER_PROFILE;
 
   const fetchData = useCallback(async () => {
     if (!supabase || !user) {
@@ -323,7 +325,7 @@ export default function ProfilePage() {
             <div className="relative flex-shrink-0">
               <div className="w-20 h-20 rounded-full bg-zinc-900 overflow-hidden ring-2 ring-orange-500/40">
                 {displayProfile.avatar_url ? (
-                  <img src={displayProfile.avatar_url} alt={displayProfile.name} className="w-full h-full object-cover" />
+                  <img src={displayProfile.avatar_url as string} alt={String(displayProfile.name)} className="w-full h-full object-cover" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
                     <User size={32} className="text-zinc-600" />
@@ -341,7 +343,7 @@ export default function ProfilePage() {
             {/* Name + meta */}
             <div className="flex-1 min-w-0 pt-1">
               <div className="flex items-center gap-1.5 flex-wrap">
-                <h2 className="text-[17px] font-bold text-white leading-tight">{displayProfile.name}</h2>
+                <h2 className="text-[17px] font-bold text-white leading-tight">{String(displayProfile.name)}</h2>
                 {isVerified && (
                   <div className="relative flex items-center" aria-label="Verified member">
                     <motion.div
@@ -357,7 +359,7 @@ export default function ProfilePage() {
               {displayProfile.location && (
                 <div className="flex items-center gap-1 text-[13px] text-zinc-500 mt-0.5">
                   <MapPin size={12} />
-                  <span>{displayProfile.location}</span>
+                  <span>{String(displayProfile.location)}</span>
                 </div>
               )}
               {displayProfile.experience_level && (
@@ -368,22 +370,22 @@ export default function ProfilePage() {
                     ? 'bg-orange-500/15 text-orange-400 border border-orange-500/30'
                     : 'bg-yellow-500/15 text-yellow-500 border border-yellow-500/30'
                 }`}>
-                  {displayProfile.experience_level}
+                  {String(displayProfile.experience_level)}
                 </span>
               )}
             </div>
           </div>
 
           {displayProfile.bio && (
-            <p className="mt-3 text-[14px] text-zinc-400 leading-relaxed">{displayProfile.bio}</p>
+            <p className="mt-3 text-[14px] text-zinc-400 leading-relaxed">{String(displayProfile.bio)}</p>
           )}
 
           {/* Stats row */}
           <div className="flex justify-around mt-4 pt-4 border-t border-zinc-900">
             {[
-              { label: 'Posts',  value: displayProfile.posts_count ?? posts.length },
-              { label: 'Runs',   value: displayProfile.runs_completed ?? 0 },
-              { label: 'Trails', value: displayProfile.trails_visited ?? 0 },
+              { label: 'Posts',  value: Number(displayProfile.posts_count ?? posts.length) },
+              { label: 'Runs',   value: Number(displayProfile.runs_completed ?? 0) },
+              { label: 'Trails', value: Number(displayProfile.trails_visited ?? 0) },
             ].map(({ label, value }) => (
               <div key={label} className="text-center">
                 <p className="text-[18px] font-bold text-white">{value}</p>

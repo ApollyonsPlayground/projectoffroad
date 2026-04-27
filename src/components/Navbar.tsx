@@ -42,7 +42,7 @@ export default function Navbar() {
               <>
                 <Link href="/profile" className="flex items-center space-x-2">
                   <div className="w-8 h-8 bg-amber-500 rounded-full flex items-center justify-center text-black font-bold">
-                    {profile?.name?.charAt(0) || 'U'}
+                    {(profile?.name as string | undefined)?.charAt(0) || 'U'}
                   </div>
                 </Link>
                 <button

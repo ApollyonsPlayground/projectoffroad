@@ -80,6 +80,7 @@ export interface Message {
 
 // Helper to fetch user with profile
 export async function getUserProfile(userId: string) {
+  if (!supabase) throw new Error('Supabase not configured')
   const { data, error } = await supabase
     .from('users')
     .select('*')
@@ -92,6 +93,7 @@ export async function getUserProfile(userId: string) {
 
 // Helper to fetch user vehicles
 export async function getUserVehicles(userId: string) {
+  if (!supabase) throw new Error('Supabase not configured')
   const { data, error } = await supabase
     .from('vehicles')
     .select('*')
@@ -103,6 +105,7 @@ export async function getUserVehicles(userId: string) {
 
 // Helper to fetch clubs
 export async function getClubs(limit = 20) {
+  if (!supabase) throw new Error('Supabase not configured')
   const { data, error } = await supabase
     .from('clubs')
     .select('*')
@@ -115,6 +118,7 @@ export async function getClubs(limit = 20) {
 
 // Helper to fetch runs
 export async function getRuns(filters?: { clubId?: string; status?: string; limit?: number }) {
+  if (!supabase) throw new Error('Supabase not configured')
   let query = supabase
     .from('runs')
     .select('*, club:clubs(name, logo)')
@@ -137,6 +141,7 @@ export async function getRuns(filters?: { clubId?: string; status?: string; limi
 
 // Helper to fetch run messages
 export async function getRunMessages(runId: string, limit = 50) {
+  if (!supabase) throw new Error('Supabase not configured')
   const { data, error } = await supabase
     .from('messages')
     .select('*, user:users(name, avatar_url)')
