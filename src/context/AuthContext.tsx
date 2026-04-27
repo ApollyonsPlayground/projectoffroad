@@ -3,18 +3,23 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 import { createClient, User, SupabaseClient } from '@supabase/supabase-js'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+// Guard: never call createClient with undefined — this was crashing the entire app
+function makeSupabaseClient(): SupabaseClient | null {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  if (!url || !key) return null
+  try {
+    return createClient(url, key)
+  } catch {
+    return null
+  }
+}
 
-// Create client only when credentials are available - prevents crash on missing env vars
-const supabase: SupabaseClient | null = 
-  supabaseUrl && supabaseAnonKey 
-    ? createClient(supabaseUrl, supabaseAnonKey)
-    : null
+const supabase = makeSupabaseClient()
 
 interface AuthContextType {
   user: User | null
-  profile: any | null
+  profile: Record<string, unknown> | null
   loading: boolean
   isConfigured: boolean
   signIn: (email: string, password: string) => Promise<{ error: string | null }>
@@ -26,10 +31,10 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
-  const [profile, setProfile] = useState<any | null>(null)
+  const [profile, setProfile] = useState<Record<string, unknown> | null>(null)
   const [loading, setLoading] = useState(true)
 
-  const isConfigured = !!supabase
+  const isConfigured = supabase !== null
 
   useEffect(() => {
     if (!supabase) {
@@ -37,7 +42,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return
     }
 
-    // Check active session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null)
       if (session?.user) {
@@ -47,7 +51,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     })
 
-    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null)
       if (session?.user) {
@@ -63,35 +66,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function fetchProfile(userId: string) {
     if (!supabase) return
-    
     const { data, error } = await supabase
       .from('users')
       .select('*')
       .eq('id', userId)
       .single()
-
-    if (!error && data) {
-      setProfile(data)
-    }
+    if (!error && data) setProfile(data)
     setLoading(false)
   }
 
   async function signIn(email: string, password: string) {
-    if (!supabase) {
-      return { error: 'Supabase is not configured' }
-    }
+    if (!supabase) return { error: 'Supabase is not configured.' }
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     return { error: error?.message ?? null }
   }
 
   async function signUp(email: string, password: string, name: string) {
-    if (!supabase) {
-      return { error: 'Supabase is not configured' }
-    }
+    if (!supabase) return { error: 'Supabase is not configured.' }
     const { error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { name } }
+      options: { data: { name } },
     })
     return { error: error?.message ?? null }
   }
@@ -112,8 +107,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 export function useAuth() {
   const context = useContext(AuthContext)
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider')
-  }
+  if (!context) throw new Error('useAuth must be used within an AuthProvider')
   return context
 }
