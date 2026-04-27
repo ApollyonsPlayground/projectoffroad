@@ -20,6 +20,7 @@ import BottomNav from '@/components/BottomNav';
 import { ClubListSkeleton } from '@/components/SkeletonLoader';
 import { supabase, isSupabaseConfigured } from '@/lib/db/supabase';
 import { useAuth } from '@/context/AuthContext';
+import { useToast } from '@/components/Toast';
 
 interface Club {
   id: string;
@@ -128,7 +129,11 @@ const placeholderClubs: Club[] = [
 
 const regions = ['All Regions', 'Inland Empire', 'Orange County', 'Big Bear', 'San Diego', 'Los Angeles', 'High Desert'];
 
-function ClubPosterCard({ club, index }: { club: Club; index: number }) {
+function ClubPosterCard({ club, index, onViewClub }: {
+  club: Club;
+  index: number;
+  onViewClub: (club: Club) => void;
+}) {
   return (
     <motion.article
       initial={{ opacity: 0, y: 20 }}
@@ -234,14 +239,13 @@ function ClubPosterCard({ club, index }: { club: Club; index: number }) {
         </div>
 
         {/* View Club Button */}
-        <Link href={`/clubs/${club.id}`}>
-          <motion.button
-            whileTap={{ scale: 0.98 }}
-            className="w-full py-3 bg-orange-500 hover:bg-orange-600 text-zinc-950 text-sm font-bold rounded-lg transition-colors"
-          >
-            View Club
-          </motion.button>
-        </Link>
+        <motion.button
+          whileTap={{ scale: 0.98 }}
+          onClick={() => onViewClub(club)}
+          className="w-full py-3 bg-orange-500 hover:bg-orange-600 text-zinc-950 text-sm font-bold rounded-lg transition-colors"
+        >
+          View Club
+        </motion.button>
       </div>
     </motion.article>
   );
@@ -262,7 +266,12 @@ function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: numbe
 
 export default function ClubsPage() {
   const { user } = useAuth();
+  const { showToast } = useToast();
   const [clubs, setClubs] = useState<Club[]>([]);
+
+  const handleViewClub = useCallback((club: Club) => {
+    showToast(`${club.name} club pages are coming soon`, 'info');
+  }, [showToast]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRegion, setSelectedRegion] = useState('All Regions');
@@ -509,7 +518,7 @@ export default function ClubsPage() {
                   )}
                   <div className="grid grid-cols-1 gap-4">
                     {regionClubs.map((club, index) => (
-                      <ClubPosterCard key={club.id} club={club} index={index} />
+                      <ClubPosterCard key={club.id} club={club} index={index} onViewClub={handleViewClub} />
                     ))}
                   </div>
                 </div>

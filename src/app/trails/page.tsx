@@ -12,6 +12,7 @@ import {
   ChevronRight,
   Clock,
   Ruler,
+  MapPin,
 } from 'lucide-react';
 import Link from 'next/link';
 import BottomNav from '@/components/BottomNav';
@@ -49,7 +50,20 @@ function getDifficultyBadgeClass(difficulty: string): string {
   return 'bg-zinc-700/50 text-zinc-400 border border-zinc-600';
 }
 
-function TrailCard({ trail, index }: { trail: Trail; index: number }) {
+function TrailCard({ trail, index, onSave }: {
+  trail: Trail;
+  index: number;
+  onSave: (trail: Trail) => void;
+}) {
+  const [saved, setSaved] = useState(false);
+
+  const handleSave = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const next = !saved;
+    setSaved(next);
+    onSave(trail);
+  };
+
   return (
     <motion.article
       initial={{ opacity: 0, y: 20 }}
@@ -118,28 +132,39 @@ function TrailCard({ trail, index }: { trail: Trail; index: number }) {
             href={trail.mapsUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(trail.name + ' ' + trail.location)}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-sm font-medium transition-colors"
+            className="flex items-center justify-center gap-1.5 px-3 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-sm font-medium transition-colors"
             onClick={(e) => e.stopPropagation()}
           >
-            <Map size={16} />
+            <Map size={15} />
             Maps
           </a>
           <a
             href={trail.onxUrl || '#'}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-sm font-medium transition-colors"
+            className="flex items-center justify-center gap-1.5 px-3 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-sm font-medium transition-colors"
             onClick={(e) => e.stopPropagation()}
           >
-            <ExternalLink size={16} />
+            <ExternalLink size={15} />
             onX
           </a>
+          <button
+            onClick={handleSave}
+            className={`flex items-center justify-center px-3 py-2.5 transition-colors ${
+              saved
+                ? 'bg-orange-500/15 text-orange-400 border border-orange-500/40'
+                : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-400'
+            }`}
+            aria-label={saved ? 'Unsave trail' : 'Save trail'}
+          >
+            <MapPin size={15} className={saved ? 'fill-orange-400' : ''} />
+          </button>
           <Link
             href={`/trails/${trail.id}`}
-            className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-orange-500 hover:bg-orange-600 text-zinc-950 text-sm font-semibold transition-colors"
+            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-orange-500 hover:bg-orange-600 text-zinc-950 text-sm font-semibold transition-colors"
             onClick={(e) => e.stopPropagation()}
           >
-            <ChevronRight size={16} />
+            <ChevronRight size={15} />
             Details
           </Link>
         </div>
@@ -149,7 +174,12 @@ function TrailCard({ trail, index }: { trail: Trail; index: number }) {
 }
 
 export default function TrailsPage() {
+  const { showToast } = useToast();
   const [isLoading, setIsLoading] = useState(true);
+
+  const handleSaveTrail = useCallback((trail: Trail) => {
+    showToast(`"${trail.name}" saved to your trail list`, 'success');
+  }, [showToast]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty>('All');
   const [showFilters, setShowFilters] = useState(false);
@@ -288,7 +318,7 @@ export default function TrailsPage() {
                 {filteredTrails.length} trail{filteredTrails.length !== 1 ? 's' : ''} found
               </p>
               {filteredTrails.map((trail, index) => (
-                <TrailCard key={trail.id} trail={trail} index={index} />
+                <TrailCard key={trail.id} trail={trail} index={index} onSave={handleSaveTrail} />
               ))}
             </motion.div>
           )}
