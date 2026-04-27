@@ -1,332 +1,338 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import LeftNav, { DesktopNav } from '@/components/LeftNav';
-import RightSidebar from '@/components/RightSidebar';
-import RigPost from '@/components/RigPost';
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { AlertTriangle, Plus, Heart, MessageCircle, Share2, Bookmark, MoreHorizontal, RefreshCw } from 'lucide-react';
+import Link from 'next/link';
+import Image from 'next/image';
+import BottomNav from '@/components/BottomNav';
+import { FeedSkeleton } from '@/components/SkeletonLoader';
 import DisclaimerModal from '@/components/DisclaimerModal';
-import PostCreationModal from '@/components/PostCreationModal';
-import trailsData from '@/data/trails.json';
-import { AlertTriangle, Plus, Menu, Home, Compass, Users, User, Settings } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '@/lib/db/supabase';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
-import { motion, useMotionValue, useTransform, useSpring } from 'framer-motion';
-import Link from 'next/link';
-import { FeedSkeleton } from '@/components/SkeletonLoader';
-import { EmptyState } from '@/components/EmptyState';
 
-// Posts will be fetched from Supabase
-// No hardcoded sample data
-
-// Region filter function for trails
-function filterTrailsByRegion(trails: typeof trailsData, regionId: string) {
-  if (regionId === 'all') return trails;
-  
-  return trails.filter(trail => {
-    const loc = (trail.location || '').toLowerCase();
-    const tags = (trail.tags || []).map(t => t.toLowerCase());
-    
-    switch (regionId) {
-      case 'big-bear':
-        return loc.includes('big bear') || tags.includes('big bear');
-      case 'san-diego':
-        return loc.includes('san diego') || tags.includes('san diego');
-      case 'palm-springs':
-        return loc.includes('palm springs') || loc.includes('idyllwild') || tags.includes('palm springs') || tags.includes('idyllwild');
-      case 'joshua-tree':
-        return loc.includes('joshua tree') || tags.includes('joshua tree');
-      case 'san-bernardino':
-        return loc.includes('san bernardino') || loc.includes('cajon') || loc.includes('lytle') || tags.includes('san bernardino');
-      default:
-        return true;
-    }
-  });
+interface Post {
+  id: string;
+  user_id: string;
+  image_url: string;
+  caption: string;
+  rig_name?: string;
+  rig_specs?: string;
+  likes_count: number;
+  comments_count: number;
+  created_at: string;
+  username?: string;
+  avatar_url?: string;
 }
 
-// Mobile bottom nav items
-const mobileNavItems = [
-  { href: '/', label: 'Home', icon: Home },
-  { href: '/runs', label: 'Runs', icon: Compass },
-  { href: '/clubs', label: 'Clubs', icon: Users },
-  { href: '/profile', label: 'Profile', icon: User },
+// Placeholder posts for when Supabase isn't configured
+const placeholderPosts: Post[] = [
+  {
+    id: '1',
+    user_id: '1',
+    image_url: 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=800&q=80',
+    caption: 'Fresh back from Holcomb Valley. This JK handled the rock gardens like a champ!',
+    rig_name: '2018 Jeep Wrangler JK',
+    rig_specs: '37" KO2s, 4" lift, winch',
+    likes_count: 47,
+    comments_count: 12,
+    created_at: new Date(Date.now() - 3600000).toISOString(),
+    username: 'TrailBlazer_Mike',
+    avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&q=80',
+  },
+  {
+    id: '2',
+    user_id: '2',
+    image_url: 'https://images.unsplash.com/photo-1544636331-e26879cd4d9b?w=800&q=80',
+    caption: 'Desert vibes at Johnson Valley OHV. Perfect weather for some dune runs.',
+    rig_name: '2020 Ford Raptor',
+    rig_specs: 'Stock + skid plates',
+    likes_count: 89,
+    comments_count: 23,
+    created_at: new Date(Date.now() - 7200000).toISOString(),
+    username: 'DesertRunner_Sarah',
+    avatar_url: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&q=80',
+  },
+  {
+    id: '3',
+    user_id: '3',
+    image_url: 'https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?w=800&q=80',
+    caption: 'Installed the new bumper setup this weekend. Ready for the Big Bear run next Saturday!',
+    rig_name: '2016 Toyota Tacoma TRD',
+    rig_specs: '33" Falken, roof rack, RTT',
+    likes_count: 124,
+    comments_count: 31,
+    created_at: new Date(Date.now() - 14400000).toISOString(),
+    username: 'TacoTuesday_Dan',
+    avatar_url: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&q=80',
+  },
 ];
 
-export default function HomePage() {
-  const [selectedRegion, setSelectedRegion] = useState('all');
-  const [posts, setPosts] = useState<any[]>([]);
-  const [feedType, setFeedType] = useState<'rigs' | 'trails'>('rigs');
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [postModalOpen, setPostModalOpen] = useState(false);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const filteredTrails = filterTrailsByRegion(trailsData, selectedRegion);
-  
-  // Pull-to-refresh
-  const y = useMotionValue(0);
-  const ySpring = useSpring(y, { stiffness: 300, damping: 30 });
-  
-  // Haptic feedback for mobile nav
-  const triggerTabHaptic = async () => {
+function RigPostCard({ post, index }: { post: Post; index: number }) {
+  const [liked, setLiked] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [likesCount, setLikesCount] = useState(post.likes_count);
+
+  const handleLike = async () => {
+    try {
+      await Haptics.impact({ style: ImpactStyle.Medium });
+    } catch (e) {}
+    
+    setLiked(!liked);
+    setLikesCount(liked ? likesCount - 1 : likesCount + 1);
+  };
+
+  const handleSave = async () => {
     try {
       await Haptics.impact({ style: ImpactStyle.Light });
     } catch (e) {}
+    setSaved(!saved);
   };
-  
+
+  const timeAgo = (date: string) => {
+    const seconds = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
+    if (seconds < 60) return 'just now';
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+    if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+    return `${Math.floor(seconds / 86400)}d ago`;
+  };
+
+  return (
+    <motion.article
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.1 }}
+      className="bg-zinc-900 border border-zinc-800"
+    >
+      {/* Post Header */}
+      <div className="flex items-center justify-between p-3 border-b border-zinc-800">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-zinc-800 overflow-hidden ring-2 ring-orange-500/50">
+            {post.avatar_url ? (
+              <img
+                src={post.avatar_url}
+                alt={post.username || 'User'}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-zinc-500 font-bold">
+                {(post.username || 'U')[0].toUpperCase()}
+              </div>
+            )}
+          </div>
+          <div>
+            <p className="font-semibold text-sm text-white">{post.username || 'Anonymous'}</p>
+            {post.rig_name && (
+              <p className="text-xs text-zinc-500">{post.rig_name}</p>
+            )}
+          </div>
+        </div>
+        <button className="p-2 text-zinc-500 hover:text-white transition-colors">
+          <MoreHorizontal size={20} />
+        </button>
+      </div>
+
+      {/* Post Image */}
+      <div className="aspect-square bg-zinc-800 relative">
+        <img
+          src={post.image_url}
+          alt={post.caption}
+          className="w-full h-full object-cover"
+        />
+      </div>
+
+      {/* Actions */}
+      <div className="p-3">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-4">
+            <motion.button
+              whileTap={{ scale: 0.9 }}
+              onClick={handleLike}
+              className="text-zinc-400 hover:text-white transition-colors"
+            >
+              <Heart
+                size={24}
+                className={liked ? 'fill-red-500 text-red-500' : ''}
+              />
+            </motion.button>
+            <button className="text-zinc-400 hover:text-white transition-colors">
+              <MessageCircle size={24} />
+            </button>
+            <button className="text-zinc-400 hover:text-white transition-colors">
+              <Share2 size={24} />
+            </button>
+          </div>
+          <motion.button
+            whileTap={{ scale: 0.9 }}
+            onClick={handleSave}
+            className="text-zinc-400 hover:text-white transition-colors"
+          >
+            <Bookmark
+              size={24}
+              className={saved ? 'fill-white text-white' : ''}
+            />
+          </motion.button>
+        </div>
+
+        {/* Likes Count */}
+        <p className="font-semibold text-sm text-white mb-2">
+          {likesCount.toLocaleString()} likes
+        </p>
+
+        {/* Caption */}
+        <p className="text-sm text-zinc-300 mb-1">
+          <span className="font-semibold text-white">{post.username} </span>
+          {post.caption}
+        </p>
+
+        {/* Rig Specs Tag */}
+        {post.rig_specs && (
+          <p className="text-xs text-orange-500 mt-2">
+            Build: {post.rig_specs}
+          </p>
+        )}
+
+        {/* Comments Link */}
+        {post.comments_count > 0 && (
+          <button className="text-sm text-zinc-500 mt-2 hover:text-zinc-400 transition-colors">
+            View all {post.comments_count} comments
+          </button>
+        )}
+
+        {/* Timestamp */}
+        <p className="text-xs text-zinc-600 mt-2 uppercase tracking-wide">
+          {timeAgo(post.created_at)}
+        </p>
+      </div>
+    </motion.article>
+  );
+}
+
+export default function HomePage() {
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const fetchPosts = async () => {
+    if (!supabase || !isSupabaseConfigured()) {
+      // Use placeholder data if Supabase isn't configured
+      setPosts(placeholderPosts);
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('posts')
+        .select('*')
+        .eq('is_flagged', false)
+        .order('created_at', { ascending: false })
+        .limit(20);
+
+      if (error) throw error;
+      setPosts(data?.length ? data : placeholderPosts);
+    } catch (err) {
+      console.error('Error fetching posts:', err);
+      setPosts(placeholderPosts);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleRefresh = async () => {
     setIsRefreshing(true);
     try {
       await Haptics.impact({ style: ImpactStyle.Medium });
     } catch (e) {}
-    // Refetch posts
-    const { data } = await supabase!.from('posts').select('*').eq('is_flagged', false).order('created_at', { ascending: false }).limit(50);
-    setPosts(data || []);
+    await fetchPosts();
     setTimeout(() => setIsRefreshing(false), 500);
   };
-  
-  // Pre-compute posts content to avoid JSX ternary nesting issues
-  const postsContent = isLoading ? (
-    <FeedSkeleton count={3} />
-  ) : posts.length === 0 ? (
-    <EmptyState type="posts" />
-  ) : (
-    <>
-      {posts.map((post, index) => (
-        <div key={post.id} className="animate-slide-up" style={{ animationDelay: `${index * 0.1}s` }}>
-          <RigPost post={post} />
-        </div>
-      ))}
-    </>
-  );
 
   useEffect(() => {
-    // Skip if Supabase not configured
-    if (!supabase || !isSupabaseConfigured()) {
-      return;
-    }
-    
-    // Fetch posts from Supabase
-    async function fetchPosts() {
-      setIsLoading(true);
-      try {
-        const { data, error } = await supabase!
-          .from('posts')
-          .select('*')
-          .eq('is_flagged', false)
-          .order('created_at', { ascending: false })
-          .limit(50);
-        
-        if (error) throw error;
-        setPosts(data || []);
-      } catch (err) {
-        console.error('Error fetching posts:', err);
-        // Keep empty array on error
-      } finally {
-        setIsLoading(false);
-      }
-    }
     fetchPosts();
   }, []);
 
   return (
-    <div className="flex min-h-screen bg-[#050705]">
-      {/* Mobile Menu Button */}
-      <button 
-        onClick={() => setMenuOpen(true)}
-        className="fixed top-14 left-4 z-30 p-2 bg-neutral-900/90 rounded-lg border border-neutral-700 md:hidden"
-      >
-        <Menu size={24} className="text-white" />
-      </button>
-
-      {/* Left Navigation (Mobile Drawer, Desktop Sidebar) */}
-      <LeftNav isOpen={menuOpen} onClose={() => setMenuOpen(false)} />
-      
-      {/* Desktop Only LeftNav */}
-      <div className="hidden md:block">
-        <DesktopNav />
-      </div>
-
-      {/* Main Feed - Center Column */}
-      <main className="flex-1 max-w-2xl mx-auto w-full border-x-2 border-neutral-800 pb-20 md:pb-0">
-        {/* Disclaimer Header */}
-        <div className="sticky top-0 z-50 bg-moss/90 backdrop-blur-sm border-b-2 border-muted-gold px-4 py-2">
-          <div className="flex items-center gap-2 text-muted-gold text-xs font-bold uppercase">
-            <AlertTriangle size={14} />
-            <span>Off-roading is dangerous. Verify closures before travel.</span>
+    <div className="min-h-screen bg-background">
+      {/* Safety Disclaimer Header */}
+      <header className="sticky top-0 z-50 glass border-b border-zinc-800 safe-top">
+        <div className="flex items-center justify-between px-4 py-2">
+          <div className="flex items-center gap-2">
+            <AlertTriangle size={14} className="text-orange-500" />
+            <span className="text-xs font-semibold text-orange-500 uppercase tracking-wider">
+              Off-roading involves risk
+            </span>
           </div>
+          <motion.button
+            whileTap={{ scale: 0.95 }}
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className="p-2 text-zinc-500 hover:text-white transition-colors"
+          >
+            <RefreshCw
+              size={18}
+              className={isRefreshing ? 'animate-spin text-orange-500' : ''}
+            />
+          </motion.button>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="max-w-lg mx-auto pb-safe-nav">
+        {/* App Title */}
+        <div className="px-4 py-6 text-center border-b border-zinc-800">
+          <h1 className="text-2xl font-bold text-white tracking-tight">
+            SoCal Off-Roaders
+          </h1>
+          <p className="text-sm text-zinc-500 mt-1">
+            Southern California&apos;s Off-Road Community
+          </p>
         </div>
 
-        {/* Feed Type Toggle - Instagram style */}
-        <div className="sticky top-10 z-40 bg-[#050705] border-b-2 border-neutral-800">
-          <div className="flex">
-            <button
-              onClick={() => setFeedType('rigs')}
-              className={`flex-1 py-3 text-xs font-black uppercase tracking-widest transition-colors ${
-                feedType === 'rigs' 
-                  ? 'bg-muted-gold text-black border-b-4 border-white' 
-                  : 'bg-[#050705] text-neutral-400 hover:bg-neutral-800 hover:text-white'
-              }`}
-            >
-              Rig Feed
-            </button>
-            <button
-              onClick={() => setFeedType('trails')}
-              className={`flex-1 py-3 text-xs font-black uppercase tracking-widest transition-colors ${
-                feedType === 'trails' 
-                  ? 'bg-muted-gold text-black border-b-4 border-white' 
-                  : 'bg-[#050705] text-neutral-400 hover:bg-neutral-800 hover:text-white'
-              }`}
-            >
-              Trails
-            </button>
-          </div>
-        </div>
-
-        {/* Feed Content with Pull-to-Refresh */}
-        <motion.div 
-          className="p-4 space-y-4"
-          style={{ y }}
-          drag="y"
-          dragConstraints={{ top: 0, bottom: 0 }}
-          dragElastic={0.2}
-          onDragEnd={(e, { offset, velocity }) => {
-            if (offset.y > 100 || velocity.y > 500) {
-              handleRefresh();
-            }
-          }}
-        >
-          {/* Pull indicator */}
-          {isRefreshing && (
-            <div className="text-center py-2 text-[#FF8C00] font-bold animate-pulse">
-              Refreshing...
-            </div>
-          )}
-          
-          <DisclaimerModal />
-          
-          {feedType === 'rigs' ? (
-            // Rig Feed - Instagram style
-            <>
-              {/* Desktop New Post Button */}
-              <div className="hidden md:flex justify-center mb-6">
-                <Link 
-                  href="/posts/create"
-                  className="flex items-center gap-2 px-6 py-3 bg-[#FF8C00] hover:bg-[#FF9D00] text-white font-black uppercase tracking-widest transition"
-                >
-                  <Plus size={18} />
-                  Share Your Rig
-                </Link>
-              </div>
-
-              {/* Posts */}
-              {postsContent}
-            </>
-          ) : (
-            // Trails Feed
-            <>
-              {/* Region Filter Tabs */}
-              <div className="flex flex-wrap gap-1 mb-4">
-                {['all', 'big-bear', 'san-diego', 'palm-springs', 'joshua-tree', 'san-bernardino'].map((region) => (
-                  <button
-                    key={region}
-                    onClick={() => setSelectedRegion(region)}
-                    className={`px-3 py-1 text-xs font-bold uppercase tracking-wider transition-colors ${
-                      selectedRegion === region 
-                        ? 'bg-muted-gold text-black' 
-                        : 'bg-neutral-800 text-neutral-400 hover:bg-neutral-700 hover:text-white'
-                    }`}
-                  >
-                    {region === 'all' ? 'All' : region.replace('-', ' ')}
-                  </button>
+        {/* Feed */}
+        <div className="divide-y divide-zinc-800">
+          <AnimatePresence mode="wait">
+            {isLoading ? (
+              <motion.div
+                key="skeleton"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="p-4"
+              >
+                <FeedSkeleton count={3} />
+              </motion.div>
+            ) : (
+              <motion.div
+                key="posts"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+              >
+                {posts.map((post, index) => (
+                  <RigPostCard key={post.id} post={post} index={index} />
                 ))}
-              </div>
-
-              {/* Trails */}
-              {filteredTrails.map((trail, index) => (
-                <div 
-                  key={trail.id} 
-                  className="animate-slide-up"
-                  style={{ animationDelay: `${index * 0.05}s` }}
-                >
-                  {/* Use a simplified trail card or embed TrailCard */}
-                  <div className="rounded-none border-2 border-neutral-800 bg-neutral-900 mb-4 p-4">
-                    <div className="flex justify-between items-start mb-2">
-                      <h3 className="text-lg font-bold text-white uppercase tracking-wide">{trail.name}</h3>
-                      {/* Status badge removed - external links added below */}
-                    </div>
-                    <p className="text-neutral-400 text-sm mb-2">{trail.location}</p>
-                    <div className="flex gap-2 mb-3">
-                      <span className="px-2 py-0.5 bg-moss text-white text-xs">{trail.difficulty}</span>
-                      <span className="px-2 py-0.5 bg-muted-gold text-black text-xs">{trail.distance}</span>
-                    </div>
-                    {/* Navigation Buttons */}
-                    <div className="grid grid-cols-2 gap-2">
-                      <a 
-                        href={trail.mapsUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(trail.name + ' ' + trail.location)}`}
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="flex items-center justify-center gap-1 py-2 bg-neutral-700 hover:bg-neutral-600 text-white text-xs font-bold uppercase transition-colors"
-                      >
-                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
-                        Maps
-                      </a>
-                      <a 
-                        href={trail.onxUrl || '#'}
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="flex items-center justify-center gap-1 py-2 bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold uppercase transition-colors"
-                      >
-                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg>
-                        onX
-                      </a>
-                    </div>
-                  </div>
-                </div>
-              ))}
-              
-              {filteredTrails.length === 0 && (
-                <div className="text-center py-12 border-2 border-dashed border-neutral-800 bg-neutral-900">
-                  <p className="text-neutral-400 font-bold uppercase">No trails found in this region.</p>
-                </div>
-              )}
-            </>
-          )}
-        </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </main>
 
-      {/* Right Sidebar - Desktop Only */}
-      <div className="hidden md:block">
-        <RightSidebar />
-      </div>
+      {/* Floating Action Button */}
+      <Link href="/posts/create">
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          className="fixed bottom-24 right-4 z-40 w-14 h-14 bg-orange-500 rounded-full flex items-center justify-center shadow-lg shadow-orange-500/25 md:hidden"
+        >
+          <Plus size={24} className="text-zinc-950" />
+        </motion.button>
+      </Link>
 
-      {/* Mobile FAB - Share Your Rig */}
-      <button 
-        onClick={() => setPostModalOpen(true)}
-        className="fixed bottom-20 right-4 z-30 flex items-center justify-center w-14 h-14 bg-[#FF8C00] hover:bg-[#FF9D00] rounded-full shadow-lg shadow-orange-900/30 md:hidden"
-      >
-        <Plus size={28} className="text-white" />
-      </button>
+      {/* Disclaimer Modal */}
+      <DisclaimerModal />
 
-      {/* Post Creation Modal */}
-      <PostCreationModal 
-        isOpen={postModalOpen} 
-        onClose={() => setPostModalOpen(false)} 
-        onPostSuccess={handleRefresh}
-      />
-
-      {/* Mobile Bottom Tab Bar */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-neutral-900 border-t border-neutral-800 flex justify-around py-2 z-30 md:hidden">
-        {mobileNavItems.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            onClick={triggerTabHaptic}
-            className="flex flex-col items-center gap-1 text-neutral-400 hover:text-orange-500"
-          >
-            <item.icon size={20} />
-            <span className="text-xs font-bold uppercase">{item.label}</span>
-          </Link>
-        ))}
-      </nav>
+      {/* Bottom Navigation */}
+      <BottomNav />
     </div>
   );
 }

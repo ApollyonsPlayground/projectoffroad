@@ -1,0 +1,291 @@
+'use client';
+
+import { useState, useEffect, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  AlertTriangle, 
+  Map, 
+  ExternalLink, 
+  Filter, 
+  Search, 
+  Mountain, 
+  ChevronRight,
+  Clock,
+  Ruler
+} from 'lucide-react';
+import Link from 'next/link';
+import BottomNav from '@/components/BottomNav';
+import { TrailListSkeleton } from '@/components/SkeletonLoader';
+import trailsData from '@/data/trails.json';
+
+type Difficulty = 'All' | 'Beginner' | 'Intermediate' | 'Moderate' | 'Advanced' | 'Extreme';
+
+interface Trail {
+  id: string;
+  name: string;
+  location: string;
+  difficulty: string;
+  difficultyLevel?: string;
+  distance: string;
+  time: string;
+  terrain: string;
+  description: string;
+  image?: string;
+  mapsUrl?: string;
+  onxUrl?: string;
+  rigRequirements?: string;
+  tags?: string[];
+}
+
+const difficulties: Difficulty[] = ['All', 'Beginner', 'Moderate', 'Advanced', 'Extreme'];
+
+function getDifficultyBadgeClass(difficulty: string): string {
+  const level = difficulty.toLowerCase();
+  if (level === 'beginner' || level === 'easy') return 'badge-beginner';
+  if (level === 'moderate' || level === 'intermediate') return 'bg-yellow-500/15 text-yellow-500 border border-yellow-500/30';
+  if (level === 'advanced' || level === 'challenging') return 'badge-advanced';
+  if (level === 'extreme' || level === 'expert') return 'badge-extreme';
+  return 'bg-zinc-700/50 text-zinc-400 border border-zinc-600';
+}
+
+function TrailCard({ trail, index }: { trail: Trail; index: number }) {
+  return (
+    <motion.article
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.05 }}
+      className="bg-zinc-900 border border-zinc-800 overflow-hidden hover:border-orange-500/50 transition-colors"
+    >
+      {/* Trail Image */}
+      {trail.image && (
+        <div className="relative h-40 bg-zinc-800">
+          <img
+            src={trail.image}
+            alt={trail.name}
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-zinc-900/90 to-transparent" />
+          
+          {/* Difficulty Badge Overlay */}
+          <div className="absolute top-3 right-3">
+            <span className={`px-2.5 py-1 text-xs font-bold uppercase tracking-wider ${getDifficultyBadgeClass(trail.difficulty)}`}>
+              {trail.difficulty}
+            </span>
+          </div>
+          
+          {/* Trail Name Overlay */}
+          <div className="absolute bottom-3 left-3 right-3">
+            <h3 className="text-lg font-bold text-white leading-tight">{trail.name}</h3>
+            <p className="text-sm text-zinc-400">{trail.location}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Content */}
+      <div className="p-4">
+        {/* Stats */}
+        <div className="flex items-center gap-4 text-sm text-zinc-500 mb-3">
+          <div className="flex items-center gap-1.5">
+            <Ruler size={14} />
+            <span>{trail.distance}</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Clock size={14} />
+            <span>{trail.time}</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Mountain size={14} />
+            <span className="capitalize">{trail.terrain}</span>
+          </div>
+        </div>
+
+        {/* Description */}
+        <p className="text-sm text-zinc-400 line-clamp-2 mb-4">
+          {trail.description}
+        </p>
+
+        {/* Rig Requirements */}
+        {trail.rigRequirements && (
+          <p className="text-xs text-orange-500/80 mb-4">
+            Requires: {trail.rigRequirements}
+          </p>
+        )}
+
+        {/* Action Buttons */}
+        <div className="flex gap-2">
+          <a
+            href={trail.mapsUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(trail.name + ' ' + trail.location)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-sm font-medium transition-colors"
+          >
+            <Map size={16} />
+            Google Maps
+          </a>
+          <a
+            href={trail.onxUrl || '#'}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-orange-500 hover:bg-orange-600 text-zinc-950 text-sm font-semibold transition-colors"
+          >
+            <ExternalLink size={16} />
+            onX
+          </a>
+        </div>
+      </div>
+    </motion.article>
+  );
+}
+
+export default function TrailsPage() {
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty>('All');
+  const [showFilters, setShowFilters] = useState(false);
+
+  const trails = trailsData as Trail[];
+
+  const filteredTrails = useMemo(() => {
+    return trails.filter((trail) => {
+      // Search filter
+      const matchesSearch = searchQuery === '' || 
+        trail.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        trail.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        trail.description.toLowerCase().includes(searchQuery.toLowerCase());
+
+      // Difficulty filter
+      const matchesDifficulty = selectedDifficulty === 'All' || 
+        trail.difficulty.toLowerCase() === selectedDifficulty.toLowerCase() ||
+        trail.difficultyLevel?.toLowerCase() === selectedDifficulty.toLowerCase();
+
+      return matchesSearch && matchesDifficulty;
+    });
+  }, [trails, searchQuery, selectedDifficulty]);
+
+  useEffect(() => {
+    // Simulate loading
+    const timer = setTimeout(() => setIsLoading(false), 800);
+    return () => clearTimeout(timer);
+  }, []);
+
+  return (
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <header className="sticky top-0 z-50 glass border-b border-zinc-800 safe-top">
+        <div className="px-4 py-3">
+          <div className="flex items-center justify-between mb-3">
+            <h1 className="text-xl font-bold text-white">Trail Explorer</h1>
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setShowFilters(!showFilters)}
+              className={`p-2 rounded-lg transition-colors ${
+                showFilters ? 'bg-orange-500 text-zinc-950' : 'bg-zinc-800 text-zinc-400'
+              }`}
+            >
+              <Filter size={18} />
+            </motion.button>
+          </div>
+
+          {/* Search Bar */}
+          <div className="relative">
+            <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
+            <input
+              type="text"
+              placeholder="Search trails..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-orange-500 transition-colors"
+            />
+          </div>
+        </div>
+
+        {/* Difficulty Filter Chips */}
+        <AnimatePresence>
+          {showFilters && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="overflow-hidden border-t border-zinc-800"
+            >
+              <div className="px-4 py-3">
+                <p className="text-xs text-zinc-500 uppercase tracking-wider mb-2">Difficulty</p>
+                <div className="flex flex-wrap gap-2">
+                  {difficulties.map((difficulty) => (
+                    <button
+                      key={difficulty}
+                      onClick={() => setSelectedDifficulty(difficulty)}
+                      className={`px-3 py-1.5 text-xs font-semibold uppercase tracking-wider transition-all ${
+                        selectedDifficulty === difficulty
+                          ? 'bg-orange-500 text-zinc-950'
+                          : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
+                      }`}
+                    >
+                      {difficulty}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </header>
+
+      {/* Trail Warning */}
+      <div className="px-4 py-3 bg-orange-500/10 border-b border-orange-500/20">
+        <div className="flex items-center gap-2 text-orange-500">
+          <AlertTriangle size={16} />
+          <p className="text-xs font-medium">
+            Always verify trail status before visiting. Conditions change.
+          </p>
+        </div>
+      </div>
+
+      {/* Trail List */}
+      <main className="max-w-lg mx-auto px-4 py-4 pb-safe-nav">
+        <AnimatePresence mode="wait">
+          {isLoading ? (
+            <motion.div
+              key="skeleton"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            >
+              <TrailListSkeleton count={5} />
+            </motion.div>
+          ) : filteredTrails.length === 0 ? (
+            <motion.div
+              key="empty"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-center py-12"
+            >
+              <Mountain size={48} className="mx-auto text-zinc-700 mb-4" />
+              <h3 className="text-lg font-semibold text-zinc-400 mb-2">No trails found</h3>
+              <p className="text-sm text-zinc-600">
+                Try adjusting your search or filters
+              </p>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="trails"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="space-y-4"
+            >
+              <p className="text-sm text-zinc-500">
+                {filteredTrails.length} trail{filteredTrails.length !== 1 ? 's' : ''} found
+              </p>
+              {filteredTrails.map((trail, index) => (
+                <TrailCard key={trail.id} trail={trail} index={index} />
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </main>
+
+      {/* Bottom Navigation */}
+      <BottomNav />
+    </div>
+  );
+}
