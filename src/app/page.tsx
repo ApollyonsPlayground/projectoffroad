@@ -110,7 +110,7 @@ function NewPostDrawer({ open, onClose, onPosted }: {
         body: body.trim(),       // primary text column in schema
         caption: body.trim(),    // app-facing alias column
         rig_specs: rig.trim() || null,
-        rig_name: rig.trim() || null,
+        rig_model: rig.trim() || null,
         user_id: user.id,
         user_name: userName,
         image_url: imageUrl,
@@ -258,14 +258,16 @@ interface Post {
   id: string;
   user_id: string;
   image_url?: string;
+  body?: string;
   caption: string;
-  rig_name?: string;
+  rig_model?: string;
   rig_specs?: string;
   likes_count: number;
   comments_count: number;
   reposts_count?: number;
   created_at: string;
   username?: string;
+  user_name?: string;
   avatar_url?: string;
   verified?: boolean;
 }
@@ -278,7 +280,7 @@ const PLACEHOLDER_POSTS: Post[] = [
     user_id: '1',
     image_url: 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=900&q=85',
     caption: 'Fresh back from Holcomb Valley. The JK handled every rock garden like it was made for it — because it was. Fully worth the 4am wake-up. #JeepLife #HolcombValley #SoCalOffroad',
-    rig_name: '2018 Jeep Wrangler JK',
+    rig_model: '2018 Jeep Wrangler JK',
     rig_specs: '37" BFG KO2 · 4" Rough Country lift · ARB winch',
     likes_count: 47,
     comments_count: 12,
@@ -292,7 +294,7 @@ const PLACEHOLDER_POSTS: Post[] = [
     id: '2',
     user_id: '2',
     caption: 'Johnson Valley OHV is absolutely wild right now after the rains. Trails are soft but the views make up for every stuck wheel. Anyone else heading out this weekend? #JohnsonValley #DesertOffroad #Raptor',
-    rig_name: '2020 Ford F-150 Raptor',
+    rig_model: '2020 Ford F-150 Raptor',
     rig_specs: 'Bilstein 6112 · stock gearing · rear locker',
     likes_count: 89,
     comments_count: 23,
@@ -307,7 +309,7 @@ const PLACEHOLDER_POSTS: Post[] = [
     user_id: '3',
     image_url: 'https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?w=900&q=85',
     caption: 'Finally finished the front bumper swap. Took three weekends but the clearance angles are insane now. Big Bear run next Saturday — who\'s convoy-ing up? #TacomaLife #BigBear #BuildThread #PacificCrestTrail',
-    rig_name: '2016 Toyota Tacoma TRD Pro',
+    rig_model: '2016 Toyota Tacoma TRD Pro',
     rig_specs: '33" Falken Wildpeak AT3W · Old Man Emu lift · CVT roof rack + RTT',
     likes_count: 124,
     comments_count: 31,
@@ -321,7 +323,7 @@ const PLACEHOLDER_POSTS: Post[] = [
     id: '4',
     user_id: '4',
     caption: 'Reminder: Cleghorn trail is OPEN again as of yesterday. Verified with the ranger station this morning. Moderate difficulty — good for stock rigs with decent ground clearance. Save this for reference. #Cleghorn #TrailUpdate #SoCal',
-    rig_name: '2023 Toyota 4Runner TRD Off-Road',
+    rig_model: '2023 Toyota 4Runner TRD Off-Road',
     rig_specs: 'KDSS · 285/70R17 Duratracs · SOS recovery bag',
     likes_count: 211,
     comments_count: 44,
@@ -700,9 +702,9 @@ function RigPostCard({ post, index }: {
                 {post.verified && (
                   <BadgeCheck size={15} className="text-orange-500 flex-shrink-0 mt-px" />
                 )}
-                {post.rig_name && (
-                  <span className="text-[11px] text-zinc-500 bg-zinc-900 border border-zinc-800 px-1.5 py-px rounded-full font-medium leading-snug truncate max-w-[140px]">
-                    {post.rig_name}
+                {(post.rig_model || post.rig_specs) && (
+                  <span className="text-[11px] text-zinc-500 bg-zinc-900 border border-zinc-800 px-1.5 py-px rounded-full font-medium leading-snug truncate max-w-[160px]">
+                    {post.rig_model || post.rig_specs}
                   </span>
                 )}
               </div>

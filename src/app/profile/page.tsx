@@ -383,9 +383,9 @@ export default function ProfilePage() {
           {/* Stats row */}
           <div className="flex justify-around mt-4 pt-4 border-t border-zinc-900">
             {[
-              { label: 'Posts',  value: Number(displayProfile.posts_count ?? posts.length) },
-              { label: 'Runs',   value: Number(displayProfile.runs_completed ?? 0) },
-              { label: 'Trails', value: Number(displayProfile.trails_visited ?? 0) },
+              { label: 'Posts',  value: posts.length },
+              { label: 'Rigs',   value: vehicles.length },
+              { label: 'Joined', value: (profile as Record<string,unknown>)?.created_at ? new Date((profile as Record<string,unknown>).created_at as string).getFullYear() : new Date().getFullYear() },
             ].map(({ label, value }) => (
               <div key={label} className="text-center">
                 <p className="text-[18px] font-bold text-white">{value}</p>
