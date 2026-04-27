@@ -1,13 +1,12 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Heart,
   MessageCircle,
   Repeat2,
   Share2,
-  MapPin,
   MoreHorizontal,
   BadgeCheck,
   Radio,
@@ -16,9 +15,11 @@ import {
   ZoomIn,
   X,
   Image as ImageIcon,
-  AlertCircle,
   ChevronDown,
   Send,
+  Flag,
+  Bookmark,
+  Loader2,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -29,25 +30,6 @@ import { supabase, isSupabaseConfigured } from '@/lib/db/supabase';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/Toast';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
-
-// ─── Toast ────────────────────────────────────────────────────────────────────
-
-interface ToastMsg { id: number; message: string; type: 'info' | 'error' }
-
-function Toast({ message, type }: { message: string; type: ToastMsg['type'] }) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 24, scale: 0.95 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: 16, scale: 0.95 }}
-      transition={{ type: 'spring', stiffness: 520, damping: 26 }}
-      className="flex items-center gap-2.5 bg-zinc-900 border border-zinc-700 text-zinc-100 text-[13px] font-medium px-4 py-3 rounded-2xl shadow-xl shadow-black/60 max-w-[320px]"
-    >
-      <AlertCircle size={15} className={type === 'error' ? 'text-red-400 flex-shrink-0' : 'text-orange-400 flex-shrink-0'} />
-      {message}
-    </motion.div>
-  );
-}
 
 // ─── NewPostDrawer ─────────────────────────────────────────────────────────────
 
@@ -60,8 +42,12 @@ function NewPostDrawer({ open, onClose, onPosted }: {
   const { showToast } = useToast();
   const [body, setBody] = useState('');
   const [rig, setRig] = useState('');
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<'idle' | 'uploading' | 'inserting'>('idle');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (open) {
@@ -69,40 +55,78 @@ function NewPostDrawer({ open, onClose, onPosted }: {
       setTimeout(() => textareaRef.current?.focus(), 300);
     } else {
       document.body.style.overflow = '';
+      // Reset on close
+      setBody('');
+      setRig('');
+      setImageFile(null);
+      setImagePreview(null);
+      setUploadProgress('idle');
     }
     return () => { document.body.style.overflow = ''; };
   }, [open]);
 
+  const handleImagePick = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      showToast('Image must be under 10 MB', 'error');
+      return;
+    }
+    setImageFile(file);
+    const reader = new FileReader();
+    reader.onload = (ev) => setImagePreview(ev.target?.result as string);
+    reader.readAsDataURL(file);
+  };
+
   const handleSubmit = async () => {
     if (!body.trim() || isSubmitting) return;
 
-    // If Supabase is not configured or user not signed in, show toast and bail
     if (!isConfigured || !user) {
       showToast('Sign in to post to the community', 'info');
       return;
     }
 
     setIsSubmitting(true);
+    let imageUrl: string | null = null;
+
     try {
-      const { error } = await supabase!.from('posts').insert({
+      // Step 1: upload image if present
+      if (imageFile && supabase) {
+        setUploadProgress('uploading');
+        const ext = imageFile.name.split('.').pop() ?? 'jpg';
+        const path = `${user.id}/${Date.now()}.${ext}`;
+        const { error: uploadError } = await supabase.storage
+          .from('post-images')
+          .upload(path, imageFile, { cacheControl: '3600', upsert: false });
+        if (uploadError) throw uploadError;
+        const { data: urlData } = supabase.storage.from('post-images').getPublicUrl(path);
+        imageUrl = urlData.publicUrl;
+      }
+
+      // Step 2: insert post row
+      setUploadProgress('inserting');
+      const userName = (user.user_metadata?.name as string) || user.email?.split('@')[0] || 'Rider';
+      const { error: insertError } = await supabase!.from('posts').insert({
         caption: body.trim(),
         rig_specs: rig.trim() || null,
+        rig_name: rig.trim() || null,
         user_id: user.id,
-        user_name: (user.user_metadata?.name as string) || user.email?.split('@')[0] || 'Rider',
-        likes: 0,
+        user_name: userName,
+        image_url: imageUrl,
+        likes_count: 0,
+        comments_count: 0,
       });
+      if (insertError) throw insertError;
 
-      if (error) throw error;
-
-      showToast('Post shared with the community!', 'success');
-      setBody('');
-      setRig('');
+      showToast('Post uploaded!', 'success');
       onPosted?.();
       onClose();
-    } catch {
-      showToast('Failed to post. Please try again.', 'error');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Unknown error';
+      showToast(`Failed to post: ${msg}`, 'error');
     } finally {
       setIsSubmitting(false);
+      setUploadProgress('idle');
     }
   };
 
@@ -178,14 +202,46 @@ function NewPostDrawer({ open, onClose, onPosted }: {
                 placeholder="Vehicle (e.g. 2022 Tacoma TRD Pro)"
                 className="w-full mt-2 bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2.5 text-[13px] text-zinc-300 placeholder:text-zinc-600 outline-none focus:border-orange-500/60 transition-colors"
               />
+
+              {/* Image preview */}
+              {imagePreview && (
+                <div className="relative mt-3 rounded-xl overflow-hidden border border-zinc-800">
+                  <img src={imagePreview} alt="Preview" className="w-full max-h-56 object-cover" />
+                  <button
+                    onClick={() => { setImageFile(null); setImagePreview(null); }}
+                    className="absolute top-2 right-2 p-1.5 bg-black/70 rounded-full text-zinc-300 hover:text-white"
+                    aria-label="Remove image"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Footer toolbar */}
             <div className="flex items-center justify-between px-4 py-3 border-t border-zinc-900">
-              <button className="flex items-center gap-2 text-[13px] text-zinc-500 hover:text-orange-400 transition-colors">
-                <ImageIcon size={18} strokeWidth={1.8} />
-                <span>Add Photo</span>
-              </button>
+              <div className="flex items-center gap-3">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleImagePick}
+                />
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex items-center gap-2 text-[13px] text-zinc-500 hover:text-orange-400 transition-colors"
+                >
+                  <ImageIcon size={18} strokeWidth={1.8} />
+                  <span>{imageFile ? imageFile.name.slice(0, 20) + (imageFile.name.length > 20 ? '…' : '') : 'Add Photo'}</span>
+                </button>
+                {uploadProgress !== 'idle' && (
+                  <span className="text-[11px] text-orange-400 flex items-center gap-1">
+                    <Loader2 size={11} className="animate-spin" />
+                    {uploadProgress === 'uploading' ? 'Uploading…' : 'Saving…'}
+                  </span>
+                )}
+              </div>
               <span className="text-[11px] text-zinc-600 font-mono">{body.length}/500</span>
             </div>
           </motion.div>
@@ -475,25 +531,40 @@ function StatBtn({
 
 // ─── RigPostCard ──────────────────────────────────────────────────────────────
 
-function RigPostCard({ post, index, onToast }: {
+function RigPostCard({ post, index }: {
   post: Post;
   index: number;
-  onToast: (message: string, type?: 'info' | 'error') => void;
 }) {
   const { user, isConfigured } = useAuth();
+  const { showToast } = useToast();
   const [liked, setLiked] = useState(false);
   const [reposted, setReposted] = useState(false);
-  const [trailSaved, setTrailSaved] = useState(false);
+  const [bookmarked, setBookmarked] = useState(false);
   const [likesCount, setLikesCount] = useState(post.likes_count);
   const [repostsCount, setRepostsCount] = useState(post.reposts_count ?? 0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [avatarError, setAvatarError] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportReason, setReportReason] = useState('');
+  const [isReporting, setIsReporting] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Close menu on outside click
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [menuOpen]);
 
   async function haptic(s: ImpactStyle) { try { await Haptics.impact({ style: s }); } catch {} }
 
   const requireAuth = (action: string): boolean => {
-    if (!isConfigured || !user) {
-      onToast(`Sign in to ${action}`, 'info');
+    if (!user) {
+      showToast(`Sign in to ${action}`, 'info');
       return false;
     }
     return true;
@@ -501,13 +572,10 @@ function RigPostCard({ post, index, onToast }: {
 
   const toggleLike = async () => {
     await haptic(ImpactStyle.Medium);
-
-    // Optimistic update first
     const nowLiked = !liked;
     setLiked(nowLiked);
     setLikesCount((c) => (nowLiked ? c + 1 : c - 1));
 
-    // If authenticated + Supabase configured, persist
     if (user && isConfigured && supabase) {
       try {
         if (nowLiked) {
@@ -516,14 +584,12 @@ function RigPostCard({ post, index, onToast }: {
           await supabase.from('likes').delete().match({ post_id: post.id, user_id: user.id });
         }
       } catch {
-        // Roll back on failure
         setLiked(!nowLiked);
         setLikesCount((c) => (nowLiked ? c - 1 : c + 1));
-        onToast('Could not save like. Try again.', 'error');
+        showToast('Could not save like. Try again.', 'error');
       }
     } else if (!user) {
-      // Not signed in — allow visual toggle but show sign-in nudge
-      onToast('Sign in to sync your likes', 'info');
+      showToast('Sign in to sync your likes', 'info');
     }
   };
 
@@ -533,21 +599,62 @@ function RigPostCard({ post, index, onToast }: {
     setReposted((p) => { setRepostsCount((c) => (p ? c - 1 : c + 1)); return !p; });
   };
 
-  const toggleTrailSave = async () => {
+  const toggleBookmark = async () => {
     await haptic(ImpactStyle.Light);
-    if (!user && isConfigured) {
-      onToast('Sign in to save trails', 'info');
+    if (!requireAuth('save posts')) return;
+    const nowSaved = !bookmarked;
+    setBookmarked(nowSaved);
+    if (supabase && user) {
+      try {
+        if (nowSaved) {
+          await supabase.from('bookmarks').insert({ post_id: post.id, user_id: user.id });
+          showToast('Post saved to bookmarks', 'success');
+        } else {
+          await supabase.from('bookmarks').delete().match({ post_id: post.id, user_id: user.id });
+          showToast('Bookmark removed', 'info');
+        }
+      } catch {
+        setBookmarked(!nowSaved);
+        showToast('Could not update bookmark', 'error');
+      }
     }
-    setTrailSaved((p) => !p);
   };
 
   const handleShare = async () => {
     await haptic(ImpactStyle.Light);
     const url = typeof window !== 'undefined' ? `${window.location.origin}/posts/${post.id}` : '';
     if (typeof navigator !== 'undefined' && navigator.share) {
-      try { await navigator.share({ title: `${post.username}'s Rig`, text: post.caption, url }); } catch {}
+      try {
+        await navigator.share({ title: `${post.username}'s Rig`, text: post.caption, url });
+        showToast('Post shared!', 'success');
+      } catch {}
     } else if (navigator.clipboard) {
-      try { await navigator.clipboard.writeText(url); } catch {}
+      try {
+        await navigator.clipboard.writeText(url);
+        showToast('Link copied to clipboard', 'success');
+      } catch {}
+    }
+  };
+
+  const submitReport = async () => {
+    if (!reportReason.trim() || !user) return;
+    setIsReporting(true);
+    try {
+      if (supabase) {
+        await supabase.from('reports').insert({
+          post_id: post.id,
+          reporter_id: user.id,
+          reason: reportReason,
+        });
+      }
+      showToast('Report submitted. Thank you.', 'success');
+      setReportOpen(false);
+      setReportReason('');
+      setMenuOpen(false);
+    } catch {
+      showToast('Failed to submit report', 'error');
+    } finally {
+      setIsReporting(false);
     }
   };
 
@@ -601,9 +708,39 @@ function RigPostCard({ post, index, onToast }: {
               <span className="text-[11px] text-zinc-600">{timeAgo(post.created_at)}</span>
             </div>
 
-            <button className="p-1 -mt-0.5 -mr-1 text-zinc-600 hover:text-zinc-400 transition-colors rounded-full flex-shrink-0" aria-label="More options">
-              <MoreHorizontal size={18} />
-            </button>
+            <div className="relative flex-shrink-0" ref={menuRef}>
+              <button
+                onClick={() => setMenuOpen((o) => !o)}
+                className="p-1 -mt-0.5 -mr-1 text-zinc-600 hover:text-zinc-400 transition-colors rounded-full"
+                aria-label="More options"
+              >
+                <MoreHorizontal size={18} />
+              </button>
+              <AnimatePresence>
+                {menuOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.92, y: -4 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.92, y: -4 }}
+                    transition={{ duration: 0.12 }}
+                    className="absolute right-0 top-7 z-50 min-w-[160px] bg-zinc-900 border border-zinc-800 rounded-xl shadow-xl shadow-black/60 overflow-hidden"
+                  >
+                    <button
+                      onClick={() => { navigator.clipboard?.writeText(`${window.location.origin}/posts/${post.id}`); showToast('Link copied', 'success'); setMenuOpen(false); }}
+                      className="flex items-center gap-2.5 w-full px-4 py-3 text-[13px] text-zinc-300 hover:bg-zinc-800 transition-colors text-left"
+                    >
+                      <Share2 size={14} className="text-zinc-500" /> Copy Link
+                    </button>
+                    <button
+                      onClick={() => { setReportOpen(true); setMenuOpen(false); }}
+                      className="flex items-center gap-2.5 w-full px-4 py-3 text-[13px] text-red-400 hover:bg-zinc-800 transition-colors text-left border-t border-zinc-800"
+                    >
+                      <Flag size={14} /> Report Post
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           </div>
 
           {/* Caption body */}
@@ -664,15 +801,15 @@ function RigPostCard({ post, index, onToast }: {
               <StatBtn icon={Share2} label="Share" onClick={handleShare} />
             </div>
 
-            {/* Trail Save */}
+            {/* Bookmark */}
             <motion.button
               whileTap={{ scale: 1.28 }}
               transition={{ type: 'spring', stiffness: 600, damping: 14 }}
-              onClick={toggleTrailSave}
-              aria-label={trailSaved ? 'Remove trail save' : 'Save to trails'}
-              className={`transition-colors ${trailSaved ? 'text-orange-500' : 'text-zinc-500 hover:text-zinc-300'}`}
+              onClick={toggleBookmark}
+              aria-label={bookmarked ? 'Remove bookmark' : 'Bookmark post'}
+              className={`transition-colors ${bookmarked ? 'text-orange-500' : 'text-zinc-500 hover:text-zinc-300'}`}
             >
-              <MapPin size={17} strokeWidth={1.8} className={trailSaved ? 'fill-orange-500/25' : ''} />
+              <Bookmark size={17} strokeWidth={1.8} className={bookmarked ? 'fill-orange-500/40' : ''} />
             </motion.button>
           </div>
         </div>
@@ -686,6 +823,60 @@ function RigPostCard({ post, index, onToast }: {
             alt={post.caption}
             onClose={() => setLightboxOpen(false)}
           />
+        )}
+      </AnimatePresence>
+
+      {/* Report Sheet */}
+      <AnimatePresence>
+        {reportOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[9992] bg-black/70 backdrop-blur-sm"
+              onClick={() => setReportOpen(false)}
+            />
+            <motion.div
+              initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+              transition={{ type: 'spring', stiffness: 420, damping: 36 }}
+              className="fixed bottom-0 left-0 right-0 z-[9993] max-w-md mx-auto bg-zinc-950 border border-zinc-800 rounded-t-2xl p-5"
+              style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-bold text-white text-[15px] flex items-center gap-2">
+                  <Flag size={15} className="text-red-400" /> Report Post
+                </h3>
+                <button onClick={() => setReportOpen(false)} className="text-zinc-500 hover:text-white transition-colors">
+                  <X size={18} />
+                </button>
+              </div>
+              <p className="text-[13px] text-zinc-400 mb-3">Why are you reporting this post?</p>
+              <div className="grid grid-cols-2 gap-2 mb-4">
+                {['Spam', 'Misinformation', 'Harassment', 'Inappropriate', 'Dangerous activity', 'Other'].map((r) => (
+                  <button
+                    key={r}
+                    onClick={() => setReportReason(r)}
+                    className={`py-2.5 px-3 rounded-xl text-[12px] font-medium border transition-colors text-left ${
+                      reportReason === r
+                        ? 'bg-orange-500/15 border-orange-500/50 text-orange-400'
+                        : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-600'
+                    }`}
+                  >
+                    {r}
+                  </button>
+                ))}
+              </div>
+              <motion.button
+                whileTap={{ scale: 0.96 }}
+                onClick={submitReport}
+                disabled={!reportReason || isReporting}
+                className="w-full py-3 bg-red-500 disabled:bg-zinc-800 disabled:text-zinc-600 text-white font-bold text-[14px] rounded-xl flex items-center justify-center gap-2 transition-colors"
+              >
+                {isReporting ? <Loader2 size={16} className="animate-spin" /> : <Flag size={15} />}
+                {isReporting ? 'Submitting…' : 'Submit Report'}
+              </motion.button>
+            </motion.div>
+          </>
         )}
       </AnimatePresence>
     </>
@@ -755,14 +946,6 @@ export default function HomePage() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [toasts, setToasts] = useState<ToastMsg[]>([]);
-  const toastCounter = useRef(0);
-
-  const showToast = useCallback((message: string, type: ToastMsg['type'] = 'info') => {
-    const id = ++toastCounter.current;
-    setToasts((prev) => [...prev, { id, message, type }]);
-    setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 3200);
-  }, []);
 
   const fetchPosts = async () => {
     if (!supabase || !isSupabaseConfigured()) {
@@ -825,7 +1008,7 @@ export default function HomePage() {
             <motion.div key="feed" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
               <PullToRefreshFeed onRefresh={fetchPosts}>
                 {posts.map((post, i) => (
-                  <RigPostCard key={post.id} post={post} index={i} onToast={showToast} />
+                  <RigPostCard key={post.id} post={post} index={i} />
                 ))}
               </PullToRefreshFeed>
             </motion.div>
@@ -846,15 +1029,6 @@ export default function HomePage() {
 
       {/* ── New Post Drawer ────────────────────────── */}
       <NewPostDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} onPosted={fetchPosts} />
-
-      {/* ── Toast stack ───────────────────────────── */}
-      <div className="fixed bottom-[80px] left-1/2 -translate-x-1/2 z-[9995] flex flex-col items-center gap-2 pointer-events-none">
-        <AnimatePresence mode="popLayout">
-          {toasts.map((t) => (
-            <Toast key={t.id} message={t.message} type={t.type} />
-          ))}
-        </AnimatePresence>
-      </div>
 
       <DisclaimerModal />
       <BottomNav />

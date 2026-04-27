@@ -46,7 +46,7 @@ interface Post {
   id: string;
   image_url?: string;
   caption: string;
-  likes: number;
+  likes_count: number;
   created_at: string;
 }
 
@@ -78,9 +78,9 @@ const PLACEHOLDER_VEHICLES: Vehicle[] = [
 ];
 
 const PLACEHOLDER_POSTS: Post[] = [
-  { id: 'p1', image_url: 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=400&q=80', caption: 'Big Bear weekend run', likes: 47, created_at: '' },
-  { id: 'p2', image_url: 'https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?w=400&q=80', caption: 'Holcomb Valley', likes: 89, created_at: '' },
-  { id: 'p3', image_url: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=400&q=80', caption: 'Morning trails', likes: 34, created_at: '' },
+  { id: 'p1', image_url: 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=400&q=80', caption: 'Big Bear weekend run', likes_count: 47, created_at: '' },
+  { id: 'p2', image_url: 'https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?w=400&q=80', caption: 'Holcomb Valley', likes_count: 89, created_at: '' },
+  { id: 'p3', image_url: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=400&q=80', caption: 'Morning trails', likes_count: 34, created_at: '' },
 ];
 
 // ─── Edit Rig Modal ────────────────────────────────────────────────────────────
@@ -256,7 +256,7 @@ export default function ProfilePage() {
     try {
       const [vehiclesRes, postsRes] = await Promise.all([
         supabase.from('vehicles').select('*').eq('user_id', user.id),
-        supabase.from('posts').select('id, image_url, caption, likes, created_at').eq('user_id', user.id).order('created_at', { ascending: false }).limit(20),
+        supabase.from('posts').select('id, image_url, caption, likes_count, created_at').eq('user_id', user.id).order('created_at', { ascending: false }).limit(20),
       ]);
       setVehicles(vehiclesRes.data?.length ? vehiclesRes.data : PLACEHOLDER_VEHICLES);
       setPosts(postsRes.data?.length ? postsRes.data : PLACEHOLDER_POSTS);
@@ -308,7 +308,7 @@ export default function ProfilePage() {
       {/* Header */}
       <header className="sticky top-0 z-30 bg-black/90 backdrop-blur-xl border-b border-zinc-900">
         <div className="max-w-md mx-auto flex items-center justify-between px-4 py-3">
-          <h1 className="text-[17px] font-bold text-white">Profile</h1>
+          <h1 className="text-[17px] font-bold text-white">Rig Portfolio</h1>
           <Link href="/settings" className="p-2 text-zinc-500 hover:text-white transition-colors">
             <Settings size={20} />
           </Link>
@@ -343,7 +343,15 @@ export default function ProfilePage() {
               <div className="flex items-center gap-1.5 flex-wrap">
                 <h2 className="text-[17px] font-bold text-white leading-tight">{displayProfile.name}</h2>
                 {isVerified && (
-                  <BadgeCheck size={17} className="text-orange-500 fill-orange-500/20 flex-shrink-0" aria-label="Verified member" />
+                  <div className="relative flex items-center" aria-label="Verified member">
+                    <motion.div
+                      className="absolute inset-0 rounded-full bg-orange-500/40"
+                      animate={{ scale: [1, 1.7, 1], opacity: [0.6, 0, 0.6] }}
+                      transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+                    />
+                    <BadgeCheck size={17} className="relative text-orange-500 fill-orange-500/20 flex-shrink-0" />
+                    <span className="relative ml-1 text-[10px] font-black text-orange-500 uppercase tracking-wider">Verified</span>
+                  </div>
                 )}
               </div>
               {displayProfile.location && (
@@ -391,6 +399,9 @@ export default function ProfilePage() {
             <h3 className="text-[14px] font-bold text-white flex items-center gap-2">
               <Truck size={16} className="text-orange-500" />
               Your Garage
+              {vehicles.filter((v) => v.is_primary).length > 0 && (
+                <span className="text-[10px] font-bold text-orange-400 bg-orange-500/10 border border-orange-500/25 px-1.5 py-0.5 rounded-full ml-1">Primary Rig Active</span>
+              )}
             </h3>
             <motion.button
               whileTap={{ scale: 0.92 }}
@@ -426,6 +437,22 @@ export default function ProfilePage() {
                       </div>
                       {v.modifications && (
                         <p className="text-[12px] text-zinc-500 mt-1 leading-relaxed">{v.modifications}</p>
+                      )}
+                      {!v.is_primary && (
+                        <button
+                          onClick={async () => {
+                            if (!supabase || !user) return;
+                            try {
+                              await supabase.from('vehicles').update({ is_primary: false }).eq('user_id', user.id);
+                              await supabase.from('vehicles').update({ is_primary: true }).eq('id', v.id);
+                              setVehicles((prev) => prev.map((x) => ({ ...x, is_primary: x.id === v.id })));
+                              showToast('Primary rig updated', 'success');
+                            } catch { showToast('Could not set primary rig', 'error'); }
+                          }}
+                          className="mt-2 text-[11px] text-zinc-600 hover:text-orange-400 transition-colors"
+                        >
+                          Set as Primary
+                        </button>
                       )}
                     </div>
                     <button
@@ -481,11 +508,17 @@ export default function ProfilePage() {
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                       />
                     ) : (
-                      <div className="w-full h-full bg-zinc-900 flex items-center justify-center">
-                        <span className="text-[10px] text-zinc-600 text-center px-2 line-clamp-3">{p.caption}</span>
+                      <div className="w-full h-full bg-zinc-950 flex items-center justify-center p-2">
+                        <span className="text-[10px] text-zinc-600 text-center line-clamp-4 leading-tight">{p.caption}</span>
                       </div>
                     )}
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
+                    {/* Hover overlay with like count */}
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                      <div className="flex items-center gap-1 text-white text-[12px] font-bold">
+                        <Heart size={13} className="fill-white text-white" />
+                        {p.likes_count}
+                      </div>
+                    </div>
                   </Link>
                 ))}
               </div>
