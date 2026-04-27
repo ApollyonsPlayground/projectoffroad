@@ -21,6 +21,7 @@ import {
   Flag,
   Bookmark,
   Loader2,
+  Trash2,
 } from 'lucide-react';
 import Link from 'next/link';
 import BottomNav from '@/components/BottomNav';
@@ -684,6 +685,25 @@ function RigPostCard({ post, index }: {
     }
   };
 
+  const handleDelete = async () => {
+    if (!supabase || !user) return;
+    // Guard: only owner or post author can delete
+    if (user.id !== post.user_id && user.role !== 'owner') {
+      showToast('You cannot delete this post', 'error');
+      return;
+    }
+    try {
+      const { error } = await supabase.from('posts').delete().eq('id', post.id);
+      if (error) throw error;
+      showToast('Post deleted', 'success');
+      // Trigger parent refresh
+      await new Promise(resolve => setTimeout(resolve, 300));
+      window.location.reload();
+    } catch {
+      showToast('Failed to delete post', 'error');
+    }
+  };
+
   return (
     <>
       <motion.article
@@ -693,7 +713,7 @@ function RigPostCard({ post, index }: {
         className="flex gap-3 px-4 py-4 border-b border-zinc-900 bg-black"
       >
         {/* ── Left column: avatar ───────────────── */}
-        <div className="flex-shrink-0 pt-0.5">
+        <Link href={`/profile/${post.user_id}`} className="flex-shrink-0 pt-0.5 hover:opacity-80 transition-opacity">
           <div className="w-10 h-10 rounded-full overflow-hidden bg-zinc-800 ring-1 ring-zinc-700">
             {post.avatar_url && !avatarError ? (
               <img
@@ -709,7 +729,7 @@ function RigPostCard({ post, index }: {
               </div>
             )}
           </div>
-        </div>
+        </Link>
 
         {/* ── Right column: content ─────────────── */}
         <div className="flex-1 min-w-0">
@@ -718,7 +738,7 @@ function RigPostCard({ post, index }: {
           <div className="flex items-start justify-between gap-2 mb-1">
             <div className="min-w-0 flex-1">
               {/* Name + verified */}
-              <div className="flex items-center gap-1 flex-wrap">
+              <Link href={`/profile/${post.user_id}`} className="flex items-center gap-1 flex-wrap hover:opacity-80 transition-opacity">
                 <span className="font-bold text-[14px] text-white leading-snug">
                   {post.username ?? 'Anonymous'}
                 </span>
@@ -730,12 +750,12 @@ function RigPostCard({ post, index }: {
                     OWNER
                   </span>
                 )}
-                {(post.rig_model || post.rig_specs) && (
-                  <span className="text-[11px] text-zinc-500 bg-zinc-900 border border-zinc-800 px-1.5 py-px rounded-full font-medium leading-snug truncate max-w-[160px]">
-                    {post.rig_model || post.rig_specs}
-                  </span>
-                )}
-              </div>
+              </Link>
+              {(post.rig_model || post.rig_specs) && (
+                <span className="text-[11px] text-zinc-500 bg-zinc-900 border border-zinc-800 px-1.5 py-px rounded-full font-medium leading-snug truncate max-w-[160px]">
+                  {post.rig_model || post.rig_specs}
+                </span>
+              )}
               <span className="text-[11px] text-zinc-600">{timeAgo(post.created_at)}</span>
             </div>
 
@@ -768,6 +788,14 @@ function RigPostCard({ post, index }: {
                     >
                       <Flag size={14} /> Report Post
                     </button>
+                    {(user?.id === post.user_id || user?.role === 'owner') && (
+                      <button
+                        onClick={() => { handleDelete(); setMenuOpen(false); }}
+                        className="flex items-center gap-2.5 w-full px-4 py-3 text-[13px] text-red-500 hover:bg-red-500/10 transition-colors text-left border-t border-zinc-800"
+                      >
+                        <Trash2 size={14} /> Delete
+                      </button>
+                    )}
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -971,7 +999,7 @@ function PullToRefreshFeed({ children, onRefresh }: { children: React.ReactNode;
   );
 }
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
+// ─── Page ───��─────────────────────────────────────────────────────────────────
 
 export default function HomePage() {
   const [posts, setPosts] = useState<Post[]>([]);
@@ -989,16 +1017,19 @@ export default function HomePage() {
     try {
       const { data, error } = await supabase
         .from('posts')
-        .select('*')
+        .select('*, users!posts_user_id_fk(id, name, avatar_url, role, is_verified)')
         .order('created_at', { ascending: false })
         .limit(30);
       if (error) throw error;
-      // Normalise: fall back to `body` if `caption` not yet populated
-      const normalised = (data ?? []).map((p) => ({
+      // Flatten user data and normalise fields
+      const normalised = (data ?? []).map((p: any) => ({
         ...p,
         caption: p.caption ?? p.body ?? '',
-        username: p.user_name ?? p.username ?? 'Rider',
-        role: p.role ?? 'user',
+        user_name: p.users?.name ?? p.user_name ?? p.username ?? 'Rider',
+        username: p.users?.name ?? p.user_name ?? p.username ?? 'Rider',
+        avatar_url: p.users?.avatar_url ?? p.avatar_url ?? null,
+        verified: p.users?.is_verified ?? p.verified ?? false,
+        role: p.users?.role ?? p.role ?? 'user',
       }));
       setPosts(normalised.length ? normalised : PLACEHOLDER_POSTS);
     } catch {
