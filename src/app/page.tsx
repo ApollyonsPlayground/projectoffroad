@@ -606,11 +606,21 @@ function RigPostCard({ post, index }: {
     if (user && isConfigured && supabase) {
       try {
         if (nowLiked) {
-          await supabase.from('likes').insert({ post_id: post.id, user_id: user.id });
+          const { error } = await supabase
+            .from('likes')
+            .insert({ post_id: post.id, user_id: user.id });
+          // Ignore UNIQUE constraint violations (already liked)
+          if (error && error.code !== '23505') {
+            throw error;
+          }
         } else {
-          await supabase.from('likes').delete().match({ post_id: post.id, user_id: user.id });
+          const { error } = await supabase
+            .from('likes')
+            .delete()
+            .match({ post_id: post.id, user_id: user.id });
+          if (error) throw error;
         }
-      } catch {
+      } catch (err) {
         setLiked(!nowLiked);
         setLikesCount((c) => (nowLiked ? c - 1 : c + 1));
         showToast('Could not save like. Try again.', 'error');
