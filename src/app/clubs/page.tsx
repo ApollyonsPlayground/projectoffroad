@@ -358,6 +358,19 @@ export default function ClubsPage() {
     });
   }, [clubsWithDistance, searchQuery, selectedRegion]);
 
+  // Group filtered clubs by region for the "All Regions" view
+  const groupedClubs = useMemo(() => {
+    if (selectedRegion !== 'All Regions') {
+      return { [selectedRegion]: filteredClubs };
+    }
+    return filteredClubs.reduce<Record<string, Club[]>>((acc, club) => {
+      const region = club.region || 'Other';
+      if (!acc[region]) acc[region] = [];
+      acc[region].push(club);
+      return acc;
+    }, {});
+  }, [filteredClubs, selectedRegion]);
+
   return (
     <div className="min-h-screen bg-black">
       {/* Header */}
@@ -375,6 +388,20 @@ export default function ClubsPage() {
               </Link>
             )}
           </div>
+
+          {/* Location status */}
+          {isLoadingLocation && (
+            <div className="flex items-center gap-1.5 mb-2 text-[11px] text-zinc-500">
+              <Loader2 size={11} className="animate-spin text-orange-500" />
+              Finding nearby clubs...
+            </div>
+          )}
+          {userLocation && !isLoadingLocation && (
+            <div className="flex items-center gap-1.5 mb-2 text-[11px] text-zinc-500">
+              <Navigation size={11} className="text-orange-500" />
+              Sorted by distance from you
+            </div>
+          )}
 
           {/* Search Bar */}
           <div className="relative mb-3">
@@ -480,9 +507,9 @@ export default function ClubsPage() {
                       {region}
                     </h2>
                   )}
-                  <div className="space-y-4">
+                  <div className="grid grid-cols-1 gap-4">
                     {regionClubs.map((club, index) => (
-                      <ClubCard key={club.id} club={club} index={index} />
+                      <ClubPosterCard key={club.id} club={club} index={index} />
                     ))}
                   </div>
                 </div>
