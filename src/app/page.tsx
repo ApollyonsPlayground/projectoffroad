@@ -27,6 +27,7 @@ import { FeedSkeleton } from '@/components/SkeletonLoader';
 import DisclaimerModal from '@/components/DisclaimerModal';
 import { supabase, isSupabaseConfigured } from '@/lib/db/supabase';
 import { useAuth } from '@/context/AuthContext';
+import { useToast } from '@/components/Toast';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 
 // ─── Toast ────────────────────────────────────────────────────────────────────
@@ -50,9 +51,16 @@ function Toast({ message, type }: { message: string; type: ToastMsg['type'] }) {
 
 // ─── NewPostDrawer ─────────────────────────────────────────────────────────────
 
-function NewPostDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
+function NewPostDrawer({ open, onClose, onPosted }: {
+  open: boolean;
+  onClose: () => void;
+  onPosted?: () => void;
+}) {
+  const { user, isConfigured } = useAuth();
+  const { showToast } = useToast();
   const [body, setBody] = useState('');
   const [rig, setRig] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -65,12 +73,37 @@ function NewPostDrawer({ open, onClose }: { open: boolean; onClose: () => void }
     return () => { document.body.style.overflow = ''; };
   }, [open]);
 
-  const handleSubmit = () => {
-    if (!body.trim()) return;
-    // TODO: wire to Supabase insert once auth is connected
-    setBody('');
-    setRig('');
-    onClose();
+  const handleSubmit = async () => {
+    if (!body.trim() || isSubmitting) return;
+
+    // If Supabase is not configured or user not signed in, show toast and bail
+    if (!isConfigured || !user) {
+      showToast('Sign in to post to the community', 'info');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const { error } = await supabase!.from('posts').insert({
+        caption: body.trim(),
+        rig_specs: rig.trim() || null,
+        user_id: user.id,
+        user_name: (user.user_metadata?.name as string) || user.email?.split('@')[0] || 'Rider',
+        likes: 0,
+      });
+
+      if (error) throw error;
+
+      showToast('Post shared with the community!', 'success');
+      setBody('');
+      setRig('');
+      onPosted?.();
+      onClose();
+    } catch {
+      showToast('Failed to post. Please try again.', 'error');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -109,11 +142,21 @@ function NewPostDrawer({ open, onClose }: { open: boolean; onClose: () => void }
               <motion.button
                 whileTap={{ scale: 0.92 }}
                 onClick={handleSubmit}
-                disabled={!body.trim()}
-                className="flex items-center gap-1.5 px-4 py-1.5 bg-orange-500 disabled:bg-zinc-800 disabled:text-zinc-600 text-black font-bold text-[13px] rounded-full transition-colors"
+                disabled={!body.trim() || isSubmitting}
+                className="flex items-center gap-1.5 px-4 py-1.5 bg-orange-500 disabled:bg-zinc-800 disabled:text-zinc-600 text-black font-bold text-[13px] rounded-full transition-colors min-w-[68px] justify-center"
               >
-                <Send size={13} strokeWidth={2.5} />
-                Post
+                {isSubmitting ? (
+                  <motion.span
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }}
+                    className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full inline-block"
+                  />
+                ) : (
+                  <>
+                    <Send size={13} strokeWidth={2.5} />
+                    Post
+                  </>
+                )}
               </motion.button>
             </div>
 
@@ -802,7 +845,7 @@ export default function HomePage() {
       </motion.button>
 
       {/* ── New Post Drawer ────────────────────────── */}
-      <NewPostDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
+      <NewPostDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} onPosted={fetchPosts} />
 
       {/* ── Toast stack ───────────────────────────── */}
       <div className="fixed bottom-[80px] left-1/2 -translate-x-1/2 z-[9995] flex flex-col items-center gap-2 pointer-events-none">

@@ -1,13 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  User, 
-  MapPin, 
-  Shield, 
-  Truck, 
-  Settings, 
+import {
+  User,
+  MapPin,
+  BadgeCheck,
+  Truck,
+  Settings,
   LogOut,
   ChevronRight,
   Plus,
@@ -15,104 +15,285 @@ import {
   Camera,
   Award,
   Calendar,
-  Heart
+  Heart,
+  X,
+  Save,
+  Loader2,
+  Grid3X3,
+  Route,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import BottomNav from '@/components/BottomNav';
 import { ProfileSkeleton } from '@/components/SkeletonLoader';
 import { useAuth } from '@/context/AuthContext';
+import { useToast } from '@/components/Toast';
 import { supabase, isSupabaseConfigured } from '@/lib/db/supabase';
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface Vehicle {
   id: string;
   year: number;
   make: string;
   model: string;
+  trim?: string;
   modifications?: string;
   is_primary: boolean;
 }
 
-// Placeholder profile for demo
-const placeholderProfile = {
+interface Post {
+  id: string;
+  image_url?: string;
+  caption: string;
+  likes: number;
+  created_at: string;
+}
+
+// ─── Placeholder data (shown when Supabase is not configured) ─────────────────
+
+const PLACEHOLDER_PROFILE = {
   name: 'Trail Rider',
-  email: 'user@example.com',
-  avatar_url: null,
-  bio: 'Off-road enthusiast exploring SoCal trails. Always looking for new adventures and build ideas.',
+  email: 'rider@example.com',
+  avatar_url: null as string | null,
+  bio: 'Off-road enthusiast exploring SoCal trails. Always chasing the next adventure.',
   location: 'San Bernardino, CA',
   experience_level: 'Intermediate',
-  runs_completed: 12,
-  trails_visited: 24,
-  posts_count: 8,
+  runs_completed: 14,
+  trails_visited: 27,
+  posts_count: 9,
+  is_verified: true,
 };
 
-const placeholderVehicles: Vehicle[] = [
+const PLACEHOLDER_VEHICLES: Vehicle[] = [
   {
     id: '1',
     year: 2018,
     make: 'Jeep',
-    model: 'Wrangler JK',
-    modifications: '37" KO2s, 4" lift, winch, rock sliders',
+    model: 'Wrangler',
+    trim: 'JK Rubicon',
+    modifications: '37" BFG KO2s, 4" TeraFlex lift, Warn winch, rock sliders, skid plates',
     is_primary: true,
   },
 ];
 
-export default function ProfilePage() {
-  const { user, profile, loading } = useAuth();
-  const router = useRouter();
-  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'posts' | 'runs' | 'saved'>('posts');
+const PLACEHOLDER_POSTS: Post[] = [
+  { id: 'p1', image_url: 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=400&q=80', caption: 'Big Bear weekend run', likes: 47, created_at: '' },
+  { id: 'p2', image_url: 'https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?w=400&q=80', caption: 'Holcomb Valley', likes: 89, created_at: '' },
+  { id: 'p3', image_url: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=400&q=80', caption: 'Morning trails', likes: 34, created_at: '' },
+];
+
+// ─── Edit Rig Modal ────────────────────────────────────────────────────────────
+
+function EditRigModal({
+  vehicle,
+  onClose,
+  onSaved,
+}: {
+  vehicle: Vehicle | null;
+  onClose: () => void;
+  onSaved: (v: Vehicle) => void;
+}) {
+  const { user } = useAuth();
+  const { showToast } = useToast();
+  const isNew = vehicle === null;
+
+  const [form, setForm] = useState<Omit<Vehicle, 'id' | 'is_primary'>>({
+    year: vehicle?.year ?? new Date().getFullYear(),
+    make: vehicle?.make ?? '',
+    model: vehicle?.model ?? '',
+    trim: vehicle?.trim ?? '',
+    modifications: vehicle?.modifications ?? '',
+  });
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (!loading && !user) {
-      // In demo mode, show placeholder
-      if (!isSupabaseConfigured()) {
-        setIsLoading(false);
-        setVehicles(placeholderVehicles);
-        return;
-      }
-      router.push('/login');
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = ''; };
+  }, []);
+
+  const handleSave = async () => {
+    if (!form.make.trim() || !form.model.trim()) {
+      showToast('Make and model are required', 'error');
       return;
     }
 
-    if (user) {
-      fetchVehicles();
-    } else {
-      // Demo mode
-      setVehicles(placeholderVehicles);
-      setIsLoading(false);
-    }
-  }, [user, loading, router]);
-
-  async function fetchVehicles() {
-    if (!supabase || !isSupabaseConfigured() || !user) {
-      setVehicles(placeholderVehicles);
-      setIsLoading(false);
-      return;
-    }
-
+    setSaving(true);
     try {
-      const { data } = await supabase
-        .from('vehicles')
-        .select('*')
-        .eq('user_id', user.id);
+      if (supabase && user) {
+        if (isNew) {
+          const { data, error } = await supabase
+            .from('vehicles')
+            .insert({ ...form, user_id: user.id, is_primary: false })
+            .select()
+            .single();
+          if (error) throw error;
+          onSaved(data as Vehicle);
+        } else {
+          const { data, error } = await supabase
+            .from('vehicles')
+            .update({ ...form })
+            .eq('id', vehicle!.id)
+            .select()
+            .single();
+          if (error) throw error;
+          onSaved(data as Vehicle);
+        }
+        showToast(isNew ? 'Rig added to your garage' : 'Rig specs updated', 'success');
+      } else {
+        // Demo mode — just update locally
+        onSaved({ ...form, id: vehicle?.id ?? Date.now().toString(), is_primary: vehicle?.is_primary ?? false });
+        showToast(isNew ? 'Rig added (demo mode)' : 'Rig updated (demo mode)', 'info');
+      }
+      onClose();
+    } catch {
+      showToast('Failed to save. Please try again.', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
 
-      setVehicles(data?.length ? data : placeholderVehicles);
-    } catch (err) {
-      console.error('Error fetching vehicles:', err);
-      setVehicles(placeholderVehicles);
+  const field = (label: string, key: keyof typeof form, type: 'text' | 'number' = 'text') => (
+    <div>
+      <label className="block text-[11px] font-semibold text-zinc-500 uppercase tracking-wider mb-1.5">{label}</label>
+      <input
+        type={type}
+        value={form[key] as string}
+        onChange={(e) => setForm((p) => ({ ...p, [key]: type === 'number' ? Number(e.target.value) : e.target.value }))}
+        className="w-full bg-zinc-900 border border-zinc-800 focus:border-orange-500/60 rounded-xl px-3 py-2.5 text-[14px] text-zinc-200 placeholder:text-zinc-600 outline-none transition-colors"
+      />
+    </div>
+  );
+
+  return (
+    <>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-[9992] bg-black/75 backdrop-blur-sm"
+        onClick={onClose}
+      />
+      <motion.div
+        initial={{ y: '100%' }}
+        animate={{ y: 0 }}
+        exit={{ y: '100%' }}
+        transition={{ type: 'spring', stiffness: 420, damping: 36 }}
+        className="fixed bottom-0 left-0 right-0 z-[9993] max-w-md mx-auto bg-zinc-950 border border-zinc-800 rounded-t-2xl"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Handle */}
+        <div className="flex justify-center pt-3">
+          <div className="w-9 h-1 bg-zinc-800 rounded-full" />
+        </div>
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-900">
+          <button onClick={onClose} className="p-1 text-zinc-500 hover:text-white transition-colors">
+            <X size={20} />
+          </button>
+          <span className="font-bold text-white text-[15px]">
+            {isNew ? 'Add Rig' : 'Edit Rig'}
+          </span>
+          <motion.button
+            whileTap={{ scale: 0.92 }}
+            onClick={handleSave}
+            disabled={saving}
+            className="flex items-center gap-1.5 px-4 py-1.5 bg-orange-500 disabled:bg-zinc-800 disabled:text-zinc-600 text-black font-bold text-[13px] rounded-full transition-colors min-w-[68px] justify-center"
+          >
+            {saving
+              ? <Loader2 size={14} className="animate-spin" />
+              : <><Save size={13} strokeWidth={2.5} /> Save</>
+            }
+          </motion.button>
+        </div>
+
+        {/* Form */}
+        <div className="px-4 py-4 space-y-3.5 overflow-y-auto max-h-[65dvh]">
+          {field('Year', 'year', 'number')}
+          {field('Make', 'make')}
+          {field('Model', 'model')}
+          {field('Trim', 'trim')}
+          <div>
+            <label className="block text-[11px] font-semibold text-zinc-500 uppercase tracking-wider mb-1.5">Modifications</label>
+            <textarea
+              rows={3}
+              value={form.modifications}
+              onChange={(e) => setForm((p) => ({ ...p, modifications: e.target.value }))}
+              placeholder="Lift kit, tires, armor, recovery gear..."
+              className="w-full bg-zinc-900 border border-zinc-800 focus:border-orange-500/60 rounded-xl px-3 py-2.5 text-[14px] text-zinc-200 placeholder:text-zinc-600 outline-none resize-none transition-colors"
+            />
+          </div>
+        </div>
+      </motion.div>
+    </>
+  );
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
+export default function ProfilePage() {
+  const { user, profile, loading, signOut, isConfigured } = useAuth();
+  const router = useRouter();
+  const { showToast } = useToast();
+
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'posts' | 'runs'>('posts');
+  const [editingVehicle, setEditingVehicle] = useState<Vehicle | null | undefined>(undefined); // undefined = closed
+
+  const displayProfile = profile || PLACEHOLDER_PROFILE;
+
+  const fetchData = useCallback(async () => {
+    if (!supabase || !user) {
+      setVehicles(PLACEHOLDER_VEHICLES);
+      setPosts(PLACEHOLDER_POSTS);
+      setIsLoading(false);
+      return;
+    }
+    try {
+      const [vehiclesRes, postsRes] = await Promise.all([
+        supabase.from('vehicles').select('*').eq('user_id', user.id),
+        supabase.from('posts').select('id, image_url, caption, likes, created_at').eq('user_id', user.id).order('created_at', { ascending: false }).limit(20),
+      ]);
+      setVehicles(vehiclesRes.data?.length ? vehiclesRes.data : PLACEHOLDER_VEHICLES);
+      setPosts(postsRes.data?.length ? postsRes.data : PLACEHOLDER_POSTS);
+    } catch {
+      setVehicles(PLACEHOLDER_VEHICLES);
+      setPosts(PLACEHOLDER_POSTS);
     } finally {
       setIsLoading(false);
     }
-  }
+  }, [user]);
 
-  const displayProfile = profile || placeholderProfile;
+  useEffect(() => {
+    if (!loading) fetchData();
+  }, [loading, fetchData]);
+
+  const handleVehicleSaved = (v: Vehicle) => {
+    setVehicles((prev) => {
+      const idx = prev.findIndex((x) => x.id === v.id);
+      if (idx >= 0) {
+        const next = [...prev];
+        next[idx] = v;
+        return next;
+      }
+      return [...prev, v];
+    });
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
+    showToast('Signed out successfully', 'success');
+    router.push('/');
+  };
 
   if (isLoading || loading) {
     return (
       <div className="min-h-screen bg-black">
-        <div className="max-w-lg mx-auto">
+        <div className="max-w-md mx-auto">
           <ProfileSkeleton />
         </div>
         <BottomNav />
@@ -120,215 +301,251 @@ export default function ProfilePage() {
     );
   }
 
+  const isVerified = (displayProfile as typeof PLACEHOLDER_PROFILE).is_verified ?? false;
+
   return (
     <div className="min-h-screen bg-black">
-      {/* Profile Header */}
-      <header className="bg-black border-b border-zinc-800 safe-top">
-        <div className="px-4 py-4">
-          <div className="flex items-center justify-between mb-4">
-            <h1 className="text-xl font-bold text-white">Profile</h1>
-            <div className="flex items-center gap-2">
-              <Link
-                href="/settings"
-                className="p-2 bg-zinc-800 text-zinc-400 hover:text-white transition-colors"
-              >
-                <Settings size={20} />
-              </Link>
-            </div>
-          </div>
+      {/* Header */}
+      <header className="sticky top-0 z-30 bg-black/90 backdrop-blur-xl border-b border-zinc-900">
+        <div className="max-w-md mx-auto flex items-center justify-between px-4 py-3">
+          <h1 className="text-[17px] font-bold text-white">Profile</h1>
+          <Link href="/settings" className="p-2 text-zinc-500 hover:text-white transition-colors">
+            <Settings size={20} />
+          </Link>
+        </div>
+      </header>
 
-          {/* Profile Info */}
-          <div className="flex items-center gap-4">
+      <main className="max-w-md mx-auto pb-24">
+        {/* Avatar + Bio ──────────────────────────── */}
+        <section className="px-4 pt-5 pb-4 border-b border-zinc-900">
+          <div className="flex items-start gap-4">
             {/* Avatar */}
-            <div className="relative">
-              <div className="w-20 h-20 rounded-full bg-zinc-800 overflow-hidden ring-2 ring-orange-500/50">
+            <div className="relative flex-shrink-0">
+              <div className="w-20 h-20 rounded-full bg-zinc-900 overflow-hidden ring-2 ring-orange-500/40">
                 {displayProfile.avatar_url ? (
-                  <img
-                    src={displayProfile.avatar_url}
-                    alt={displayProfile.name}
-                    className="w-full h-full object-cover"
-                  />
+                  <img src={displayProfile.avatar_url} alt={displayProfile.name} className="w-full h-full object-cover" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
                     <User size={32} className="text-zinc-600" />
                   </div>
                 )}
               </div>
-              <button className="absolute -bottom-1 -right-1 w-7 h-7 bg-orange-500 rounded-full flex items-center justify-center text-zinc-950">
-                <Camera size={14} />
+              <button
+                className="absolute -bottom-1 -right-1 w-7 h-7 bg-orange-500 rounded-full flex items-center justify-center"
+                aria-label="Change avatar"
+              >
+                <Camera size={13} className="text-black" />
               </button>
             </div>
 
-            {/* Info */}
-            <div className="flex-1 min-w-0">
-              <h2 className="text-lg font-bold text-white truncate">{displayProfile.name}</h2>
-              <div className="flex items-center gap-1 text-sm text-zinc-500">
-                <MapPin size={12} />
-                <span>{displayProfile.location || 'Location not set'}</span>
+            {/* Name + meta */}
+            <div className="flex-1 min-w-0 pt-1">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <h2 className="text-[17px] font-bold text-white leading-tight">{displayProfile.name}</h2>
+                {isVerified && (
+                  <BadgeCheck size={17} className="text-orange-500 fill-orange-500/20 flex-shrink-0" aria-label="Verified member" />
+                )}
               </div>
-              <div className="flex items-center gap-1 mt-1">
-                <span className={`px-2 py-0.5 text-xs font-semibold ${
-                  displayProfile.experience_level === 'Beginner' ? 'badge-beginner' :
-                  displayProfile.experience_level === 'Intermediate' ? 'bg-yellow-500/15 text-yellow-500 border border-yellow-500/30' :
-                  'badge-advanced'
+              {displayProfile.location && (
+                <div className="flex items-center gap-1 text-[13px] text-zinc-500 mt-0.5">
+                  <MapPin size={12} />
+                  <span>{displayProfile.location}</span>
+                </div>
+              )}
+              {displayProfile.experience_level && (
+                <span className={`inline-block mt-1.5 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-sm ${
+                  displayProfile.experience_level === 'Beginner'
+                    ? 'bg-green-500/15 text-green-400 border border-green-500/30'
+                    : displayProfile.experience_level === 'Advanced' || displayProfile.experience_level === 'Expert'
+                    ? 'bg-orange-500/15 text-orange-400 border border-orange-500/30'
+                    : 'bg-yellow-500/15 text-yellow-500 border border-yellow-500/30'
                 }`}>
                   {displayProfile.experience_level}
                 </span>
-              </div>
+              )}
             </div>
           </div>
 
-          {/* Bio */}
           {displayProfile.bio && (
-            <p className="mt-4 text-sm text-zinc-400 leading-relaxed">
-              {displayProfile.bio}
-            </p>
+            <p className="mt-3 text-[14px] text-zinc-400 leading-relaxed">{displayProfile.bio}</p>
           )}
 
-          {/* Stats */}
-          <div className="flex justify-around mt-4 py-4 border-t border-zinc-800">
-            <div className="text-center">
-              <p className="text-lg font-bold text-white">{displayProfile.posts_count || 0}</p>
-              <p className="text-xs text-zinc-500 uppercase tracking-wider">Posts</p>
-            </div>
-            <div className="text-center">
-              <p className="text-lg font-bold text-white">{displayProfile.runs_completed || 0}</p>
-              <p className="text-xs text-zinc-500 uppercase tracking-wider">Runs</p>
-            </div>
-            <div className="text-center">
-              <p className="text-lg font-bold text-white">{displayProfile.trails_visited || 0}</p>
-              <p className="text-xs text-zinc-500 uppercase tracking-wider">Trails</p>
-            </div>
+          {/* Stats row */}
+          <div className="flex justify-around mt-4 pt-4 border-t border-zinc-900">
+            {[
+              { label: 'Posts',  value: displayProfile.posts_count ?? posts.length },
+              { label: 'Runs',   value: displayProfile.runs_completed ?? 0 },
+              { label: 'Trails', value: displayProfile.trails_visited ?? 0 },
+            ].map(({ label, value }) => (
+              <div key={label} className="text-center">
+                <p className="text-[18px] font-bold text-white">{value}</p>
+                <p className="text-[11px] text-zinc-600 uppercase tracking-wider">{label}</p>
+              </div>
+            ))}
           </div>
-        </div>
-      </header>
+        </section>
 
-      {/* Main Content */}
-      <main className="max-w-md mx-auto px-4 pt-4 pb-24">
-        {/* Vehicles Section */}
-        <section className="p-4 border-b border-zinc-800">
+        {/* Rigs ─────────────────────────────────── */}
+        <section className="px-4 py-4 border-b border-zinc-900">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="font-semibold text-white flex items-center gap-2">
-              <Truck size={18} className="text-orange-500" />
-              Your Rigs
+            <h3 className="text-[14px] font-bold text-white flex items-center gap-2">
+              <Truck size={16} className="text-orange-500" />
+              Your Garage
             </h3>
-            <button className="flex items-center gap-1 text-sm text-orange-500 hover:text-orange-400">
-              <Plus size={16} />
-              Add
-            </button>
+            <motion.button
+              whileTap={{ scale: 0.92 }}
+              onClick={() => setEditingVehicle(null)}
+              className="flex items-center gap-1 text-[13px] text-orange-500 hover:text-orange-400 transition-colors"
+            >
+              <Plus size={15} /> Add Rig
+            </motion.button>
           </div>
 
           {vehicles.length > 0 ? (
-            <div className="space-y-3">
-              {vehicles.map((vehicle) => (
+            <div className="space-y-2.5">
+              {vehicles.map((v, i) => (
                 <motion.div
-                  key={vehicle.id}
-                  initial={{ opacity: 0, y: 10 }}
+                  key={v.id}
+                  initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="bg-zinc-900 border border-zinc-800 p-3"
+                  transition={{ delay: i * 0.05 }}
+                  className="bg-zinc-900 border border-zinc-800 rounded-xl p-3.5"
                 >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <p className="font-medium text-white">
-                          {vehicle.year} {vehicle.make} {vehicle.model}
-                        </p>
-                        {vehicle.is_primary && (
-                          <span className="px-1.5 py-0.5 bg-orange-500/20 text-orange-400 text-[10px] font-semibold uppercase">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-[14px] font-semibold text-white">
+                          {v.year} {v.make} {v.model}
+                          {v.trim ? ` ${v.trim}` : ''}
+                        </span>
+                        {v.is_primary && (
+                          <span className="px-1.5 py-0.5 bg-orange-500/15 text-orange-400 text-[10px] font-bold uppercase rounded">
                             Primary
                           </span>
                         )}
                       </div>
-                      {vehicle.modifications && (
-                        <p className="text-sm text-zinc-500 mt-1">{vehicle.modifications}</p>
+                      {v.modifications && (
+                        <p className="text-[12px] text-zinc-500 mt-1 leading-relaxed">{v.modifications}</p>
                       )}
                     </div>
-                    <button className="p-2 text-zinc-500 hover:text-white">
-                      <Edit2 size={16} />
+                    <button
+                      onClick={() => setEditingVehicle(v)}
+                      className="p-1.5 text-zinc-600 hover:text-orange-400 transition-colors ml-2 flex-shrink-0"
+                      aria-label="Edit rig"
+                    >
+                      <Edit2 size={15} />
                     </button>
                   </div>
                 </motion.div>
               ))}
             </div>
           ) : (
-            <div className="text-center py-8 bg-zinc-900 border border-dashed border-zinc-700">
-              <Truck size={32} className="mx-auto text-zinc-700 mb-2" />
-              <p className="text-sm text-zinc-500">No rigs added yet</p>
-              <button className="mt-3 text-sm text-orange-500 hover:text-orange-400">
-                Add your first rig
+            <button
+              onClick={() => setEditingVehicle(null)}
+              className="w-full py-6 border border-dashed border-zinc-800 rounded-xl text-[13px] text-zinc-600 hover:text-orange-400 hover:border-orange-500/30 transition-colors flex flex-col items-center gap-2"
+            >
+              <Truck size={24} className="text-zinc-700" />
+              Tap to add your first rig
+            </button>
+          )}
+        </section>
+
+        {/* Posts / Runs tabs ─────────────────────── */}
+        <section>
+          {/* Tab bar */}
+          <div className="flex border-b border-zinc-900">
+            {([['posts', <Grid3X3 key="g" size={16} />, 'Posts'], ['runs', <Route key="r" size={16} />, 'Runs']] as const).map(([tab, icon, label]) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab as 'posts' | 'runs')}
+                className={`flex-1 flex items-center justify-center gap-1.5 py-3 text-[13px] font-semibold transition-colors border-b-2 ${
+                  activeTab === tab
+                    ? 'border-orange-500 text-orange-500'
+                    : 'border-transparent text-zinc-500 hover:text-zinc-300'
+                }`}
+              >
+                {icon}{label}
               </button>
+            ))}
+          </div>
+
+          {activeTab === 'posts' && (
+            posts.length > 0 ? (
+              <div className="grid grid-cols-3 gap-px bg-zinc-900">
+                {posts.map((p) => (
+                  <Link key={p.id} href={`/posts/${p.id}`} className="relative aspect-square bg-black overflow-hidden group">
+                    {p.image_url ? (
+                      <img
+                        src={p.image_url}
+                        alt={p.caption}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-zinc-900 flex items-center justify-center">
+                        <span className="text-[10px] text-zinc-600 text-center px-2 line-clamp-3">{p.caption}</span>
+                      </div>
+                    )}
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <div className="py-12 text-center">
+                <p className="text-zinc-600 text-[14px]">No posts yet</p>
+              </div>
+            )
+          )}
+
+          {activeTab === 'runs' && (
+            <div className="py-12 text-center px-4">
+              <Route size={28} className="mx-auto text-zinc-800 mb-2" />
+              <p className="text-zinc-600 text-[14px]">Run history coming soon</p>
+              <Link href="/runs" className="mt-3 inline-block text-[13px] text-orange-500 hover:text-orange-400">
+                Browse upcoming runs
+              </Link>
             </div>
           )}
         </section>
 
-        {/* Quick Links */}
-        <section className="p-4">
-          <h3 className="font-semibold text-white mb-3">Quick Links</h3>
-          <div className="space-y-2">
-            <Link
-              href="/achievements"
-              className="flex items-center justify-between p-3 bg-zinc-900 border border-zinc-800 hover:border-zinc-700 transition-colors"
-            >
+        {/* Quick links ───────────────────────────── */}
+        <section className="px-4 py-4 border-t border-zinc-900 space-y-2">
+          {[
+            { href: '/achievements', icon: Award, label: 'Achievements' },
+            { href: '/runs?filter=completed', icon: Calendar, label: 'Run History' },
+          ].map(({ href, icon: Icon, label }) => (
+            <Link key={href} href={href} className="flex items-center justify-between p-3.5 bg-zinc-900 border border-zinc-800 rounded-xl hover:border-zinc-700 transition-colors">
               <div className="flex items-center gap-3">
-                <Award size={20} className="text-orange-500" />
-                <span className="text-white">Achievements</span>
+                <Icon size={18} className="text-orange-500" />
+                <span className="text-[14px] text-zinc-200">{label}</span>
               </div>
-              <ChevronRight size={18} className="text-zinc-600" />
+              <ChevronRight size={16} className="text-zinc-600" />
             </Link>
-            
-            <Link
-              href="/runs?filter=completed"
-              className="flex items-center justify-between p-3 bg-zinc-900 border border-zinc-800 hover:border-zinc-700 transition-colors"
-            >
-              <div className="flex items-center gap-3">
-                <Calendar size={20} className="text-orange-500" />
-                <span className="text-white">Run History</span>
-              </div>
-              <ChevronRight size={18} className="text-zinc-600" />
-            </Link>
-            
-            <Link
-              href="/saved"
-              className="flex items-center justify-between p-3 bg-zinc-900 border border-zinc-800 hover:border-zinc-700 transition-colors"
-            >
-              <div className="flex items-center gap-3">
-                <Heart size={20} className="text-orange-500" />
-                <span className="text-white">Saved Trails</span>
-              </div>
-              <ChevronRight size={18} className="text-zinc-600" />
-            </Link>
-            
-            <Link
-              href="/settings"
-              className="flex items-center justify-between p-3 bg-zinc-900 border border-zinc-800 hover:border-zinc-700 transition-colors"
-            >
-              <div className="flex items-center gap-3">
-                <Settings size={20} className="text-orange-500" />
-                <span className="text-white">Settings</span>
-              </div>
-              <ChevronRight size={18} className="text-zinc-600" />
-            </Link>
-          </div>
+          ))}
         </section>
 
-        {/* Sign Out */}
-        {user && (
-          <section className="p-4">
-            <button
-              onClick={() => {
-                // Handle sign out
-                router.push('/login');
-              }}
-              className="w-full flex items-center justify-center gap-2 py-3 bg-red-500/10 border border-red-500/20 text-red-400 font-medium hover:bg-red-500/20 transition-colors"
-            >
-              <LogOut size={18} />
-              Sign Out
-            </button>
-          </section>
-        )}
+        {/* Sign out ──────────────────────────────── */}
+        <section className="px-4 pb-4">
+          <button
+            onClick={handleSignOut}
+            className="w-full flex items-center justify-center gap-2 py-3 bg-red-500/10 border border-red-500/20 text-red-400 text-[14px] font-semibold rounded-xl hover:bg-red-500/20 transition-colors"
+          >
+            <LogOut size={17} />
+            Sign Out
+          </button>
+        </section>
       </main>
 
-      {/* Bottom Navigation */}
+      {/* Edit Rig Modal */}
+      <AnimatePresence>
+        {editingVehicle !== undefined && (
+          <EditRigModal
+            vehicle={editingVehicle}
+            onClose={() => setEditingVehicle(undefined)}
+            onSaved={(v) => { handleVehicleSaved(v); setEditingVehicle(undefined); }}
+          />
+        )}
+      </AnimatePresence>
+
       <BottomNav />
     </div>
   );

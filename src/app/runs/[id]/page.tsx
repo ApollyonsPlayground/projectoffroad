@@ -22,6 +22,7 @@ import Link from 'next/link';
 import BottomNav from '@/components/BottomNav';
 import { ChatSkeleton } from '@/components/SkeletonLoader';
 import { useAuth } from '@/context/AuthContext';
+import { useToast } from '@/components/Toast';
 import { supabase, isSupabaseConfigured } from '@/lib/db/supabase';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 
@@ -124,6 +125,7 @@ export default function RunDetailPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, profile } = useAuth();
+  const { showToast } = useToast();
   
   const [run, setRun] = useState<Run | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -204,21 +206,25 @@ export default function RunDetailPage() {
 
   async function handleJoinRun() {
     if (!user) {
-      router.push('/login');
+      showToast('Sign in to join this run', 'info');
       return;
     }
 
     setIsJoining(true);
-    try {
-      await Haptics.impact({ style: ImpactStyle.Medium });
-    } catch (e) {}
+    try { await Haptics.impact({ style: ImpactStyle.Medium }); } catch {}
 
-    // Simulate join for demo
+    try {
+      if (supabase && isSupabaseConfigured()) {
+        await supabase.from('run_participants').insert({ run_id: id, user_id: user.id });
+      }
+    } catch {}
+
     setTimeout(() => {
       setIsJoining(false);
       setHasJoined(true);
+      showToast(`You joined "${run?.title}"`, 'success');
       setViewMode('chat');
-    }, 1000);
+    }, 800);
   }
 
   async function handleSendMessage(e: React.FormEvent) {
@@ -365,9 +371,18 @@ export default function RunDetailPage() {
 
                     <div className="flex items-start gap-3">
                       <MapPin size={18} className="text-orange-500 mt-0.5" />
-                      <div>
+                      <div className="flex-1 min-w-0">
                         <p className="text-sm text-zinc-400">Meetup Location</p>
                         <p className="text-white">{run.meetup_location}</p>
+                        <a
+                          href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(run.meetup_location)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 mt-1.5 text-[12px] text-orange-500 hover:text-orange-400 font-medium"
+                          onClick={() => showToast('Opening meetup location in Maps', 'info')}
+                        >
+                          <MapPin size={12} /> Open in Maps
+                        </a>
                       </div>
                     </div>
 

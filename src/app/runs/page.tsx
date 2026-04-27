@@ -18,6 +18,7 @@ import BottomNav from '@/components/BottomNav';
 import { RunListSkeleton } from '@/components/SkeletonLoader';
 import { supabase, isSupabaseConfigured } from '@/lib/db/supabase';
 import { useAuth } from '@/context/AuthContext';
+import { useToast } from '@/components/Toast';
 
 interface Run {
   id: string;
@@ -120,7 +121,7 @@ function formatDate(dateStr: string): string {
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
-function RunCard({ run, index }: { run: Run; index: number }) {
+function RunCard({ run, index, onJoin }: { run: Run; index: number; onJoin: (run: Run) => void }) {
   const spotsLeft = run.max_participants - run.current_participants;
   const isFull = spotsLeft <= 0;
   const isAlmostFull = spotsLeft <= 3 && spotsLeft > 0;
@@ -188,7 +189,8 @@ function RunCard({ run, index }: { run: Run; index: number }) {
             <ChevronRight size={16} />
           </Link>
           <Link
-            href={`/runs/${run.id}?join=true`}
+            href={isFull ? '#' : `/runs/${run.id}?join=true`}
+            onClick={() => !isFull && onJoin(run)}
             className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-semibold transition-colors ${
               isFull
                 ? 'bg-zinc-700 text-zinc-500 cursor-not-allowed'
@@ -208,9 +210,18 @@ type FilterType = 'all' | 'upcoming' | 'active' | 'completed';
 
 export default function RunsPage() {
   const { user } = useAuth();
+  const { showToast } = useToast();
   const [runs, setRuns] = useState<Run[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState<FilterType>('upcoming');
+
+  const handleJoin = (run: Run) => {
+    if (!user) {
+      showToast('Sign in to join a run', 'info');
+      return;
+    }
+    showToast(`Joining "${run.title}"...`, 'success');
+  };
 
   useEffect(() => {
     async function fetchRuns() {
@@ -344,7 +355,7 @@ export default function RunsPage() {
                 {filteredRuns.length} {filter} run{filteredRuns.length !== 1 ? 's' : ''}
               </p>
               {filteredRuns.map((run, index) => (
-                <RunCard key={run.id} run={run} index={index} />
+                <RunCard key={run.id} run={run} index={index} onJoin={handleJoin} />
               ))}
             </motion.div>
           )}

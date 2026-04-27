@@ -1,12 +1,12 @@
 'use client';
 
-import { createContext, useContext, useState, ReactNode } from 'react';
+import { createContext, useContext, useState, ReactNode, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, CheckCircle, AlertCircle, Info } from 'lucide-react';
 
-type ToastType = 'success' | 'error' | 'info';
+export type ToastType = 'success' | 'error' | 'info';
 
-interface Toast {
+interface ToastItem {
   id: string;
   message: string;
   type: ToastType;
@@ -18,42 +18,39 @@ interface ToastContextType {
 
 const ToastContext = createContext<ToastContextType | null>(null);
 
-export function useToast() {
-  const context = useContext(ToastContext);
-  if (!context) {
-    throw new Error('useToast must be used within ToastProvider');
-  }
-  return context;
+export function useToast(): ToastContextType {
+  const ctx = useContext(ToastContext);
+  // Return a no-op fallback so pages outside the provider never crash
+  return ctx ?? { showToast: () => {} };
 }
 
 export function ToastProvider({ children }: { children: ReactNode }) {
-  const [toasts, setToasts] = useState<Toast[]>([]);
+  const [toasts, setToasts] = useState<ToastItem[]>([]);
 
-  const showToast = (message: string, type: ToastType = 'info') => {
-    const id = Date.now().toString();
+  const showToast = useCallback((message: string, type: ToastType = 'info') => {
+    const id = `${Date.now()}-${Math.random()}`;
     setToasts((prev) => [...prev, { id, message, type }]);
-    
-    // Auto-dismiss after 3 seconds
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id));
-    }, 3000);
-  };
+    }, 3200);
+  }, []);
 
-  const removeToast = (id: string) => {
+  const remove = useCallback((id: string) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
-  };
+  }, []);
 
   return (
     <ToastContext.Provider value={{ showToast }}>
       {children}
-      <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 flex flex-col gap-2">
-        <AnimatePresence>
-          {toasts.map((toast) => (
-            <ToastItem 
-              key={toast.id} 
-              toast={toast} 
-              onClose={() => removeToast(toast.id)} 
-            />
+      {/* Portal-like toast stack above bottom nav */}
+      <div
+        className="fixed bottom-[88px] left-1/2 -translate-x-1/2 z-[9998] flex flex-col items-center gap-2 pointer-events-none"
+        aria-live="polite"
+        aria-atomic="false"
+      >
+        <AnimatePresence mode="popLayout">
+          {toasts.map((t) => (
+            <ToastBubble key={t.id} toast={t} onClose={() => remove(t.id)} />
           ))}
         </AnimatePresence>
       </div>
@@ -61,40 +58,27 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   );
 }
 
-function ToastItem({ toast, onClose }: { toast: Toast; onClose: () => void }) {
-  const icons = {
-    success: <CheckCircle className="text-green-400" size={20} />,
-    error: <AlertCircle className="text-red-400" size={20} />,
-    info: <Info className="text-blue-400" size={20} />,
-  };
-
-  const colors = {
-    success: 'bg-green-900/90 border-green-700',
-    error: 'bg-red-900/90 border-red-700',
-    info: 'bg-blue-900/90 border-blue-700',
+function ToastBubble({ toast, onClose }: { toast: ToastItem; onClose: () => void }) {
+  const icons: Record<ToastType, React.ReactNode> = {
+    success: <CheckCircle size={15} className="text-green-400 flex-shrink-0" />,
+    error:   <AlertCircle size={15} className="text-red-400 flex-shrink-0" />,
+    info:    <Info        size={15} className="text-orange-400 flex-shrink-0" />,
   };
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 50, scale: 0.9 }}
+      layout
+      initial={{ opacity: 0, y: 20, scale: 0.94 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: 20, scale: 0.9 }}
-      className={`flex items-center gap-3 px-4 py-3 rounded-lg border ${colors[toast.type]} shadow-lg backdrop-blur-md max-w-sm`}
+      exit={{ opacity: 0, y: 10, scale: 0.94 }}
+      transition={{ type: 'spring', stiffness: 500, damping: 28 }}
+      className="pointer-events-auto flex items-center gap-2.5 bg-zinc-900 border border-zinc-700 text-zinc-100 text-[13px] font-medium px-4 py-3 rounded-2xl shadow-xl shadow-black/60 max-w-[320px]"
     >
       {icons[toast.type]}
-      <p className="text-white text-sm font-medium">{toast.message}</p>
-      <button 
-        onClick={onClose}
-        className="text-neutral-400 hover:text-white ml-2"
-      >
-        <X size={16} />
+      <span className="flex-1">{toast.message}</span>
+      <button onClick={onClose} className="text-zinc-500 hover:text-zinc-300 transition-colors ml-1">
+        <X size={13} />
       </button>
     </motion.div>
   );
-}
-
-// Hook to use anywhere in the app
-export function useToast() {
-  const context = useContext(ToastContext);
-  return context || { showToast: () => {} };
 }

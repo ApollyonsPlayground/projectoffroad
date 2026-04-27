@@ -11,10 +11,11 @@ import {
   Mountain, 
   ChevronRight,
   Clock,
-  Ruler
+  Ruler,
 } from 'lucide-react';
 import Link from 'next/link';
 import BottomNav from '@/components/BottomNav';
+import { useToast } from '@/components/Toast';
 import { TrailListSkeleton } from '@/components/SkeletonLoader';
 import trailsData from '@/data/trails.json';
 
@@ -118,19 +119,29 @@ function TrailCard({ trail, index }: { trail: Trail; index: number }) {
             target="_blank"
             rel="noopener noreferrer"
             className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-sm font-medium transition-colors"
+            onClick={(e) => e.stopPropagation()}
           >
             <Map size={16} />
-            Google Maps
+            Maps
           </a>
           <a
             href={trail.onxUrl || '#'}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-orange-500 hover:bg-orange-600 text-zinc-950 text-sm font-semibold transition-colors"
+            className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-sm font-medium transition-colors"
+            onClick={(e) => e.stopPropagation()}
           >
             <ExternalLink size={16} />
             onX
           </a>
+          <Link
+            href={`/trails/${trail.id}`}
+            className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-orange-500 hover:bg-orange-600 text-zinc-950 text-sm font-semibold transition-colors"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <ChevronRight size={16} />
+            Details
+          </Link>
         </div>
       </div>
     </motion.article>
