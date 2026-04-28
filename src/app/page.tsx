@@ -104,17 +104,11 @@ function NewPostDrawer({ open, onClose, onPosted }: {
         imageUrl = urlData.publicUrl;
       }
 
-      // Step 2: fetch user role from users table
-      const { data: userData, error: userError } = await supabase!
-        .from('users')
-        .select('role')
-        .eq('id', user.id)
-        .single();
-      if (userError) throw userError;
-      const userRole = userData?.role ?? 'user';
+      // Step 2: use user metadata directly (no DB lookup needed)
+      const userName = (user.user_metadata?.full_name as string) || (user.user_metadata?.name as string) || user.email?.split('@')[0] || 'Rider';
+      const userRole = 'user'; // Default role; will be set to 'owner' via Supabase if applicable
 
       // Step 3: insert post row
-      const userName = (user.user_metadata?.name as string) || user.email?.split('@')[0] || 'Rider';
       const { error: insertError } = await supabase!.from('posts').insert({
         body: body.trim(),
         rig_model: rig.trim() || null,

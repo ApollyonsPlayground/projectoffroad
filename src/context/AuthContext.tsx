@@ -66,6 +66,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function fetchProfile(userId: string) {
     if (!supabase) return
+    // Upsert: ensure user record exists with data from Google session
+    const session = (await supabase.auth.getSession()).data?.session
+    if (session?.user) {
+      const { error: upsertError } = await supabase.from('users').upsert(
+        {
+          id: userId,
+          name: (session.user.user_metadata?.full_name as string) || session.user.email?.split('@')[0] || 'Rider',
+          email: session.user.email ?? '',
+          avatar_url: (session.user.user_metadata?.avatar_url as string) || null,
+          role: 'user',
+        },
+        { onConflict: 'id' }
+      )
+      if (upsertError) console.error('[v0] upsert error:', upsertError)
+    }
+    // Fetch profile after upsert
     const { data, error } = await supabase
       .from('users')
       .select('*')
