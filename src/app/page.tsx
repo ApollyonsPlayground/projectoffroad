@@ -104,19 +104,24 @@ function NewPostDrawer({ open, onClose, onPosted }: {
         imageUrl = urlData.publicUrl;
       }
 
-      // Step 2: insert post row
-      setUploadProgress('inserting');
+      // Step 2: fetch user role from users table
+      const { data: userData, error: userError } = await supabase!
+        .from('users')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+      if (userError) throw userError;
+      const userRole = userData?.role ?? 'user';
+
+      // Step 3: insert post row
       const userName = (user.user_metadata?.name as string) || user.email?.split('@')[0] || 'Rider';
       const { error: insertError } = await supabase!.from('posts').insert({
-        body: body.trim(),       // primary text column in schema
-        caption: body.trim(),    // app-facing alias column
-        rig_specs: rig.trim() || null,
+        body: body.trim(),
         rig_model: rig.trim() || null,
         user_id: user.id,
         user_name: userName,
+        role: userRole,
         image_url: imageUrl,
-        likes_count: 0,
-        comments_count: 0,
       });
       if (insertError) throw insertError;
 
@@ -1031,11 +1036,10 @@ export default function HomePage() {
         .order('created_at', { ascending: false })
         .limit(30);
       if (error) throw error;
-      // Flatten user data and normalise fields
+      // Normalise: map user_name → username, ensure role defaults to 'user'
       const normalised = (data ?? []).map((p: any) => ({
         ...p,
-        caption: p.caption ?? p.body ?? '',
-        username: p.user_name ?? p.username ?? 'Rider',
+        username: p.user_name ?? 'Rider',
         role: p.role ?? 'user',
       }));
       setPosts(normalised.length ? normalised : PLACEHOLDER_POSTS);
