@@ -27,7 +27,7 @@ import Link from 'next/link';
 import BottomNav from '@/components/BottomNav';
 import { FeedSkeleton } from '@/components/SkeletonLoader';
 import DisclaimerModal from '@/components/DisclaimerModal';
-import { supabase, isSupabaseConfigured } from '@/lib/db/supabase';
+
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/Toast';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
@@ -39,7 +39,7 @@ function NewPostDrawer({ open, onClose, onPosted }: {
   onClose: () => void;
   onPosted?: () => void;
 }) {
-  const { user, isConfigured } = useAuth();
+  const { user, isConfigured, supabaseClient } = useAuth();
   const { showToast } = useToast();
   const [body, setBody] = useState('');
   const [rig, setRig] = useState('');
@@ -92,15 +92,15 @@ function NewPostDrawer({ open, onClose, onPosted }: {
 
     try {
       // Step 1: upload image if present
-      if (imageFile && supabase) {
+      if (imageFile && supabaseClient) {
         setUploadProgress('uploading');
-        const ext = imageFile.name.split('.').pop() ?? 'jpg';
+        const ext = imageFile.name.split('.').pop();
         const path = `${user.id}/${Date.now()}.${ext}`;
-        const { error: uploadError } = await supabase.storage
+        const { error: uploadError } = await supabaseClient.storage
           .from('post-images')
-          .upload(path, imageFile, { cacheControl: '3600', upsert: false });
+          .upload(path, imageFile, { upsert: true });
         if (uploadError) throw uploadError;
-        const { data: urlData } = supabase.storage.from('post-images').getPublicUrl(path);
+        const { data: urlData } = supabaseClient.storage.from('post-images').getPublicUrl(path);
         imageUrl = urlData.publicUrl;
       }
 
@@ -108,8 +108,8 @@ function NewPostDrawer({ open, onClose, onPosted }: {
       const userName = (user.user_metadata?.full_name as string) || (user.user_metadata?.name as string) || user.email?.split('@')[0] || 'Rider';
       const userRole = 'user'; // Default role; will be set to 'owner' via Supabase if applicable
 
-      // Step 3: insert post row
-      const { error: insertError, data: insertedData } = await supabase!
+      // Step 3: insert post row — using supabaseClient from AuthContext (has auth session)
+      const { error: insertError } = await supabaseClient!
         .from('posts')
         .insert({
           body: body.trim(),
@@ -118,20 +118,9 @@ function NewPostDrawer({ open, onClose, onPosted }: {
           user_name: userName,
           role: userRole,
           image_url: imageUrl,
-        })
-        .select();
-      
-      if (insertError) {
-        console.error('[v0] Post insert failed:', {
-          code: insertError.code,
-          message: insertError.message,
-          details: insertError.details,
-          hint: insertError.hint,
         });
-        throw new Error(`Failed to create post: ${insertError.message}`);
-      }
       
-      console.log('[v0] Post created:', insertedData);
+      if (insertError) throw new Error(insertError.message);
 
       showToast('Post uploaded!', 'success');
       onPosted?.();
@@ -575,7 +564,7 @@ function RigPostCard({ post, index }: {
   post: Post;
   index: number;
 }) {
-  const { user, isConfigured } = useAuth();
+  const { user, isConfigured, supabaseClient } = useAuth();
   const { showToast } = useToast();
   const [liked, setLiked] = useState(false);
   const [reposted, setReposted] = useState(false);
@@ -616,10 +605,10 @@ function RigPostCard({ post, index }: {
     setLiked(nowLiked);
     setLikesCount((c) => (nowLiked ? c + 1 : c - 1));
 
-    if (user && isConfigured && supabase) {
+    if (user && isConfigured && supabaseClient) {
       try {
         if (nowLiked) {
-          const { error } = await supabase
+          const { error } = await supabaseClient
             .from('likes')
             .insert({ post_id: post.id, user_id: user.id });
           // Ignore UNIQUE constraint violations (already liked)
@@ -627,7 +616,7 @@ function RigPostCard({ post, index }: {
             throw error;
           }
         } else {
-          const { error } = await supabase
+          const { error } = await supabaseClient
             .from('likes')
             .delete()
             .match({ post_id: post.id, user_id: user.id });
@@ -654,14 +643,12 @@ function RigPostCard({ post, index }: {
     if (!requireAuth('save posts')) return;
     const nowSaved = !bookmarked;
     setBookmarked(nowSaved);
-    if (supabase && user) {
+    if (supabaseClient && user) {
       try {
-        if (nowSaved) {
-          await supabase.from('bookmarks').insert({ post_id: post.id, user_id: user.id });
-          showToast('Post saved to bookmarks', 'success');
+        if (bookmarked) {
+          await supabaseClient.from('bookmarks').insert({ post_id: post.id, user_id: user.id });
         } else {
-          await supabase.from('bookmarks').delete().match({ post_id: post.id, user_id: user.id });
-          showToast('Bookmark removed', 'info');
+          await supabaseClient.from('bookmarks').delete().match({ post_id: post.id, user_id: user.id });
         }
       } catch {
         setBookmarked(!nowSaved);
@@ -690,8 +677,8 @@ function RigPostCard({ post, index }: {
     if (!reportReason.trim() || !user) return;
     setIsReporting(true);
     try {
-      if (supabase) {
-        await supabase.from('reports').insert({
+      if (supabaseClient) {
+        await supabaseClient.from('reports').insert({
           post_id: post.id,
           reporter_id: user.id,
           reason: reportReason,
@@ -709,14 +696,14 @@ function RigPostCard({ post, index }: {
   };
 
   const handleDelete = async () => {
-    if (!supabase || !user) return;
+    if (!supabaseClient || !user) return;
     // Guard: only owner or post author can delete
-    if (user.id !== post.user_id && user.role !== 'owner') {
+    if (user.id !== post.user_id && (user as any).role !== 'owner') {
       showToast('You cannot delete this post', 'error');
       return;
     }
     try {
-      const { error } = await supabase.from('posts').delete().eq('id', post.id);
+      const { error } = await supabaseClient.from('posts').delete().eq('id', post.id);
       if (error) throw error;
       showToast('Post deleted', 'success');
       // Trigger parent refresh
@@ -1028,17 +1015,17 @@ export default function HomePage() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const { user } = useAuth();
+  const { user, supabaseClient } = useAuth();
   const router = useRouter();
 
   const fetchPosts = async () => {
-    if (!supabase || !isSupabaseConfigured()) {
+    if (!supabaseClient) {
       setPosts(PLACEHOLDER_POSTS);
       setIsLoading(false);
       return;
     }
     try {
-      const { data, error } = await supabase
+      const { data, error } = await supabaseClient
         .from('posts')
         .select('*')
         .order('created_at', { ascending: false })

@@ -23,6 +23,7 @@ interface AuthContextType {
   profile: Record<string, unknown> | null
   loading: boolean
   isConfigured: boolean
+  supabaseClient: SupabaseClient | null
   signOut: () => Promise<void>
   signInWithGoogle: () => Promise<{ error: string | null }>
 }
@@ -110,7 +111,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, isConfigured, signOut, signInWithGoogle }}>
+    <AuthContext.Provider value={{ user, profile, loading, isConfigured, supabaseClient: supabase, signOut, signInWithGoogle }}>
       {children}
     </AuthContext.Provider>
   )
