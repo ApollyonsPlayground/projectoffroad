@@ -298,6 +298,9 @@ interface Post {
   verified?: boolean;
   role?: string;
   repost_of_id?: string | null;
+  liked_by_me?: boolean;
+  bookmarked_by_me?: boolean;
+  reposted_by_me?: boolean;
 }
 
 // ─── Placeholder data ─────────────────────────────────────────────────────────
@@ -656,9 +659,9 @@ function RigPostCard({ post, index }: {
 }) {
   const { user, isConfigured, supabaseClient } = useAuth();
   const { showToast } = useToast();
-  const [liked, setLiked] = useState(false);
-  const [reposted, setReposted] = useState(false);
-  const [bookmarked, setBookmarked] = useState(false);
+  const [liked, setLiked] = useState(post.liked_by_me ?? false);
+  const [reposted, setReposted] = useState(post.reposted_by_me ?? false);
+  const [bookmarked, setBookmarked] = useState(post.bookmarked_by_me ?? false);
   const [likesCount, setLikesCount] = useState(post.likes_count);
   const [repostsCount, setRepostsCount] = useState(post.reposts_count ?? 0);
   const [commentsOpen, setCommentsOpen] = useState(false);
@@ -689,25 +692,6 @@ function RigPostCard({ post, index }: {
   }, [menuOpen]);
 
   async function haptic(s: ImpactStyle) { try { await Haptics.impact({ style: s }); } catch {} }
-
-  // Initialise liked + bookmarked state from DB
-  useEffect(() => {
-    if (!user || !supabaseClient) return;
-    supabaseClient
-      .from('post_likes')
-      .select('id')
-      .eq('post_id', post.id)
-      .eq('user_id', user.id)
-      .maybeSingle()
-      .then(({ data }) => { if (data) setLiked(true); });
-    supabaseClient
-      .from('saved_posts')
-      .select('id')
-      .eq('post_id', post.id)
-      .eq('user_id', user.id)
-      .maybeSingle()
-      .then(({ data }) => { if (data) setBookmarked(true); });
-  }, [user, supabaseClient, post.id]);
 
   // Load comments when panel opens
   useEffect(() => {
@@ -1578,24 +1562,48 @@ export default function HomePage() {
 
   const isModeratorUser = userRole === 'owner' || userRole === 'admin';
 
-  const fetchPosts = async () => {
+  const fetchPosts = useCallback(async () => {
     if (!supabaseClient) {
       setPosts(PLACEHOLDER_POSTS);
       setIsLoading(false);
       return;
     }
     try {
-      const { data, error } = await supabaseClient
-        .from('posts')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(30);
-      if (error) throw error;
-      // Normalise: map user_name → username, ensure role defaults to 'user'
-      const normalised = (data ?? []).map((p: any) => ({
+      // Fetch posts + user interaction booleans in parallel
+      const [postsResult, likesResult, savedResult, repostsResult] = await Promise.all([
+        supabaseClient
+          .from('posts')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(30),
+        user
+          ? supabaseClient.from('post_likes').select('post_id').eq('user_id', user.id)
+          : Promise.resolve({ data: [] }),
+        user
+          ? supabaseClient.from('saved_posts').select('post_id').eq('user_id', user.id)
+          : Promise.resolve({ data: [] }),
+        user
+          ? supabaseClient
+              .from('posts')
+              .select('repost_of_id')
+              .eq('user_id', user.id)
+              .not('repost_of_id', 'is', null)
+          : Promise.resolve({ data: [] }),
+      ]);
+
+      if (postsResult.error) throw postsResult.error;
+
+      const likedIds = new Set((likesResult.data ?? []).map((r: any) => r.post_id));
+      const savedIds = new Set((savedResult.data ?? []).map((r: any) => r.post_id));
+      const repostedIds = new Set((repostsResult.data ?? []).map((r: any) => r.repost_of_id));
+
+      const normalised = (postsResult.data ?? []).map((p: any) => ({
         ...p,
         username: p.user_name ?? 'Rider',
         role: p.role ?? 'user',
+        liked_by_me: likedIds.has(p.id),
+        bookmarked_by_me: savedIds.has(p.id),
+        reposted_by_me: repostedIds.has(p.id),
       }));
       setPosts(normalised.length ? normalised : PLACEHOLDER_POSTS);
     } catch {
@@ -1603,9 +1611,10 @@ export default function HomePage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [supabaseClient, user]);
 
-  useEffect(() => { fetchPosts(); }, []);
+  // Re-run whenever auth state resolves so interactions hydrate correctly
+  useEffect(() => { fetchPosts(); }, [fetchPosts]);
 
   return (
     <div className="min-h-screen bg-black">

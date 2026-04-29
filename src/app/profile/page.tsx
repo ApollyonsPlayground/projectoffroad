@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   User,
@@ -249,6 +249,11 @@ export default function ProfilePage() {
   const [fetchError, setFetchError] = useState(false);
   const [editingVehicle, setEditingVehicle] = useState<Vehicle | null | undefined>(undefined);
 
+  // Avatar upload
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [localAvatarUrl, setLocalAvatarUrl] = useState<string | null>(null);
+
   // 4-tab content state
   const [activeTab, setActiveTab] = useState<TabId>('posts');
   const [myPosts, setMyPosts] = useState<Post[]>([]);
@@ -328,6 +333,40 @@ export default function ProfilePage() {
       setTabLoading(false);
     }
   }, [user, supabaseClient]);
+
+  const handleAvatarUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user || !supabaseClient) return;
+    if (file.size > 5 * 1024 * 1024) {
+      showToast('Avatar must be under 5 MB', 'error');
+      return;
+    }
+    setAvatarUploading(true);
+    try {
+      const ext = file.name.split('.').pop() ?? 'jpg';
+      const path = `${user.id}/avatar.${ext}`;
+      const { error: uploadError } = await supabaseClient.storage
+        .from('avatars')
+        .upload(path, file, { upsert: true, contentType: file.type });
+      if (uploadError) throw uploadError;
+      const { data: urlData } = supabaseClient.storage.from('avatars').getPublicUrl(path);
+      const publicUrl = `${urlData.publicUrl}?t=${Date.now()}`;
+      const { error: dbError } = await supabaseClient
+        .from('users')
+        .update({ avatar_url: urlData.publicUrl })
+        .eq('id', user.id);
+      if (dbError) throw dbError;
+      setLocalAvatarUrl(publicUrl);
+      showToast('Avatar updated!', 'success');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Upload failed';
+      showToast(msg, 'error');
+    } finally {
+      setAvatarUploading(false);
+      // Reset so the same file can be picked again
+      if (avatarInputRef.current) avatarInputRef.current.value = '';
+    }
+  }, [user, supabaseClient, showToast]);
 
   useEffect(() => {
     if (!loading) fetchData();
@@ -426,21 +465,49 @@ export default function ProfilePage() {
           <div className="flex items-start gap-4">
             {/* Avatar */}
             <div className="relative flex-shrink-0">
-              <div className="w-20 h-20 rounded-full bg-zinc-900 overflow-hidden ring-2 ring-orange-500/40">
-                {displayProfile.avatar_url ? (
-                  <img src={displayProfile.avatar_url as string} alt={String(displayProfile.name)} className="w-full h-full object-cover" />
+              <button
+                onClick={() => avatarInputRef.current?.click()}
+                disabled={avatarUploading}
+                aria-label="Change avatar"
+                className="relative w-20 h-20 rounded-full bg-zinc-900 overflow-hidden ring-2 ring-orange-500/40 block focus:outline-none focus-visible:ring-4 focus-visible:ring-orange-500"
+              >
+                {(localAvatarUrl ?? displayProfile.avatar_url) ? (
+                  <img
+                    src={(localAvatarUrl ?? displayProfile.avatar_url) as string}
+                    alt={String(displayProfile.name)}
+                    className="w-full h-full object-cover"
+                  />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
                     <User size={32} className="text-zinc-600" />
                   </div>
                 )}
-              </div>
-              <button
-                className="absolute -bottom-1 -right-1 w-7 h-7 bg-orange-500 rounded-full flex items-center justify-center"
-                aria-label="Change avatar"
-              >
-                <Camera size={13} className="text-black" />
+                {/* Uploading overlay */}
+                {avatarUploading && (
+                  <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                    <Loader2 size={20} className="animate-spin text-orange-500" />
+                  </div>
+                )}
               </button>
+              <button
+                onClick={() => avatarInputRef.current?.click()}
+                disabled={avatarUploading}
+                className="absolute -bottom-1 -right-1 w-7 h-7 bg-orange-500 disabled:bg-zinc-700 rounded-full flex items-center justify-center transition-colors"
+                aria-label="Change avatar"
+                tabIndex={-1}
+              >
+                {avatarUploading
+                  ? <Loader2 size={11} className="animate-spin text-black" />
+                  : <Camera size={13} className="text-black" />
+                }
+              </button>
+              <input
+                ref={avatarInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleAvatarUpload}
+              />
             </div>
 
             {/* Name + meta */}

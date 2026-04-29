@@ -1,22 +1,21 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Calendar, 
-  MapPin, 
-  Users, 
-  Clock, 
+import {
+  Calendar,
+  MapPin,
+  Users,
   ChevronRight,
   Plus,
   AlertTriangle,
-  Filter,
-  Zap
+  CheckCircle2,
+  Loader2,
+  Zap,
 } from 'lucide-react';
 import Link from 'next/link';
 import BottomNav from '@/components/BottomNav';
 import { RunListSkeleton } from '@/components/SkeletonLoader';
-import { supabase, isSupabaseConfigured } from '@/lib/db/supabase';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/Toast';
 
@@ -24,345 +23,331 @@ interface Run {
   id: string;
   title: string;
   description: string;
-  date: string;
-  time: string;
-  difficulty: string;
-  max_participants: number;
-  current_participants: number;
+  date: string;                  // timestamp string from DB
   meetup_location: string;
-  trail_name?: string;
-  status: 'upcoming' | 'active' | 'completed';
-  organizer_name?: string;
-  club_name?: string;
+  difficulty: string;
+  max_participants: number | null;
+  vehicle_requirements?: string | null;
+  status: string;
+  club_id?: string | null;
+  club?: { name: string } | null;
 }
 
-// Placeholder runs for demo
-const placeholderRuns: Run[] = [
-  {
-    id: '1',
-    title: 'Holcomb Valley Weekend Run',
-    description: 'All skill levels welcome. We will tackle John Bull and Gold Mountain. Recovery gear required.',
-    date: '2026-05-03',
-    time: '07:00',
-    difficulty: 'Advanced',
-    max_participants: 12,
-    current_participants: 8,
-    meetup_location: 'Big Bear Discovery Center',
-    trail_name: 'Holcomb Valley',
-    status: 'upcoming',
-    organizer_name: 'Mike D.',
-    club_name: 'SoCal Crawlers',
-  },
-  {
-    id: '2',
-    title: 'Beginner Friendly Trail Day',
-    description: 'Perfect for new wheelers. Cleghorn fire road run with basic instruction and spotting.',
-    date: '2026-04-28',
-    time: '08:30',
-    difficulty: 'Beginner',
-    max_participants: 20,
-    current_participants: 15,
-    meetup_location: 'Cajon Pass Rest Area',
-    trail_name: 'Cleghorn Ridge',
-    status: 'upcoming',
-    organizer_name: 'Sarah M.',
-  },
-  {
-    id: '3',
-    title: 'Johnson Valley Night Run',
-    description: 'Light bars required. Desert run under the stars. Camping optional after.',
-    date: '2026-05-10',
-    time: '18:00',
-    difficulty: 'Moderate',
-    max_participants: 15,
-    current_participants: 6,
-    meetup_location: 'Landers General Store',
-    trail_name: 'Jack North Trail',
-    status: 'upcoming',
-    organizer_name: 'Dan T.',
-    club_name: 'Desert Runners OC',
-  },
-  {
-    id: '4',
-    title: 'Extreme Rock Crawl Challenge',
-    description: 'Dishpan Springs full send. Winch required. Body damage likely. Experienced only.',
-    date: '2026-05-17',
-    time: '06:00',
-    difficulty: 'Extreme',
-    max_participants: 8,
-    current_participants: 4,
-    meetup_location: 'Big Bear Village',
-    trail_name: 'Dishpan Springs',
-    status: 'upcoming',
-    organizer_name: 'Jake R.',
-    club_name: 'Big Bear Wheelers',
-  },
-];
-
 function getDifficultyColor(difficulty: string): string {
-  const level = difficulty.toLowerCase();
-  if (level === 'beginner' || level === 'easy') return 'badge-beginner';
+  const level = (difficulty ?? '').toLowerCase();
+  if (level === 'beginner' || level === 'easy') return 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30';
   if (level === 'moderate' || level === 'intermediate') return 'bg-yellow-500/15 text-yellow-500 border border-yellow-500/30';
-  if (level === 'advanced' || level === 'challenging') return 'badge-advanced';
-  if (level === 'extreme') return 'badge-extreme';
+  if (level === 'advanced' || level === 'challenging') return 'bg-orange-500/15 text-orange-400 border border-orange-500/30';
+  if (level === 'extreme') return 'bg-red-500/15 text-red-400 border border-red-500/30';
   return 'bg-zinc-700/50 text-zinc-400';
 }
 
-function formatDate(dateStr: string): string {
+function formatRunDate(dateStr: string): string {
   const date = new Date(dateStr);
   const now = new Date();
   const diff = date.getTime() - now.getTime();
   const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
-  
-  if (days === 0) return 'Today';
-  if (days === 1) return 'Tomorrow';
-  if (days < 7) return `In ${days} days`;
-  
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const time = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+
+  if (days === 0) return `Today at ${time}`;
+  if (days === 1) return `Tomorrow at ${time}`;
+  if (days < 7) return `In ${days} days · ${time}`;
+  return `${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} at ${time}`;
 }
 
-function RunCard({ run, index, onJoin }: { run: Run; index: number; onJoin: (run: Run) => void }) {
-  const spotsLeft = run.max_participants - run.current_participants;
-  const isFull = spotsLeft <= 0;
-  const isAlmostFull = spotsLeft <= 3 && spotsLeft > 0;
+function RunCard({
+  run,
+  index,
+  joined,
+  joining,
+  participantCount,
+  onRsvp,
+}: {
+  run: Run;
+  index: number;
+  joined: boolean;
+  joining: boolean;
+  participantCount: number;
+  onRsvp: (run: Run) => void;
+}) {
+  const isFull = run.max_participants != null && participantCount >= run.max_participants;
+  const spotsLeft = run.max_participants != null ? run.max_participants - participantCount : null;
+  const isAlmostFull = spotsLeft != null && spotsLeft <= 3 && spotsLeft > 0;
 
   return (
     <motion.article
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
-      transition={{ delay: index * 0.1 }}
-      className="bg-zinc-900 border border-zinc-800 overflow-hidden hover:border-orange-500/50 transition-colors"
+      transition={{ delay: index * 0.08 }}
+      className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden hover:border-orange-500/40 transition-colors"
     >
       <div className="p-4">
         {/* Header */}
-        <div className="flex items-start justify-between mb-3">
+        <div className="flex items-start justify-between gap-2 mb-2">
           <div className="flex-1 min-w-0">
-            <h3 className="font-bold text-white truncate mb-1">{run.title}</h3>
-            {run.club_name && (
-              <p className="text-xs text-orange-500">{run.club_name}</p>
+            <h3 className="font-bold text-white text-[15px] leading-snug mb-0.5">{run.title}</h3>
+            {run.club?.name && (
+              <p className="text-[12px] text-orange-500 font-semibold">{run.club.name}</p>
             )}
           </div>
-          <span className={`px-2 py-1 text-xs font-bold uppercase ${getDifficultyColor(run.difficulty)}`}>
+          <span className={`flex-shrink-0 px-2 py-1 text-[11px] font-bold uppercase rounded-lg ${getDifficultyColor(run.difficulty)}`}>
             {run.difficulty}
           </span>
         </div>
 
         {/* Description */}
-        <p className="text-sm text-zinc-400 line-clamp-2 mb-4">
+        <p className="text-[13px] text-zinc-400 leading-relaxed line-clamp-2 mb-3">
           {run.description}
         </p>
 
         {/* Details */}
-        <div className="space-y-2 mb-4">
-          <div className="flex items-center gap-2 text-sm text-zinc-500">
-            <Calendar size={14} className="text-orange-500" />
-            <span>{formatDate(run.date)} at {run.time}</span>
+        <div className="space-y-1.5 mb-3">
+          <div className="flex items-center gap-2 text-[13px] text-zinc-500">
+            <Calendar size={13} className="text-orange-500 flex-shrink-0" />
+            <span>{formatRunDate(run.date)}</span>
           </div>
-          <div className="flex items-center gap-2 text-sm text-zinc-500">
-            <MapPin size={14} className="text-orange-500" />
+          <div className="flex items-center gap-2 text-[13px] text-zinc-500">
+            <MapPin size={13} className="text-orange-500 flex-shrink-0" />
             <span className="truncate">{run.meetup_location}</span>
           </div>
-          <div className="flex items-center gap-2 text-sm">
-            <Users size={14} className="text-orange-500" />
+          <div className="flex items-center gap-2 text-[13px]">
+            <Users size={13} className="text-orange-500 flex-shrink-0" />
             <span className={isAlmostFull ? 'text-orange-400' : isFull ? 'text-red-400' : 'text-zinc-500'}>
-              {run.current_participants}/{run.max_participants} joined
-              {isAlmostFull && ' - Almost full!'}
-              {isFull && ' - Full'}
+              {participantCount}{run.max_participants != null ? `/${run.max_participants}` : ''} joined
+              {isAlmostFull && ' · Almost full!'}
+              {isFull && ' · Full'}
             </span>
           </div>
         </div>
-
-        {/* Organizer */}
-        {run.organizer_name && (
-          <p className="text-xs text-zinc-600 mb-4">
-            Organized by {run.organizer_name}
-          </p>
-        )}
 
         {/* Actions */}
         <div className="flex gap-2">
           <Link
             href={`/runs/${run.id}`}
-            className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-sm font-medium transition-colors"
+            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-[13px] font-semibold rounded-lg transition-colors"
           >
-            View Details
-            <ChevronRight size={16} />
+            Details
+            <ChevronRight size={14} />
           </Link>
-          <Link
-            href={isFull ? '#' : `/runs/${run.id}?join=true`}
-            onClick={() => !isFull && onJoin(run)}
-            className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-semibold transition-colors ${
-              isFull
+          <button
+            onClick={() => onRsvp(run)}
+            disabled={isFull && !joined || joining}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-[13px] font-semibold rounded-lg transition-colors ${
+              joined
+                ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                : isFull
                 ? 'bg-zinc-700 text-zinc-500 cursor-not-allowed'
-                : 'bg-orange-500 hover:bg-orange-600 text-zinc-950'
+                : 'bg-orange-500 hover:bg-orange-600 text-black'
             }`}
           >
-            <Zap size={16} />
-            {isFull ? 'Full' : 'Join Run'}
-          </Link>
+            {joining ? (
+              <Loader2 size={14} className="animate-spin" />
+            ) : joined ? (
+              <><CheckCircle2 size={14} /> Joined</>
+            ) : (
+              <><Zap size={14} /> Join Run</>
+            )}
+          </button>
         </div>
       </div>
     </motion.article>
   );
 }
 
-type FilterType = 'all' | 'upcoming' | 'active' | 'completed';
+type FilterType = 'upcoming' | 'active' | 'completed';
 
 export default function RunsPage() {
-  const { user } = useAuth();
+  const { user, supabaseClient } = useAuth();
   const { showToast } = useToast();
+
   const [runs, setRuns] = useState<Run[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState<FilterType>('upcoming');
+  // Set of run IDs the current user has RSVP'd to
+  const [joinedRunIds, setJoinedRunIds] = useState<Set<string>>(new Set());
+  // Per-run participant counts
+  const [participantCounts, setParticipantCounts] = useState<Record<string, number>>({});
+  // Which run ID is currently being joined/unjoined
+  const [joiningId, setJoiningId] = useState<string | null>(null);
 
-  const handleJoin = (run: Run) => {
+  const fetchRuns = useCallback(async () => {
+    if (!supabaseClient) {
+      setIsLoading(false);
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const query = supabaseClient
+        .from('runs')
+        .select('id, title, description, date, meetup_location, difficulty, max_participants, vehicle_requirements, status, club_id, club:clubs(name)')
+        .eq('status', filter)
+        .order('date', { ascending: true });
+
+      const { data: runsData, error: runsError } = await query;
+      if (runsError) throw runsError;
+
+      const fetchedRuns = (runsData ?? []) as Run[];
+      setRuns(fetchedRuns);
+
+      if (fetchedRuns.length === 0) return;
+
+      // Batch fetch participant counts and user's own RSVPs in parallel
+      const runIds = fetchedRuns.map((r) => r.id);
+      const [countsRes, joinedRes] = await Promise.all([
+        supabaseClient
+          .from('run_participants')
+          .select('run_id')
+          .in('run_id', runIds),
+        user
+          ? supabaseClient
+              .from('run_participants')
+              .select('run_id')
+              .in('run_id', runIds)
+              .eq('user_id', user.id)
+          : Promise.resolve({ data: [] }),
+      ]);
+
+      // Build counts map
+      const counts: Record<string, number> = {};
+      runIds.forEach((id) => (counts[id] = 0));
+      (countsRes.data ?? []).forEach((r: any) => {
+        counts[r.run_id] = (counts[r.run_id] ?? 0) + 1;
+      });
+      setParticipantCounts(counts);
+      setJoinedRunIds(new Set((joinedRes.data ?? []).map((r: any) => r.run_id)));
+    } catch {
+      showToast('Could not load runs', 'error');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [supabaseClient, user, filter]);
+
+  useEffect(() => { fetchRuns(); }, [fetchRuns]);
+
+  const handleRsvp = useCallback(async (run: Run) => {
     if (!user) {
       showToast('Sign in to join a run', 'info');
       return;
     }
-    showToast(`Joining "${run.title}"...`, 'success');
-  };
-
-  useEffect(() => {
-    async function fetchRuns() {
-      if (!supabase || !isSupabaseConfigured()) {
-        setRuns(placeholderRuns);
-        setIsLoading(false);
-        return;
-      }
-
-      try {
-        let query = supabase
-          .from('runs')
-          .select('*, club:clubs(name)')
-          .order('date', { ascending: true });
-
-        if (filter !== 'all') {
-          query = query.eq('status', filter);
-        }
-
-        const { data, error } = await query;
-
+    if (!supabaseClient) return;
+    setJoiningId(run.id);
+    const alreadyJoined = joinedRunIds.has(run.id);
+    try {
+      if (alreadyJoined) {
+        const { error } = await supabaseClient
+          .from('run_participants')
+          .delete()
+          .match({ run_id: run.id, user_id: user.id });
         if (error) throw error;
-        setRuns(data?.length ? data : placeholderRuns);
-      } catch (err) {
-        console.error('Error fetching runs:', err);
-        setRuns(placeholderRuns);
-      } finally {
-        setIsLoading(false);
+        setJoinedRunIds((prev) => { const next = new Set(prev); next.delete(run.id); return next; });
+        setParticipantCounts((prev) => ({ ...prev, [run.id]: Math.max(0, (prev[run.id] ?? 1) - 1) }));
+        showToast('You have left the run', 'info');
+      } else {
+        const { error } = await supabaseClient
+          .from('run_participants')
+          .insert({ run_id: run.id, user_id: user.id, rsvp_status: 'confirmed' });
+        if (error && error.code !== '23505') throw error;
+        setJoinedRunIds((prev) => new Set([...prev, run.id]));
+        setParticipantCounts((prev) => ({ ...prev, [run.id]: (prev[run.id] ?? 0) + 1 }));
+        showToast(`You're in for "${run.title}"!`, 'success');
       }
+    } catch {
+      showToast('Could not update RSVP', 'error');
+    } finally {
+      setJoiningId(null);
     }
-
-    fetchRuns();
-  }, [filter]);
-
-  const filteredRuns = useMemo(() => {
-    if (filter === 'all') return runs;
-    return runs.filter((run) => run.status === filter);
-  }, [runs, filter]);
+  }, [user, supabaseClient, joinedRunIds, showToast]);
 
   return (
     <div className="min-h-screen bg-black">
       {/* Header */}
-      <header className="sticky top-0 z-50 glass border-b border-zinc-800 safe-top">
-        <div className="px-4 py-3">
+      <header className="sticky top-0 z-50 bg-black/90 backdrop-blur-xl border-b border-zinc-900 safe-top">
+        <div className="px-4 py-3 max-w-md mx-auto">
           <div className="flex items-center justify-between mb-3">
-            <h1 className="text-xl font-bold text-white">Runs</h1>
+            <h1 className="text-[20px] font-black text-white">Runs</h1>
             {user && (
               <Link
                 href="/runs/create"
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-zinc-950 text-sm font-semibold transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-black text-[13px] font-bold rounded-lg transition-colors"
               >
-                <Plus size={16} />
+                <Plus size={15} />
                 Create Run
               </Link>
             )}
           </div>
-
-          {/* Filter Tabs */}
+          {/* Filter tabs */}
           <div className="flex gap-2">
-            {(['upcoming', 'active', 'completed'] as FilterType[]).map((filterOption) => (
+            {(['upcoming', 'active', 'completed'] as FilterType[]).map((f) => (
               <button
-                key={filterOption}
-                onClick={() => setFilter(filterOption)}
-                className={`px-3 py-1.5 text-xs font-semibold uppercase tracking-wider transition-all ${
-                  filter === filterOption
-                    ? 'bg-orange-500 text-zinc-950'
-                    : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
+                key={f}
+                onClick={() => setFilter(f)}
+                className={`px-3 py-1.5 text-[12px] font-bold uppercase tracking-wider rounded-lg transition-all ${
+                  filter === f ? 'bg-orange-500 text-black' : 'bg-zinc-900 text-zinc-400 hover:bg-zinc-800'
                 }`}
               >
-                {filterOption}
+                {f}
               </button>
             ))}
           </div>
         </div>
       </header>
 
-      {/* Safety Notice */}
-      <div className="px-4 py-3 bg-orange-500/10 border-b border-orange-500/20">
-        <div className="flex items-center gap-2 text-orange-500">
-          <AlertTriangle size={16} />
-          <p className="text-xs font-medium">
-            Always bring recovery gear and communicate with your group.
-          </p>
+      {/* Safety notice */}
+      <div className="px-4 py-2.5 bg-orange-500/10 border-b border-orange-500/20">
+        <div className="flex items-center gap-2 text-orange-500 max-w-md mx-auto">
+          <AlertTriangle size={14} className="flex-shrink-0" />
+          <p className="text-[12px] font-medium">Always bring recovery gear and communicate with your group.</p>
         </div>
       </div>
 
-      {/* Run List */}
-      <main className="max-w-md mx-auto px-4 pt-4 pb-24">
+      {/* Run list */}
+      <main className="max-w-md mx-auto px-4 pt-4 pb-28">
         <AnimatePresence mode="wait">
           {isLoading ? (
-            <motion.div
-              key="skeleton"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-            >
+            <motion.div key="skeleton" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               <RunListSkeleton count={3} />
             </motion.div>
-          ) : filteredRuns.length === 0 ? (
+          ) : runs.length === 0 ? (
             <motion.div
               key="empty"
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
-              className="text-center py-12"
+              className="text-center py-16"
             >
-              <Calendar size={48} className="mx-auto text-zinc-700 mb-4" />
-              <h3 className="text-lg font-semibold text-zinc-400 mb-2">
-                No {filter} runs
-              </h3>
-              <p className="text-sm text-zinc-600 mb-6">
-                Be the first to organize a run
-              </p>
+              <Calendar size={44} className="mx-auto text-zinc-800 mb-3" />
+              <h3 className="text-[16px] font-bold text-zinc-400 mb-1">No {filter} runs</h3>
+              <p className="text-[13px] text-zinc-600 mb-6">Be the first to organize one</p>
               {user && (
                 <Link
                   href="/runs/create"
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-zinc-950 text-sm font-semibold transition-colors"
+                  className="inline-flex items-center gap-2 px-4 py-2.5 bg-orange-500 hover:bg-orange-600 text-black text-[13px] font-bold rounded-xl transition-colors"
                 >
-                  <Plus size={16} />
+                  <Plus size={15} />
                   Create Run
                 </Link>
               )}
             </motion.div>
           ) : (
-            <motion.div
-              key="runs"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="space-y-4"
-            >
-              <p className="text-sm text-zinc-500">
-                {filteredRuns.length} {filter} run{filteredRuns.length !== 1 ? 's' : ''}
+            <motion.div key="runs" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-3">
+              <p className="text-[13px] text-zinc-600">
+                {runs.length} {filter} run{runs.length !== 1 ? 's' : ''}
               </p>
-              {filteredRuns.map((run, index) => (
-                <RunCard key={run.id} run={run} index={index} onJoin={handleJoin} />
+              {runs.map((run, i) => (
+                <RunCard
+                  key={run.id}
+                  run={run}
+                  index={i}
+                  joined={joinedRunIds.has(run.id)}
+                  joining={joiningId === run.id}
+                  participantCount={participantCounts[run.id] ?? 0}
+                  onRsvp={handleRsvp}
+                />
               ))}
             </motion.div>
           )}
         </AnimatePresence>
       </main>
 
-      {/* Bottom Navigation */}
       <BottomNav />
     </div>
   );
