@@ -20,7 +20,8 @@ import {
   Save,
   Loader2,
   Grid3X3,
-  Route,
+  Repeat2,
+  Bookmark,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -28,7 +29,7 @@ import BottomNav from '@/components/BottomNav';
 import { ProfileSkeleton } from '@/components/SkeletonLoader';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/Toast';
-import { supabase, isSupabaseConfigured } from '@/lib/db/supabase';
+import { supabase } from '@/lib/db/supabase';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -42,12 +43,16 @@ interface Vehicle {
   is_primary: boolean;
 }
 
+type TabId = 'posts' | 'reposts' | 'liked' | 'favorites';
+
 interface Post {
   id: string;
   image_url?: string;
+  body?: string;
   caption: string;
   likes_count: number;
   created_at: string;
+  repost_of_id?: string | null;
 }
 
 // ─── Placeholder data (shown when Supabase is not configured) ─────────────────
@@ -235,51 +240,102 @@ function EditRigModal({
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ProfilePage() {
-  const { user, profile, loading, signOut, isConfigured } = useAuth();
+  const { user, profile, loading, signOut, isConfigured, supabaseClient } = useAuth();
   const router = useRouter();
   const { showToast } = useToast();
 
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
-  const [posts, setPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [fetchError, setFetchError] = useState(false);
-  const [activeTab, setActiveTab] = useState<'posts' | 'runs'>('posts');
-  const [editingVehicle, setEditingVehicle] = useState<Vehicle | null | undefined>(undefined); // undefined = closed
+  const [editingVehicle, setEditingVehicle] = useState<Vehicle | null | undefined>(undefined);
+
+  // 4-tab content state
+  const [activeTab, setActiveTab] = useState<TabId>('posts');
+  const [myPosts, setMyPosts] = useState<Post[]>([]);
+  const [reposts, setReposts] = useState<Post[]>([]);
+  const [liked, setLiked] = useState<Post[]>([]);
+  const [favorites, setFavorites] = useState<Post[]>([]);
+  const [tabLoading, setTabLoading] = useState(false);
 
   // Cast profile (Record<string,unknown>) to a typed shape for safe rendering
   type DisplayProfile = typeof PLACEHOLDER_PROFILE & { avatar_url?: string | null };
   const displayProfile: DisplayProfile = (profile as DisplayProfile | null) || PLACEHOLDER_PROFILE;
 
+  // Fetch vehicles only (tab data handled separately)
   const fetchData = useCallback(async () => {
-    // No supabase or no user: show placeholders (demo mode)
-    if (!supabase || !user) {
+    if (!supabaseClient || !user) {
       setVehicles(PLACEHOLDER_VEHICLES);
-      setPosts(PLACEHOLDER_POSTS);
       setIsLoading(false);
       return;
     }
     try {
       setFetchError(false);
-      const [vehiclesRes, postsRes] = await Promise.all([
-        supabase.from('vehicles').select('*').eq('user_id', user.id),
-        supabase.from('posts').select('id, image_url, caption, likes_count, created_at').eq('user_id', user.id).order('created_at', { ascending: false }).limit(20),
-      ]);
-      if (vehiclesRes.error) throw vehiclesRes.error;
-      if (postsRes.error) throw postsRes.error;
-      setVehicles(vehiclesRes.data ?? []);
-      setPosts(postsRes.data ?? []);
+      const { data, error } = await supabaseClient
+        .from('vehicles')
+        .select('*')
+        .eq('user_id', user.id);
+      if (error) throw error;
+      setVehicles(data ?? []);
     } catch {
       setFetchError(true);
       setVehicles([]);
-      setPosts([]);
     } finally {
       setIsLoading(false);
     }
-  }, [user]);
+  }, [user, supabaseClient]);
+
+  // Fetch data for a single tab
+  const fetchTab = useCallback(async (tab: TabId) => {
+    if (!supabaseClient || !user) return;
+    setTabLoading(true);
+    try {
+      if (tab === 'posts') {
+        const { data } = await supabaseClient
+          .from('posts')
+          .select('id, image_url, body, caption, likes_count, created_at, repost_of_id')
+          .eq('user_id', user.id)
+          .is('repost_of_id', null)
+          .order('created_at', { ascending: false })
+          .limit(30);
+        setMyPosts((data as Post[]) ?? []);
+      } else if (tab === 'reposts') {
+        const { data } = await supabaseClient
+          .from('posts')
+          .select('id, image_url, body, caption, likes_count, created_at, repost_of_id')
+          .eq('user_id', user.id)
+          .not('repost_of_id', 'is', null)
+          .order('created_at', { ascending: false })
+          .limit(30);
+        setReposts((data as Post[]) ?? []);
+      } else if (tab === 'liked') {
+        const { data } = await supabaseClient
+          .from('post_likes')
+          .select('posts(id, image_url, body, caption, likes_count, created_at, repost_of_id)')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(30);
+        setLiked(((data ?? []).map((r: any) => r.posts).filter(Boolean)) as Post[]);
+      } else if (tab === 'favorites') {
+        const { data } = await supabaseClient
+          .from('saved_posts')
+          .select('posts(id, image_url, body, caption, likes_count, created_at, repost_of_id)')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(30);
+        setFavorites(((data ?? []).map((r: any) => r.posts).filter(Boolean)) as Post[]);
+      }
+    } finally {
+      setTabLoading(false);
+    }
+  }, [user, supabaseClient]);
 
   useEffect(() => {
     if (!loading) fetchData();
   }, [loading, fetchData]);
+
+  useEffect(() => {
+    if (!isLoading) fetchTab(activeTab);
+  }, [activeTab, isLoading, fetchTab]);
 
   const handleVehicleSaved = (v: Vehicle) => {
     setVehicles((prev) => {
@@ -435,7 +491,7 @@ export default function ProfilePage() {
           {/* Stats row */}
           <div className="flex justify-around mt-4 pt-4 border-t border-zinc-900">
             {[
-              { label: 'Posts',  value: posts.length },
+              { label: 'Posts',  value: myPosts.length },
               { label: 'Rigs',   value: vehicles.length },
               { label: 'Joined', value: (profile as Record<string,unknown>)?.created_at ? new Date((profile as Record<string,unknown>).created_at as string).getFullYear() : new Date().getFullYear() },
             ].map(({ label, value }) => (
@@ -531,67 +587,96 @@ export default function ProfilePage() {
           )}
         </section>
 
-        {/* Posts / Runs tabs ─────────────────────── */}
+        {/* Activity tabs ────────────────────────── */}
         <section>
           {/* Tab bar */}
           <div className="flex border-b border-zinc-900">
-            {([['posts', <Grid3X3 key="g" size={16} />, 'Posts'], ['runs', <Route key="r" size={16} />, 'Runs']] as const).map(([tab, icon, label]) => (
+            {(
+              [
+                { id: 'posts',     label: 'Posts',     Icon: Grid3X3 },
+                { id: 'reposts',   label: 'Reposts',   Icon: Repeat2 },
+                { id: 'liked',     label: 'Liked',     Icon: Heart },
+                { id: 'favorites', label: 'Favorites', Icon: Bookmark },
+              ] as { id: TabId; label: string; Icon: any }[]
+            ).map(({ id, label, Icon }) => (
               <button
-                key={tab}
-                onClick={() => setActiveTab(tab as 'posts' | 'runs')}
-                className={`flex-1 flex items-center justify-center gap-1.5 py-3 text-[13px] font-semibold transition-colors border-b-2 ${
-                  activeTab === tab
+                key={id}
+                onClick={() => setActiveTab(id)}
+                className={`flex-1 flex items-center justify-center gap-1 py-3 text-[12px] font-semibold transition-colors border-b-2 ${
+                  activeTab === id
                     ? 'border-orange-500 text-orange-500'
                     : 'border-transparent text-zinc-500 hover:text-zinc-300'
                 }`}
               >
-                {icon}{label}
+                <Icon size={13} />
+                {label}
               </button>
             ))}
           </div>
 
-          {activeTab === 'posts' && (
-            posts.length > 0 ? (
+          {/* Tab content */}
+          {(() => {
+            const dataMap: Record<TabId, Post[]> = { posts: myPosts, reposts, liked, favorites };
+            const emptyMessages: Record<TabId, string> = {
+              posts:     'No posts yet.',
+              reposts:   'No reposts yet.',
+              liked:     'No liked posts yet.',
+              favorites: 'No saved posts yet.',
+            };
+            const data = dataMap[activeTab];
+
+            if (tabLoading) {
+              return (
+                <div className="flex justify-center py-12">
+                  <Loader2 size={22} className="animate-spin text-zinc-600" />
+                </div>
+              );
+            }
+
+            if (data.length === 0) {
+              return (
+                <div className="py-12 text-center">
+                  <p className="text-zinc-600 text-[14px]">{emptyMessages[activeTab]}</p>
+                </div>
+              );
+            }
+
+            return (
               <div className="grid grid-cols-3 gap-px bg-zinc-900">
-                {posts.map((p) => (
+                {data.map((p) => (
                   <Link key={p.id} href={`/posts/${p.id}`} className="relative aspect-square bg-black overflow-hidden group">
                     {p.image_url ? (
                       <img
                         src={p.image_url}
-                        alt={p.caption}
+                        alt={p.caption ?? p.body ?? ''}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        loading="lazy"
                       />
                     ) : (
                       <div className="w-full h-full bg-zinc-950 flex items-center justify-center p-2">
-                        <span className="text-[10px] text-zinc-600 text-center line-clamp-4 leading-tight">{p.caption}</span>
+                        <span className="text-[10px] text-zinc-600 text-center line-clamp-4 leading-tight">
+                          {p.body ?? p.caption}
+                        </span>
                       </div>
                     )}
-                    {/* Hover overlay with like count */}
+                    {/* Repost badge */}
+                    {p.repost_of_id && (
+                      <div className="absolute top-1 left-1">
+                        <Repeat2 size={11} className="text-emerald-400 drop-shadow" />
+                      </div>
+                    )}
+                    {/* Hover overlay */}
                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
                       <div className="flex items-center gap-1 text-white text-[12px] font-bold">
                         <Heart size={13} className="fill-white text-white" />
-                        {p.likes_count}
+                        {p.likes_count ?? 0}
                       </div>
                     </div>
                   </Link>
                 ))}
               </div>
-            ) : (
-              <div className="py-12 text-center">
-                <p className="text-zinc-600 text-[14px]">No posts yet</p>
-              </div>
-            )
-          )}
-
-          {activeTab === 'runs' && (
-            <div className="py-12 text-center px-4">
-              <Route size={28} className="mx-auto text-zinc-800 mb-2" />
-              <p className="text-zinc-600 text-[14px]">Run history coming soon</p>
-              <Link href="/runs" className="mt-3 inline-block text-[13px] text-orange-500 hover:text-orange-400">
-                Browse upcoming runs
-              </Link>
-            </div>
-          )}
+            );
+          })()}
         </section>
 
         {/* Quick links ───────────────────────────── */}
