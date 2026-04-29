@@ -292,7 +292,7 @@ export default function ProfilePage() {
       if (tab === 'posts') {
         const { data } = await supabaseClient
           .from('posts')
-          .select('id, image_url, body, caption, likes_count, created_at, repost_of_id')
+          .select('id, image_url, body, caption, likes_count, created_at, repost_of_id, user_name, role')
           .eq('user_id', user.id)
           .is('repost_of_id', null)
           .order('created_at', { ascending: false })
@@ -301,7 +301,7 @@ export default function ProfilePage() {
       } else if (tab === 'reposts') {
         const { data } = await supabaseClient
           .from('posts')
-          .select('id, image_url, body, caption, likes_count, created_at, repost_of_id')
+          .select('id, image_url, body, caption, likes_count, created_at, repost_of_id, user_name, role')
           .eq('user_id', user.id)
           .not('repost_of_id', 'is', null)
           .order('created_at', { ascending: false })

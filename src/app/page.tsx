@@ -592,6 +592,11 @@ function CommentRow({
       <div className="flex-1 min-w-0">
         <div className="flex items-baseline gap-1.5 flex-wrap">
           <span className="text-[12px] font-semibold text-zinc-300">{comment.user_name ?? 'Rider'}</span>
+          {comment.role === 'owner' && (
+            <span className="px-1.5 py-px text-[9px] font-black text-black bg-[#FF8C00] rounded leading-none flex-shrink-0">
+              OWNER
+            </span>
+          )}
           <span className="text-[12px] text-zinc-400 break-words">{comment.content}</span>
         </div>
         {/* Sub-row: actions */}
@@ -640,6 +645,7 @@ interface Comment {
   user_name?: string | null;
   avatar_url?: string | null;
   parent_id?: string | null;
+  role?: string | null;
   likes_count?: number;
   liked_by_me?: boolean;
 }
@@ -710,7 +716,7 @@ function RigPostCard({ post, index }: {
     Promise.all([
       supabaseClient
         .from('comments')
-        .select('id, user_id, post_id, content, created_at, user_name, avatar_url, parent_id')
+        .select('id, user_id, post_id, content, created_at, user_name, avatar_url, parent_id, role')
         .eq('post_id', post.id)
         .order('created_at', { ascending: true }),
       user
@@ -810,26 +816,36 @@ function RigPostCard({ post, index }: {
   const toggleCommentLike = async (comment: Comment) => {
     if (!requireAuth('like comments')) return;
     if (!supabaseClient || !user) return;
-    const nowLiked = !comment.liked_by_me;
-    setComments((prev) => prev.map((c) =>
-      c.id === comment.id
-        ? { ...c, liked_by_me: nowLiked, likes_count: (c.likes_count ?? 0) + (nowLiked ? 1 : -1) }
-        : c
-    ));
+    const commentId = comment.id;
+
+    // Read current liked state directly from the flat comments array so stale
+    // closure values from nested renders don't cause a double-toggle.
+    let nowLiked = false;
+    setComments((prev) => {
+      const current = prev.find((c) => c.id === commentId);
+      nowLiked = !(current?.liked_by_me ?? false);
+      return prev.map((c) =>
+        c.id === commentId
+          ? { ...c, liked_by_me: nowLiked, likes_count: (c.likes_count ?? 0) + (nowLiked ? 1 : -1) }
+          : c
+      );
+    });
+
     if (nowLiked) {
       const { error } = await supabaseClient
         .from('comment_likes')
-        .insert({ comment_id: comment.id, user_id: user.id });
+        .insert({ comment_id: commentId, user_id: user.id });
       if (error && error.code !== '23505') {
+        // Rollback on unexpected error
         setComments((prev) => prev.map((c) =>
-          c.id === comment.id ? { ...c, liked_by_me: false, likes_count: (c.likes_count ?? 1) - 1 } : c
+          c.id === commentId ? { ...c, liked_by_me: false, likes_count: (c.likes_count ?? 1) - 1 } : c
         ));
       }
     } else {
       await supabaseClient
         .from('comment_likes')
         .delete()
-        .match({ comment_id: comment.id, user_id: user.id });
+        .match({ comment_id: commentId, user_id: user.id });
     }
   };
 
