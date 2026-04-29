@@ -368,17 +368,7 @@ const PLACEHOLDER_POSTS: Post[] = [
   },
 ];
 
-const LIVE_RUNS = [
-  { id: 'run-bigbear-001', name: 'Big Bear', avatar: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=120&q=80' },
-  { id: 'run-jvalley-002', name: 'J-Valley', avatar: 'https://images.unsplash.com/photo-1486870591958-9b9d0d1dda99?w=120&q=80' },
-  { id: 'run-holcomb-003', name: 'Holcomb', avatar: 'https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?w=120&q=80' },
-];
-
-const TRAIL_UPDATES = [
-  { id: '1', name: 'Cleghorn', avatar: 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=120&q=80' },
-  { id: '2', name: 'Corral Cyn', avatar: 'https://images.unsplash.com/photo-1544636331-e26879cd4d9b?w=120&q=80' },
-  { id: '3', name: 'Miller Jeep', avatar: 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=120&q=80' },
-];
+// LIVE_RUNS and TRAIL_UPDATES are now fetched dynamically in StoriesBar.
 
 // ─── Helpers ─────�����────────────────────────────────────────────────────────────
 
@@ -494,39 +484,60 @@ function StoryAvatar({ src, alt, live, label, href, runId }: {
 
 // ─── StoriesBar ───────────────────────────────────────────────────────────────
 
+interface LiveRun {
+  id: string;
+  title: string;
+  trail_photo: string | null;
+}
+
 function StoriesBar() {
+  const { supabaseClient } = useAuth();
+  const [liveRuns, setLiveRuns] = useState<LiveRun[]>([]);
+
+  useEffect(() => {
+    if (!supabaseClient) return;
+    supabaseClient
+      .from('runs')
+      .select('id, title, trails(photo_url)')
+      .eq('status', 'active')
+      .order('date', { ascending: true })
+      .limit(8)
+      .then(({ data }) => {
+        setLiveRuns(
+          (data ?? []).map((r: any) => ({
+            id: r.id,
+            title: r.title ?? 'Live Run',
+            trail_photo: r.trails?.photo_url ?? null,
+          }))
+        );
+      });
+  }, [supabaseClient]);
+
   return (
     <div className="sticky top-[52px] z-40 bg-black border-b border-zinc-900">
       <div className="flex gap-3 px-4 py-3 overflow-x-auto scrollbar-hide">
-        {/* Live header */}
-        <div className="flex flex-col items-center gap-1.5 flex-shrink-0">
-          <div className="relative">
-            <motion.div
-              className="absolute -inset-1 rounded-full bg-orange-500/20"
-              animate={{ scale: [1, 1.22, 1], opacity: [0.5, 0.08, 0.5] }}
-              transition={{ duration: 2.2, repeat: Infinity, ease: 'easeInOut' }}
-            />
-            <div className="relative w-[58px] h-[58px] rounded-full bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center shadow-[0_0_16px_rgba(249,115,22,0.4)]">
-              <Radio size={18} className="text-white" />
+
+        {liveRuns.length === 0 ? (
+          /* No active runs — show a single static Runs link */
+          <Link href="/runs" className="flex flex-col items-center gap-1.5 flex-shrink-0 select-none">
+            <div className="relative w-[58px] h-[58px] rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center">
+              <Radio size={18} className="text-zinc-500" />
             </div>
-          </div>
-          <span className="text-[10px] text-zinc-500 font-medium">Runs</span>
-        </div>
-
-        {LIVE_RUNS.map((r) => (
-          <StoryAvatar key={r.id} src={r.avatar} alt={r.name} live label={r.name} href="/runs" runId={r.id} />
-        ))}
-
-        <div className="w-px bg-zinc-800 self-stretch my-2 flex-shrink-0 mx-1" />
-
-        <div className="flex flex-col items-center gap-1.5 flex-shrink-0">
-          <div className="w-[58px] h-[58px] rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center">
-            <Mountain size={18} className="text-zinc-600" />
-          </div>
-          <span className="text-[10px] text-zinc-500 font-medium">Trails</span>
-        </div>
-
-        {TRAIL_UPDATES.map((t) => <StoryAvatar key={t.id} src={t.avatar} alt={t.name} label={t.name} href="/trails" />)}
+            <span className="text-[10px] text-zinc-500 font-medium">Runs</span>
+          </Link>
+        ) : (
+          liveRuns.map((run) => (
+            <StoryAvatar
+              key={run.id}
+              src={run.trail_photo ?? 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=120&q=80'}
+              alt={run.title}
+              live
+              label={run.title}
+              href="/runs"
+              runId={run.id}
+            />
+          ))
+        )}
       </div>
     </div>
   );
@@ -596,7 +607,7 @@ function CommentRow({
       <div className="flex-1 min-w-0">
         <div className="flex items-baseline gap-1.5 flex-wrap">
           <span className="text-[12px] font-semibold text-zinc-300">{comment.user_name ?? 'Rider'}</span>
-          {comment.role === 'owner' && (
+          {comment.role?.toLowerCase() === 'owner' && (
             <span className="px-1.5 py-px text-[9px] font-black text-black bg-[#FF8C00] rounded leading-none flex-shrink-0">
               OWNER
             </span>
@@ -694,37 +705,40 @@ function RigPostCard({ post, index }: {
 
   async function haptic(s: ImpactStyle) { try { await Haptics.impact({ style: s }); } catch {} }
 
-  // Fetch comments on mount as soon as auth has settled — NOT gated on
-  // commentsOpen so the count is visible in the feed without tapping the card.
-  // Re-fetches when commentsOpen toggles to keep the drawer in sync.
+  // Track whether the drawer was just opened so we can auto-focus the input.
+  const drawerJustOpened = useRef(false);
+  useEffect(() => {
+    if (commentsOpen) drawerJustOpened.current = true;
+  }, [commentsOpen]);
+
+  // Fetch comments on mount as soon as auth has settled.
+  // NOT gated on commentsOpen — comments load in the background so the count
+  // is always correct without the user needing to open the drawer.
+  // commentsOpen is intentionally NOT in the dep array to avoid re-fetching
+  // every time the drawer opens/closes and clearing any optimistic state.
   useEffect(() => {
     if (!supabaseClient) return;
-    // Hard guard: do not run until auth is fully resolved so comment_likes
-    // are always fetched with the real user.id.
+    // Hard guard: wait for auth to resolve so user.id is known for likes query.
     if (authLoading) return;
 
-    // Strict canonical ID: for a repost, always query the original post's ID.
-    // Do NOT include the repost row's own ID to avoid mixing threads.
+    // CRITICAL: use the original post's ID for reposts — comments are anchored
+    // to the canonical thread, not the repost copy.
     const canonicalId = post.repost_of_id ?? post.id;
 
     setCommentsLoading(true);
 
     Promise.all([
-      // Fetch comments for the canonical thread — no users join to avoid FK issues.
       supabaseClient
         .from('comments')
         .select('id, user_id, post_id, content, created_at, user_name, avatar_url, parent_id, role')
         .eq('post_id', canonicalId)
         .order('created_at', { ascending: true }),
-      // Fetch comment likes for the current user (skip if not signed in).
       user
         ? supabaseClient
             .from('comment_likes')
             .select('comment_id')
             .eq('user_id', user.id)
         : Promise.resolve({ data: [] }),
-      // Manually fetch the role for every distinct author in this thread.
-      // This is done as a separate query to avoid FK-join failures.
     ]).then(async ([{ data: rawComments, error: commentsError }, { data: myLikes }]) => {
       if (commentsError) {
         setCommentsLoading(false);
@@ -733,7 +747,7 @@ function RigPostCard({ post, index }: {
 
       const rows = rawComments ?? [];
 
-      // Collect distinct user_ids from the fetched comments.
+      // Separate query for author roles — avoids FK-join failures.
       const distinctUserIds = [...new Set(rows.map((c: any) => c.user_id as string))];
       let roleMap: Record<string, string | null> = {};
       if (distinctUserIds.length > 0) {
@@ -747,20 +761,25 @@ function RigPostCard({ post, index }: {
       const likedIds = new Set((myLikes ?? []).map((l: any) => l.comment_id));
       const enriched: Comment[] = rows.map((c: any) => ({
         ...c,
-        // Use the live role from the users table; fall back to the denormalized column.
+        // Live role from users table wins; denormalized column is fallback.
         role: roleMap[c.user_id] ?? c.role ?? null,
-        // Confirm content column (not body) is used — matches DB schema.
+        // Explicitly use content column (not body) — matches DB schema.
         content: c.content ?? '',
         liked_by_me: likedIds.has(c.id),
         likes_count: c.likes_count ?? 0,
       }));
 
       setComments(enriched);
-      setCommentsCount(enriched.length);
+      // Update count to match live DB total for this canonical thread.
+      if (enriched.length > 0) setCommentsCount(enriched.length);
       setCommentsLoading(false);
-      if (commentsOpen) setTimeout(() => commentInputRef.current?.focus(), 150);
+      if (drawerJustOpened.current) {
+        drawerJustOpened.current = false;
+        setTimeout(() => commentInputRef.current?.focus(), 150);
+      }
     });
-  }, [commentsOpen, supabaseClient, post.id, post.repost_of_id, user, authLoading]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [supabaseClient, post.id, post.repost_of_id, user, authLoading]);
 
   const requireAuth = (action: string): boolean => {
     if (!user) {
@@ -1072,7 +1091,7 @@ function RigPostCard({ post, index }: {
                 {post.verified && (
                   <BadgeCheck size={15} className="text-orange-500 flex-shrink-0 mt-px" />
                 )}
-                {post.role === 'owner' && (
+                {post.role?.toLowerCase() === 'owner' && (
                   <span className="px-2 py-0.5 text-[10px] font-black text-black bg-[#FF8C00] rounded-md leading-none flex-shrink-0">
                     OWNER
                   </span>
