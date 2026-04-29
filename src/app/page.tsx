@@ -694,23 +694,26 @@ function RigPostCard({ post, index }: {
 
   async function haptic(s: ImpactStyle) { try { await Haptics.impact({ style: s }); } catch {} }
 
-  // Load comments when panel opens — but wait until auth has resolved so
-  // comment_likes are fetched against the real user, not an empty session.
+  // Fetch comments on mount (and whenever auth settles) so the comment preview
+  // is visible in the feed without opening the drawer. Also re-fetch when
+  // commentsOpen toggles so the drawer always shows fresh data.
   useEffect(() => {
-    if (!commentsOpen || !supabaseClient) return;
+    if (!supabaseClient) return;
+    // Wait for auth to resolve so comment_likes are hydrated against the real user.
     if (authLoading) return;
-    // Always query using the canonical (original) post ID so comments are
-    // shared across all reposts. Also include any legacy rows stored against
-    // the repost's own ID via an OR filter.
+    // Canonical post ID: comments are always anchored to the original post so
+    // they are shared across every repost of the same content.
     const canonicalId = post.repost_of_id ?? post.id;
+    // Include any legacy comment rows stored against the repost row's own ID.
     const idFilter = post.repost_of_id
       ? `post_id.eq.${canonicalId},post_id.eq.${post.id}`
       : `post_id.eq.${canonicalId}`;
     setCommentsLoading(true);
     Promise.all([
+      // Join users table to get the authoritative role value for OWNER badge.
       supabaseClient
         .from('comments')
-        .select('id, user_id, post_id, content, created_at, user_name, avatar_url, parent_id, role')
+        .select('id, user_id, post_id, content, created_at, user_name, avatar_url, parent_id, role, users(role)')
         .or(idFilter)
         .order('created_at', { ascending: true }),
       user
@@ -723,12 +726,17 @@ function RigPostCard({ post, index }: {
       const likedIds = new Set((myLikes ?? []).map((l: any) => l.comment_id));
       const enriched: Comment[] = (rawComments ?? []).map((c: any) => ({
         ...c,
+        // Prefer the live role from the users join; fall back to the denormalized column.
+        role: (c.users as any)?.role ?? c.role ?? null,
         liked_by_me: likedIds.has(c.id),
-        likes_count: 0,
+        likes_count: c.likes_count ?? 0,
       }));
       setComments(enriched);
+      // Sync the visible comment count to match the canonical thread.
+      setCommentsCount(enriched.length);
       setCommentsLoading(false);
-      setTimeout(() => commentInputRef.current?.focus(), 150);
+      // Only focus the input when the user actively opened the drawer.
+      if (commentsOpen) setTimeout(() => commentInputRef.current?.focus(), 150);
     });
   }, [commentsOpen, supabaseClient, post.id, post.repost_of_id, user, authLoading]);
 
