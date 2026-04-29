@@ -1,0 +1,249 @@
+'use client';
+
+import { useEffect, useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { MessageCircle, ArrowLeft, User, Search } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useAuth } from '@/context/AuthContext';
+import BottomNav from '@/components/BottomNav';
+
+interface OtherParticipant {
+  id: string;
+  name: string | null;
+  avatar_url: string | null;
+}
+
+interface Conversation {
+  id: string;
+  last_message_content: string | null;
+  last_message_at: string | null;
+  other_participant: OtherParticipant;
+  unread: boolean;
+}
+
+function timeAgo(iso: string | null | undefined) {
+  if (!iso) return '';
+  const secs = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+  if (secs < 60) return 'now';
+  if (secs < 3600) return `${Math.floor(secs / 60)}m`;
+  if (secs < 86400) return `${Math.floor(secs / 3600)}h`;
+  if (secs < 7 * 86400) return `${Math.floor(secs / 86400)}d`;
+  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+export default function MessagesPage() {
+  const { user, supabaseClient, loading: authLoading } = useAuth();
+  const router = useRouter();
+
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [search, setSearch] = useState('');
+
+  const fetchConversations = useCallback(async () => {
+    if (!supabaseClient || !user) return;
+    setIsLoading(true);
+    try {
+      // Get all conversations this user participates in
+      const { data: participantRows, error: pErr } = await supabaseClient
+        .from('conversation_participants')
+        .select('conversation_id, is_read')
+        .eq('user_id', user.id);
+
+      if (pErr || !participantRows?.length) {
+        setConversations([]);
+        return;
+      }
+
+      const conversationIds = participantRows.map((r: any) => r.conversation_id);
+      const isReadMap: Record<string, boolean> = {};
+      participantRows.forEach((r: any) => { isReadMap[r.conversation_id] = r.is_read ?? true; });
+
+      // Get conversation metadata
+      const { data: convRows, error: cErr } = await supabaseClient
+        .from('conversations')
+        .select('id, last_message_content, last_message_at')
+        .in('id', conversationIds)
+        .order('last_message_at', { ascending: false });
+
+      if (cErr || !convRows?.length) {
+        setConversations([]);
+        return;
+      }
+
+      // For each conversation, find the OTHER participant's user_id
+      const { data: allParticipants } = await supabaseClient
+        .from('conversation_participants')
+        .select('conversation_id, user_id')
+        .in('conversation_id', conversationIds)
+        .neq('user_id', user.id);
+
+      // Collect distinct other user IDs
+      const otherUserIds = [...new Set((allParticipants ?? []).map((r: any) => r.user_id))];
+      const otherUserMap: Record<string, any> = {};
+
+      if (otherUserIds.length > 0) {
+        const { data: userRows } = await supabaseClient
+          .from('users')
+          .select('id, name, avatar_url')
+          .in('id', otherUserIds);
+        (userRows ?? []).forEach((u: any) => { otherUserMap[u.id] = u; });
+      }
+
+      // Map other participant per conversation
+      const participantByConv: Record<string, string> = {};
+      (allParticipants ?? []).forEach((r: any) => { participantByConv[r.conversation_id] = r.user_id; });
+
+      const result: Conversation[] = convRows.map((c: any) => {
+        const otherUserId = participantByConv[c.id];
+        const otherUser = otherUserMap[otherUserId] ?? null;
+        return {
+          id: c.id,
+          last_message_content: c.last_message_content ?? null,
+          last_message_at: c.last_message_at ?? null,
+          other_participant: {
+            id: otherUserId,
+            name: otherUser?.name ?? 'Unknown Rider',
+            avatar_url: otherUser?.avatar_url ?? null,
+          },
+          unread: !(isReadMap[c.id] ?? true),
+        };
+      });
+
+      setConversations(result);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [supabaseClient, user]);
+
+  useEffect(() => {
+    if (!authLoading) fetchConversations();
+  }, [authLoading, fetchConversations]);
+
+  // Redirect unauthenticated users
+  useEffect(() => {
+    if (!authLoading && !user) router.replace('/login');
+  }, [authLoading, user, router]);
+
+  const filtered = conversations.filter((c) =>
+    search === '' ||
+    (c.other_participant.name ?? '').toLowerCase().includes(search.toLowerCase()) ||
+    (c.last_message_content ?? '').toLowerCase().includes(search.toLowerCase())
+  );
+
+  return (
+    <div className="min-h-screen bg-black pb-24">
+      {/* Header */}
+      <div className="sticky top-0 z-40 bg-black/90 backdrop-blur-md border-b border-zinc-900">
+        <div className="flex items-center gap-3 px-4 py-3">
+          <button
+            onClick={() => router.back()}
+            className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-zinc-900 transition-colors"
+            aria-label="Go back"
+          >
+            <ArrowLeft size={19} className="text-white" />
+          </button>
+          <h1 className="text-[17px] font-black text-white leading-none flex-1">Messages</h1>
+          <div className="w-2 h-2" />
+        </div>
+
+        {/* Search */}
+        <div className="px-4 pb-3">
+          <div className="relative">
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Search conversations..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full bg-zinc-900 border border-zinc-800 rounded-xl pl-9 pr-4 py-2.5 text-[13px] text-white placeholder-zinc-600 focus:outline-none focus:border-orange-500/60 transition-colors"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Body */}
+      <div className="max-w-md mx-auto">
+        {isLoading ? (
+          <div className="flex flex-col gap-0">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="flex items-center gap-3 px-4 py-3 border-b border-zinc-900">
+                <div className="w-12 h-12 rounded-full bg-zinc-900 animate-pulse flex-shrink-0" />
+                <div className="flex-1 flex flex-col gap-2">
+                  <div className="h-3.5 bg-zinc-900 rounded-md animate-pulse w-28" />
+                  <div className="h-3 bg-zinc-900 rounded-md animate-pulse w-44" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="flex flex-col items-center justify-center px-6 py-24 gap-4 text-center">
+            <div className="w-16 h-16 rounded-full bg-zinc-900 flex items-center justify-center">
+              <MessageCircle size={28} className="text-zinc-600" />
+            </div>
+            <h2 className="text-[18px] font-black text-white">
+              {search ? 'No matches' : 'No messages yet'}
+            </h2>
+            <p className="text-zinc-500 text-[13px] leading-relaxed max-w-[220px]">
+              {search
+                ? 'Try a different name or message.'
+                : 'Visit a rider\'s profile and tap Message to start a conversation.'}
+            </p>
+          </div>
+        ) : (
+          <AnimatePresence initial={false}>
+            {filtered.map((conv, i) => (
+              <motion.div
+                key={conv.id}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.03 }}
+              >
+                <Link
+                  href={`/messages/${conv.id}`}
+                  className="flex items-center gap-3 px-4 py-3.5 border-b border-zinc-900 hover:bg-zinc-900/40 transition-colors active:bg-zinc-900/60"
+                >
+                  {/* Avatar */}
+                  <div className="relative flex-shrink-0">
+                    <div className="w-12 h-12 rounded-full bg-zinc-800 overflow-hidden border border-zinc-700">
+                      {conv.other_participant.avatar_url ? (
+                        <img
+                          src={conv.other_participant.avatar_url}
+                          alt={conv.other_participant.name ?? 'Rider'}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <User size={20} className="text-zinc-500" />
+                        </div>
+                      )}
+                    </div>
+                    {/* Unread dot */}
+                    {conv.unread && (
+                      <span className="absolute top-0 right-0 w-3 h-3 rounded-full bg-orange-500 border-2 border-black" />
+                    )}
+                  </div>
+
+                  {/* Content */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className={`text-[14px] leading-none ${conv.unread ? 'font-black text-white' : 'font-semibold text-white'}`}>
+                        {conv.other_participant.name ?? 'Rider'}
+                      </span>
+                      <span className="text-[11px] text-zinc-600 flex-shrink-0">
+                        {timeAgo(conv.last_message_at)}
+                      </span>
+                    </div>
+                    <p className={`text-[13px] leading-snug mt-1 truncate ${conv.unread ? 'text-zinc-300 font-medium' : 'text-zinc-500'}`}>
+                      {conv.last_message_content ?? 'Start a conversation'}
+                    </p>
+                  </div>
+                </Link>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        )}
+      </div>
+    </div>
+  );
+}

@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Grid3X3, Bookmark, Heart, Repeat2, BadgeCheck, Loader2 } from 'lucide-react';
-import { useParams } from 'next/navigation';
+import { ArrowLeft, Grid3X3, Bookmark, Heart, Repeat2, BadgeCheck, Loader2, MessageCircle } from 'lucide-react';
+import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import BottomNav from '@/components/BottomNav';
 
@@ -48,7 +48,9 @@ function PostGrid({ posts }: { posts: PostRow[] }) {
 export default function UserProfilePage() {
   const params = useParams();
   const userId = params?.userId as string;
-  const { supabaseClient } = useAuth();
+  const { supabaseClient, user } = useAuth();
+  const router = useRouter();
+  const [messagingLoading, setMessagingLoading] = useState(false);
 
   const [profile, setProfile] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -122,6 +124,58 @@ export default function UserProfilePage() {
       setTabLoading(false);
     }
   }, [supabaseClient, userId]);
+
+  const handleMessage = useCallback(async () => {
+    if (!user || !supabaseClient || !userId) return;
+    setMessagingLoading(true);
+    try {
+      // Find existing conversation between these two users
+      const { data: myParticipations } = await supabaseClient
+        .from('conversation_participants')
+        .select('conversation_id')
+        .eq('user_id', user.id);
+
+      const myConvIds = (myParticipations ?? []).map((r: any) => r.conversation_id);
+
+      let existingConvId: string | null = null;
+
+      if (myConvIds.length > 0) {
+        const { data: otherParticipations } = await supabaseClient
+          .from('conversation_participants')
+          .select('conversation_id')
+          .eq('user_id', userId)
+          .in('conversation_id', myConvIds);
+
+        existingConvId = otherParticipations?.[0]?.conversation_id ?? null;
+      }
+
+      if (existingConvId) {
+        router.push(`/messages/${existingConvId}`);
+        return;
+      }
+
+      // Create a new conversation
+      const { data: newConv, error: convErr } = await supabaseClient
+        .from('conversations')
+        .insert({ last_message_content: null, last_message_at: new Date().toISOString() })
+        .select()
+        .single();
+
+      if (convErr || !newConv) throw convErr ?? new Error('Failed to create conversation');
+
+      // Add both participants
+      await supabaseClient.from('conversation_participants').insert([
+        { conversation_id: newConv.id, user_id: user.id, is_read: true },
+        { conversation_id: newConv.id, user_id: userId, is_read: true },
+      ]);
+
+      router.push(`/messages/${newConv.id}`);
+    } catch {
+      // Silently fail — user stays on profile page
+    } finally {
+      setMessagingLoading(false);
+    }
+  }, [user, supabaseClient, userId, router]);
 
   useEffect(() => {
     if (!isLoading && !error) fetchTab(activeTab);
@@ -202,6 +256,21 @@ export default function UserProfilePage() {
 
         {profile.bio && (
           <p className="text-zinc-400 text-[13px] leading-relaxed max-w-[260px]">{profile.bio}</p>
+        )}
+
+        {/* Message button — only shown when viewing another user's profile */}
+        {user && user.id !== userId && (
+          <button
+            onClick={handleMessage}
+            disabled={messagingLoading}
+            className="flex items-center gap-2 px-5 py-2.5 bg-orange-500 hover:bg-orange-600 disabled:bg-zinc-800 disabled:text-zinc-500 text-black text-[13px] font-black rounded-xl transition-colors mt-1"
+          >
+            {messagingLoading
+              ? <Loader2 size={15} className="animate-spin" />
+              : <MessageCircle size={15} strokeWidth={2.5} />
+            }
+            {messagingLoading ? 'Opening...' : 'Message'}
+          </button>
         )}
       </div>
 

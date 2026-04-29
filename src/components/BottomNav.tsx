@@ -1,23 +1,54 @@
 'use client';
 
 import { useRouter, usePathname } from 'next/navigation';
-import { Home, Map, Calendar, Users, User } from 'lucide-react';
+import { Home, Map, Calendar, Users, User, MessageCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useEffect, useState } from 'react';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import { useAuth } from '@/context/AuthContext';
 
 const NAV_ITEMS = [
-  { href: '/',        label: 'Home',    icon: Home,     requiresAuth: false },
-  { href: '/trails',  label: 'Trails',  icon: Map,      requiresAuth: false },
-  { href: '/runs',    label: 'Runs',    icon: Calendar, requiresAuth: false },
-  { href: '/clubs',   label: 'Clubs',   icon: Users,    requiresAuth: false },
-  { href: '/profile', label: 'Profile', icon: User,     requiresAuth: true  },
+  { href: '/',          label: 'Home',     icon: Home,          requiresAuth: false },
+  { href: '/trails',    label: 'Trails',   icon: Map,           requiresAuth: false },
+  { href: '/runs',      label: 'Runs',     icon: Calendar,      requiresAuth: false },
+  { href: '/messages',  label: 'Messages', icon: MessageCircle, requiresAuth: true  },
+  { href: '/profile',   label: 'Profile',  icon: User,          requiresAuth: true  },
 ];
 
 export default function BottomNav() {
   const pathname = usePathname();
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, supabaseClient } = useAuth();
+  const [hasUnread, setHasUnread] = useState(false);
+
+  // Check for unread messages and subscribe to changes
+  useEffect(() => {
+    if (!supabaseClient || !user) { setHasUnread(false); return; }
+
+    const checkUnread = async () => {
+      const { data } = await supabaseClient
+        .from('conversation_participants')
+        .select('is_read')
+        .eq('user_id', user.id)
+        .eq('is_read', false)
+        .limit(1);
+      setHasUnread((data?.length ?? 0) > 0);
+    };
+
+    checkUnread();
+
+    // Realtime: re-check when conversation_participants changes for this user
+    const channel = supabaseClient
+      .channel('unread-badge')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'conversation_participants', filter: `user_id=eq.${user.id}` },
+        () => { checkUnread(); }
+      )
+      .subscribe();
+
+    return () => { supabaseClient.removeChannel(channel); };
+  }, [supabaseClient, user]);
 
   const triggerHaptic = async () => {
     try { await Haptics.impact({ style: ImpactStyle.Light }); } catch {}
@@ -41,6 +72,7 @@ export default function BottomNav() {
         {NAV_ITEMS.map(({ href, label, icon: Icon, requiresAuth }) => {
           const isActive =
             pathname === href || (href !== '/' && pathname.startsWith(href));
+          const showUnread = href === '/messages' && hasUnread && !!user;
 
           return (
             <button
@@ -69,6 +101,10 @@ export default function BottomNav() {
                     isActive ? 'text-orange-500' : 'text-zinc-500'
                   }`}
                 />
+                {/* Unread notification dot */}
+                {showUnread && (
+                  <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-red-500 border-2 border-black z-20" />
+                )}
               </motion.div>
               <span
                 className={`text-[10px] font-semibold leading-none transition-colors duration-150 ${
