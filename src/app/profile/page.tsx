@@ -240,7 +240,7 @@ function EditRigModal({
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ProfilePage() {
-  const { user, profile, loading, signOut, isConfigured, supabaseClient } = useAuth();
+  const { user, profile, loading, signOut, isConfigured, supabaseClient, refreshProfile } = useAuth();
   const router = useRouter();
   const { showToast } = useToast();
 
@@ -357,6 +357,9 @@ export default function ProfilePage() {
         .eq('id', user.id);
       if (dbError) throw dbError;
       setLocalAvatarUrl(publicUrl);
+      // Refresh the AuthContext profile so the new avatar propagates app-wide
+      // without requiring a manual page reload.
+      await refreshProfile();
       showToast('Avatar updated!', 'success');
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Upload failed';
@@ -366,7 +369,7 @@ export default function ProfilePage() {
       // Reset so the same file can be picked again
       if (avatarInputRef.current) avatarInputRef.current.value = '';
     }
-  }, [user, supabaseClient, showToast]);
+  }, [user, supabaseClient, showToast, refreshProfile]);
 
   useEffect(() => {
     if (!loading) fetchData();

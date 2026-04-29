@@ -380,7 +380,7 @@ const TRAIL_UPDATES = [
   { id: '3', name: 'Miller Jeep', avatar: 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=120&q=80' },
 ];
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+// ─── Helpers ─────���────────────────────────────────────────────────────────────
 
 function timeAgo(iso: string | null | undefined) {
   if (!iso) return '';
@@ -698,15 +698,20 @@ function RigPostCard({ post, index }: {
   // comment_likes are fetched against the real user, not an empty session.
   useEffect(() => {
     if (!commentsOpen || !supabaseClient) return;
-    // If auth is still in flight, hold off; the effect will re-run once
-    // authLoading flips to false (because authLoading is in the dep array).
     if (authLoading) return;
+    // Always query using the canonical (original) post ID so comments are
+    // shared across all reposts. Also include any legacy rows stored against
+    // the repost's own ID via an OR filter.
+    const canonicalId = post.repost_of_id ?? post.id;
+    const idFilter = post.repost_of_id
+      ? `post_id.eq.${canonicalId},post_id.eq.${post.id}`
+      : `post_id.eq.${canonicalId}`;
     setCommentsLoading(true);
     Promise.all([
       supabaseClient
         .from('comments')
         .select('id, user_id, post_id, content, created_at, user_name, avatar_url, parent_id, role')
-        .eq('post_id', post.id)
+        .or(idFilter)
         .order('created_at', { ascending: true }),
       user
         ? supabaseClient
@@ -725,7 +730,7 @@ function RigPostCard({ post, index }: {
       setCommentsLoading(false);
       setTimeout(() => commentInputRef.current?.focus(), 150);
     });
-  }, [commentsOpen, supabaseClient, post.id, user, authLoading]);
+  }, [commentsOpen, supabaseClient, post.id, post.repost_of_id, user, authLoading]);
 
   const requireAuth = (action: string): boolean => {
     if (!user) {
@@ -877,12 +882,15 @@ function RigPostCard({ post, index }: {
     if (!commentText.trim() || !user || !supabaseClient) return;
     if (!requireAuth('comment')) return;
     setSubmittingComment(true);
+    // Always anchor the comment to the original post so comments are shared
+    // across all reposts of the same content.
+    const canonicalPostId = post.repost_of_id ?? post.id;
     const userName = (user.user_metadata?.full_name as string) || user.email?.split('@')[0] || 'Rider';
     const avatarUrl = (user.user_metadata?.avatar_url as string) || null;
     const optimistic: Comment = {
       id: crypto.randomUUID(),
       user_id: user.id,
-      post_id: post.id,
+      post_id: canonicalPostId,
       content: commentText.trim(),
       created_at: new Date().toISOString(),
       user_name: userName,
@@ -897,7 +905,7 @@ function RigPostCard({ post, index }: {
     setReplyingTo(null);
     try {
       const { error } = await supabaseClient.from('comments').insert({
-        post_id: post.id,
+        post_id: canonicalPostId,
         user_id: user.id,
         content: optimistic.content,
         user_name: userName,
@@ -1571,7 +1579,9 @@ export default function HomePage() {
   const isModeratorUser = userRole === 'owner' || userRole === 'admin';
 
   const fetchPosts = useCallback(async () => {
-    // Wait until Supabase auth has finished resolving so we know the real user
+    // Strict guard: do NOT execute until auth has fully settled.
+    // authLoading=true means user.id is not yet known — interaction queries
+    // (post_likes, saved_posts, repost rows) would all return empty results.
     if (authLoading) return;
     if (!supabaseClient) {
       setPosts(PLACEHOLDER_POSTS);
@@ -1605,19 +1615,24 @@ export default function HomePage() {
 
       const rawPosts: any[] = postsResult.data ?? [];
 
-      // For repost rows, look up the original post's author so the banner can
-      // say "Reposted · original by <name>" instead of the reposter's name.
+      // For repost rows, look up the original post so the banner and counts
+      // (likes, comments) reflect the canonical thread, not the repost copy.
       const repostOriginalIds = [...new Set(
         rawPosts.filter((p) => p.repost_of_id).map((p) => p.repost_of_id as string)
       )];
-      let originalAuthors: Record<string, string> = {};
+      type OriginalMeta = { user_name: string; likes_count: number; comments_count: number };
+      let originalMeta: Record<string, OriginalMeta> = {};
       if (repostOriginalIds.length > 0) {
         const { data: originals } = await supabaseClient
           .from('posts')
-          .select('id, user_name')
+          .select('id, user_name, likes_count, comments_count')
           .in('id', repostOriginalIds);
         (originals ?? []).forEach((o: any) => {
-          originalAuthors[o.id] = o.user_name ?? 'Rider';
+          originalMeta[o.id] = {
+            user_name: o.user_name ?? 'Rider',
+            likes_count: o.likes_count ?? 0,
+            comments_count: o.comments_count ?? 0,
+          };
         });
       }
 
@@ -1626,22 +1641,24 @@ export default function HomePage() {
       // repostedIds contains the original post IDs that this user has reposted
       const repostedIds = new Set((repostsResult.data ?? []).map((r: any) => r.repost_of_id));
 
-      const normalised = rawPosts.map((p: any) => ({
-        ...p,
-        username: p.user_name ?? 'Rider',
-        role: p.role ?? 'user',
-        liked_by_me: likedIds.has(p.id),
-        bookmarked_by_me: savedIds.has(p.id),
-        // For an original post: has the current user reposted it?
-        // For a repost row itself: has the current user reposted the same original?
-        reposted_by_me: p.repost_of_id
-          ? repostedIds.has(p.repost_of_id)
-          : repostedIds.has(p.id),
-        // Attach original author name so the repost banner can show it
-        original_user_name: p.repost_of_id
-          ? (originalAuthors[p.repost_of_id] ?? null)
-          : null,
-      }));
+      const normalised = rawPosts.map((p: any) => {
+        const orig = p.repost_of_id ? (originalMeta[p.repost_of_id] ?? null) : null;
+        return {
+          ...p,
+          username: p.user_name ?? 'Rider',
+          role: p.role ?? 'user',
+          liked_by_me: likedIds.has(p.id),
+          bookmarked_by_me: savedIds.has(p.id),
+          reposted_by_me: p.repost_of_id
+            ? repostedIds.has(p.repost_of_id)
+            : repostedIds.has(p.id),
+          // Repost rows: show the original thread's engagement counts so it
+          // feels like the same post everywhere in the feed.
+          likes_count: orig ? orig.likes_count : (p.likes_count ?? 0),
+          comments_count: orig ? orig.comments_count : (p.comments_count ?? 0),
+          original_user_name: orig ? orig.user_name : null,
+        };
+      });
       setPosts(normalised.length ? normalised : PLACEHOLDER_POSTS);
     } catch {
       setPosts(PLACEHOLDER_POSTS);

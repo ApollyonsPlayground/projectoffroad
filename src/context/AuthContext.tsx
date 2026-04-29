@@ -26,6 +26,7 @@ interface AuthContextType {
   supabaseClient: SupabaseClient | null
   signOut: () => Promise<void>
   signInWithGoogle: () => Promise<{ error: string | null }>
+  refreshProfile: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -99,6 +100,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setProfile(null)
   }
 
+  async function refreshProfile() {
+    if (!supabase || !user) return
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', user.id)
+      .single()
+    if (!error && data) setProfile(data)
+  }
+
   async function signInWithGoogle() {
     if (!supabase) return { error: 'Supabase is not configured.' }
     const { error } = await supabase.auth.signInWithOAuth({
@@ -111,7 +122,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, isConfigured, supabaseClient: supabase, signOut, signInWithGoogle }}>
+    <AuthContext.Provider value={{ user, profile, loading, isConfigured, supabaseClient: supabase, signOut, signInWithGoogle, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   )
