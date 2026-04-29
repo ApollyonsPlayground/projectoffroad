@@ -380,7 +380,7 @@ const TRAIL_UPDATES = [
   { id: '3', name: 'Miller Jeep', avatar: 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=120&q=80' },
 ];
 
-// ─── Helpers ─────���────────────────────────────────────────────────────────────
+// ─── Helpers ─────�����────────────────────────────────────────────────────────────
 
 function timeAgo(iso: string | null | undefined) {
   if (!iso) return '';
@@ -694,48 +694,70 @@ function RigPostCard({ post, index }: {
 
   async function haptic(s: ImpactStyle) { try { await Haptics.impact({ style: s }); } catch {} }
 
-  // Fetch comments on mount (and whenever auth settles) so the comment preview
-  // is visible in the feed without opening the drawer. Also re-fetch when
-  // commentsOpen toggles so the drawer always shows fresh data.
+  // Fetch comments on mount as soon as auth has settled — NOT gated on
+  // commentsOpen so the count is visible in the feed without tapping the card.
+  // Re-fetches when commentsOpen toggles to keep the drawer in sync.
   useEffect(() => {
     if (!supabaseClient) return;
-    // Wait for auth to resolve so comment_likes are hydrated against the real user.
+    // Hard guard: do not run until auth is fully resolved so comment_likes
+    // are always fetched with the real user.id.
     if (authLoading) return;
-    // Canonical post ID: comments are always anchored to the original post so
-    // they are shared across every repost of the same content.
+
+    // Strict canonical ID: for a repost, always query the original post's ID.
+    // Do NOT include the repost row's own ID to avoid mixing threads.
     const canonicalId = post.repost_of_id ?? post.id;
-    // Include any legacy comment rows stored against the repost row's own ID.
-    const idFilter = post.repost_of_id
-      ? `post_id.eq.${canonicalId},post_id.eq.${post.id}`
-      : `post_id.eq.${canonicalId}`;
+
     setCommentsLoading(true);
+
     Promise.all([
-      // Join users table to get the authoritative role value for OWNER badge.
+      // Fetch comments for the canonical thread — no users join to avoid FK issues.
       supabaseClient
         .from('comments')
-        .select('id, user_id, post_id, content, created_at, user_name, avatar_url, parent_id, role, users(role)')
-        .or(idFilter)
+        .select('id, user_id, post_id, content, created_at, user_name, avatar_url, parent_id, role')
+        .eq('post_id', canonicalId)
         .order('created_at', { ascending: true }),
+      // Fetch comment likes for the current user (skip if not signed in).
       user
         ? supabaseClient
             .from('comment_likes')
             .select('comment_id')
             .eq('user_id', user.id)
         : Promise.resolve({ data: [] }),
-    ]).then(([{ data: rawComments }, { data: myLikes }]) => {
+      // Manually fetch the role for every distinct author in this thread.
+      // This is done as a separate query to avoid FK-join failures.
+    ]).then(async ([{ data: rawComments, error: commentsError }, { data: myLikes }]) => {
+      if (commentsError) {
+        setCommentsLoading(false);
+        return;
+      }
+
+      const rows = rawComments ?? [];
+
+      // Collect distinct user_ids from the fetched comments.
+      const distinctUserIds = [...new Set(rows.map((c: any) => c.user_id as string))];
+      let roleMap: Record<string, string | null> = {};
+      if (distinctUserIds.length > 0) {
+        const { data: userRows } = await supabaseClient
+          .from('users')
+          .select('id, role')
+          .in('id', distinctUserIds);
+        (userRows ?? []).forEach((u: any) => { roleMap[u.id] = u.role ?? null; });
+      }
+
       const likedIds = new Set((myLikes ?? []).map((l: any) => l.comment_id));
-      const enriched: Comment[] = (rawComments ?? []).map((c: any) => ({
+      const enriched: Comment[] = rows.map((c: any) => ({
         ...c,
-        // Prefer the live role from the users join; fall back to the denormalized column.
-        role: (c.users as any)?.role ?? c.role ?? null,
+        // Use the live role from the users table; fall back to the denormalized column.
+        role: roleMap[c.user_id] ?? c.role ?? null,
+        // Confirm content column (not body) is used — matches DB schema.
+        content: c.content ?? '',
         liked_by_me: likedIds.has(c.id),
         likes_count: c.likes_count ?? 0,
       }));
+
       setComments(enriched);
-      // Sync the visible comment count to match the canonical thread.
       setCommentsCount(enriched.length);
       setCommentsLoading(false);
-      // Only focus the input when the user actively opened the drawer.
       if (commentsOpen) setTimeout(() => commentInputRef.current?.focus(), 150);
     });
   }, [commentsOpen, supabaseClient, post.id, post.repost_of_id, user, authLoading]);
@@ -912,6 +934,16 @@ function RigPostCard({ post, index }: {
     setCommentText('');
     setReplyingTo(null);
     try {
+      // Fetch the author's current role to persist it on the comment row so
+      // it is available for display even before the manual join runs.
+      let authorRole: string | null = null;
+      const { data: userRow } = await supabaseClient
+        .from('users')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+      authorRole = userRow?.role ?? null;
+
       const { error } = await supabaseClient.from('comments').insert({
         post_id: canonicalPostId,
         user_id: user.id,
@@ -919,6 +951,7 @@ function RigPostCard({ post, index }: {
         user_name: userName,
         avatar_url: avatarUrl,
         parent_id: optimistic.parent_id,
+        role: authorRole,
       });
       if (error) throw error;
     } catch {
