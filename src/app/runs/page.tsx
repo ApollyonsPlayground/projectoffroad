@@ -12,7 +12,12 @@ import {
   CheckCircle2,
   Loader2,
   Zap,
+  X,
+  Mountain,
+  ChevronDown,
+  Flag,
 } from 'lucide-react';
+
 import Link from 'next/link';
 import BottomNav from '@/components/BottomNav';
 import { RunListSkeleton } from '@/components/SkeletonLoader';
@@ -23,14 +28,325 @@ interface Run {
   id: string;
   title: string;
   description: string;
-  date: string;                  // timestamp string from DB
+  date: string;
   meetup_location: string;
   difficulty: string;
   max_participants: number | null;
   vehicle_requirements?: string | null;
   status: string;
   club_id?: string | null;
+  trail_id?: string | null;
+  host_id?: string | null;
   club?: { name: string } | null;
+  trail?: { name: string; difficulty: string } | null;
+}
+
+interface Club {
+  id: string;
+  name: string;
+}
+
+interface Trail {
+  id: string;
+  name: string;
+  location: string | null;
+  difficulty: string | null;
+}
+
+// ─── Form state type ──────────────────────────────────────────────────────────
+const DIFFICULTIES = ['beginner', 'moderate', 'advanced', 'extreme'] as const;
+
+const EMPTY_FORM = {
+  title: '',
+  description: '',
+  date: '',
+  meetup_location: '',
+  max_participants: '',
+  difficulty: 'moderate' as string,
+  club_id: '',
+  trail_id: '',
+};
+
+// ─── HostRunDrawer ────────────────────────────────────────────────────────────
+function HostRunDrawer({
+  open,
+  onClose,
+  onSuccess,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onSuccess: () => void;
+}) {
+  const { user, supabaseClient } = useAuth();
+  const { showToast } = useToast();
+
+  const [form, setForm] = useState({ ...EMPTY_FORM });
+  const [clubs, setClubs] = useState<Club[]>([]);
+  const [trails, setTrails] = useState<Trail[]>([]);
+  const [loadingDropdowns, setLoadingDropdowns] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  // Fetch clubs + trails when drawer opens
+  useEffect(() => {
+    if (!open || !supabaseClient || !user) return;
+    setLoadingDropdowns(true);
+    Promise.all([
+      // Clubs where user is owner or admin via club_members
+      supabaseClient
+        .from('club_members')
+        .select('club_id, clubs(id, name)')
+        .eq('user_id', user.id)
+        .in('role', ['owner', 'admin']),
+      supabaseClient
+        .from('trails')
+        .select('id, name, location, difficulty')
+        .order('name', { ascending: true }),
+    ]).then(([membersRes, trailsRes]) => {
+      const clubList: Club[] = (membersRes.data ?? [])
+        .map((r: any) => r.clubs)
+        .filter(Boolean)
+        .reduce((acc: Club[], c: Club) => {
+          if (!acc.find((x) => x.id === c.id)) acc.push(c);
+          return acc;
+        }, []);
+      setClubs(clubList);
+      setTrails((trailsRes.data ?? []) as Trail[]);
+      setLoadingDropdowns(false);
+    });
+  }, [open, supabaseClient, user]);
+
+  const set = (key: keyof typeof EMPTY_FORM) => (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+  ) => setForm((prev) => ({ ...prev, [key]: e.target.value }));
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user || !supabaseClient) return;
+    if (!form.title.trim() || !form.date || !form.meetup_location.trim()) {
+      showToast('Please fill in Title, Date, and Meetup Location', 'error');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const { error } = await supabaseClient.from('runs').insert({
+        title: form.title.trim(),
+        description: form.description.trim() || null,
+        date: new Date(form.date).toISOString(),
+        meetup_location: form.meetup_location.trim(),
+        max_participants: form.max_participants ? parseInt(form.max_participants, 10) : null,
+        difficulty: form.difficulty,
+        club_id: form.club_id || null,
+        trail_id: form.trail_id || null,
+        host_id: user.id,
+        status: 'upcoming',
+      });
+      if (error) throw error;
+      showToast('Run created!', 'success');
+      setForm({ ...EMPTY_FORM });
+      onSuccess();
+      onClose();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to create run';
+      showToast(msg, 'error');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const inputClass =
+    'w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2.5 text-[14px] text-white placeholder-zinc-600 focus:outline-none focus:border-orange-500/60 transition-colors';
+  const labelClass = 'block text-[12px] font-semibold text-zinc-400 uppercase tracking-wider mb-1.5';
+
+  return (
+    <AnimatePresence>
+      {open && (
+        <>
+          {/* Backdrop */}
+          <motion.div
+            key="backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[9990] bg-black/80 backdrop-blur-sm"
+            onClick={onClose}
+          />
+          {/* Drawer */}
+          <motion.div
+            key="drawer"
+            initial={{ y: '100%' }}
+            animate={{ y: 0 }}
+            exit={{ y: '100%' }}
+            transition={{ type: 'spring', stiffness: 420, damping: 38 }}
+            className="fixed bottom-0 left-0 right-0 z-[9991] max-w-md mx-auto bg-zinc-950 border border-zinc-800 rounded-t-2xl max-h-[92dvh] flex flex-col"
+            style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Handle + header */}
+            <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-zinc-800 flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <Flag size={16} className="text-orange-500" />
+                <h2 className="text-[16px] font-black text-white">Host a Run</h2>
+              </div>
+              <button
+                onClick={onClose}
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-zinc-800 text-zinc-400 hover:text-white transition-colors"
+                aria-label="Close"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Scrollable form */}
+            <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+
+              {/* Title */}
+              <div>
+                <label className={labelClass}>Title *</label>
+                <input
+                  className={inputClass}
+                  placeholder="e.g. Big Bear Shakedown Run"
+                  value={form.title}
+                  onChange={set('title')}
+                  required
+                />
+              </div>
+
+              {/* Description */}
+              <div>
+                <label className={labelClass}>Description</label>
+                <textarea
+                  className={`${inputClass} resize-none`}
+                  rows={3}
+                  placeholder="What to expect, trail conditions, bring-list..."
+                  value={form.description}
+                  onChange={set('description')}
+                />
+              </div>
+
+              {/* Date / Time */}
+              <div>
+                <label className={labelClass}>Date & Time *</label>
+                <input
+                  type="datetime-local"
+                  className={`${inputClass} [color-scheme:dark]`}
+                  value={form.date}
+                  onChange={set('date')}
+                  required
+                />
+              </div>
+
+              {/* Meetup Location */}
+              <div>
+                <label className={labelClass}>Meetup Location *</label>
+                <input
+                  className={inputClass}
+                  placeholder="e.g. Forest Falls Trailhead Parking Lot"
+                  value={form.meetup_location}
+                  onChange={set('meetup_location')}
+                  required
+                />
+              </div>
+
+              {/* Difficulty + Max Participants (side by side) */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className={labelClass}>Difficulty</label>
+                  <div className="relative">
+                    <select
+                      className={`${inputClass} appearance-none pr-8`}
+                      value={form.difficulty}
+                      onChange={set('difficulty')}
+                    >
+                      {DIFFICULTIES.map((d) => (
+                        <option key={d} value={d} className="bg-zinc-900 capitalize">
+                          {d.charAt(0).toUpperCase() + d.slice(1)}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500" />
+                  </div>
+                </div>
+                <div>
+                  <label className={labelClass}>Max Riders</label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={200}
+                    className={inputClass}
+                    placeholder="No limit"
+                    value={form.max_participants}
+                    onChange={set('max_participants')}
+                  />
+                </div>
+              </div>
+
+              {/* Club dropdown */}
+              <div>
+                <label className={labelClass}>
+                  Hosting Club
+                  {loadingDropdowns && <Loader2 size={11} className="inline ml-1.5 animate-spin text-zinc-500" />}
+                </label>
+                <div className="relative">
+                  <select
+                    className={`${inputClass} appearance-none pr-8`}
+                    value={form.club_id}
+                    onChange={set('club_id')}
+                    disabled={loadingDropdowns}
+                  >
+                    <option value="">No club / personal run</option>
+                    {clubs.map((c) => (
+                      <option key={c.id} value={c.id} className="bg-zinc-900">{c.name}</option>
+                    ))}
+                  </select>
+                  <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500" />
+                </div>
+                {clubs.length === 0 && !loadingDropdowns && (
+                  <p className="text-[11px] text-zinc-600 mt-1">You need owner/admin role in a club to host under it.</p>
+                )}
+              </div>
+
+              {/* Trail dropdown */}
+              <div>
+                <label className={labelClass}>
+                  <Mountain size={11} className="inline mr-1" />
+                  Trail
+                </label>
+                <div className="relative">
+                  <select
+                    className={`${inputClass} appearance-none pr-8`}
+                    value={form.trail_id}
+                    onChange={set('trail_id')}
+                    disabled={loadingDropdowns}
+                  >
+                    <option value="">Select a trail (optional)</option>
+                    {trails.map((t) => (
+                      <option key={t.id} value={t.id} className="bg-zinc-900">
+                        {t.name}{t.location ? ` — ${t.location}` : ''}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500" />
+                </div>
+              </div>
+
+              {/* Submit */}
+              <button
+                type="submit"
+                disabled={submitting}
+                className="w-full flex items-center justify-center gap-2 py-3 bg-orange-500 hover:bg-orange-600 disabled:bg-zinc-700 text-black disabled:text-zinc-500 text-[14px] font-black rounded-xl transition-colors"
+              >
+                {submitting ? <Loader2 size={16} className="animate-spin" /> : <Flag size={16} />}
+                {submitting ? 'Creating…' : 'Create Run'}
+              </button>
+
+              {/* Spacer so content isn't hidden behind the keyboard on mobile */}
+              <div className="h-4" />
+            </form>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  );
 }
 
 function getDifficultyColor(difficulty: string): string {
@@ -163,6 +479,7 @@ export default function RunsPage() {
   const [runs, setRuns] = useState<Run[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState<FilterType>('upcoming');
+  const [hostDrawerOpen, setHostDrawerOpen] = useState(false);
   // Set of run IDs the current user has RSVP'd to
   const [joinedRunIds, setJoinedRunIds] = useState<Set<string>>(new Set());
   // Per-run participant counts
@@ -266,13 +583,13 @@ export default function RunsPage() {
           <div className="flex items-center justify-between mb-3">
             <h1 className="text-[20px] font-black text-white">Runs</h1>
             {user && (
-              <Link
-                href="/runs/create"
+              <button
+                onClick={() => setHostDrawerOpen(true)}
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-black text-[13px] font-bold rounded-lg transition-colors"
               >
                 <Plus size={15} />
-                Create Run
-              </Link>
+                Host a Run
+              </button>
             )}
           </div>
           {/* Filter tabs */}
@@ -318,13 +635,13 @@ export default function RunsPage() {
               <h3 className="text-[16px] font-bold text-zinc-400 mb-1">No {filter} runs</h3>
               <p className="text-[13px] text-zinc-600 mb-6">Be the first to organize one</p>
               {user && (
-                <Link
-                  href="/runs/create"
+                <button
+                  onClick={() => setHostDrawerOpen(true)}
                   className="inline-flex items-center gap-2 px-4 py-2.5 bg-orange-500 hover:bg-orange-600 text-black text-[13px] font-bold rounded-xl transition-colors"
                 >
                   <Plus size={15} />
-                  Create Run
-                </Link>
+                  Host a Run
+                </button>
               )}
             </motion.div>
           ) : (
@@ -349,6 +666,13 @@ export default function RunsPage() {
       </main>
 
       <BottomNav />
+
+      {/* Host a Run drawer */}
+      <HostRunDrawer
+        open={hostDrawerOpen}
+        onClose={() => setHostDrawerOpen(false)}
+        onSuccess={fetchRuns}
+      />
     </div>
   );
 }
