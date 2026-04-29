@@ -301,6 +301,7 @@ interface Post {
   liked_by_me?: boolean;
   bookmarked_by_me?: boolean;
   reposted_by_me?: boolean;
+  original_user_name?: string | null;
 }
 
 // ─── Placeholder data ─────────────────────────────────────────────────────────
@@ -657,7 +658,7 @@ function RigPostCard({ post, index }: {
   post: Post;
   index: number;
 }) {
-  const { user, isConfigured, supabaseClient } = useAuth();
+  const { user, isConfigured, supabaseClient, loading: authLoading } = useAuth();
   const { showToast } = useToast();
   const [liked, setLiked] = useState(post.liked_by_me ?? false);
   const [reposted, setReposted] = useState(post.reposted_by_me ?? false);
@@ -693,9 +694,13 @@ function RigPostCard({ post, index }: {
 
   async function haptic(s: ImpactStyle) { try { await Haptics.impact({ style: s }); } catch {} }
 
-  // Load comments when panel opens
+  // Load comments when panel opens — but wait until auth has resolved so
+  // comment_likes are fetched against the real user, not an empty session.
   useEffect(() => {
     if (!commentsOpen || !supabaseClient) return;
+    // If auth is still in flight, hold off; the effect will re-run once
+    // authLoading flips to false (because authLoading is in the dep array).
+    if (authLoading) return;
     setCommentsLoading(true);
     Promise.all([
       supabaseClient
@@ -720,7 +725,7 @@ function RigPostCard({ post, index }: {
       setCommentsLoading(false);
       setTimeout(() => commentInputRef.current?.focus(), 150);
     });
-  }, [commentsOpen, supabaseClient, post.id, user]);
+  }, [commentsOpen, supabaseClient, post.id, user, authLoading]);
 
   const requireAuth = (action: string): boolean => {
     if (!user) {
@@ -1000,7 +1005,10 @@ function RigPostCard({ post, index }: {
           {post.repost_of_id && (
             <div className="flex items-center gap-1 text-[11px] text-zinc-500 mb-1">
               <Repeat2 size={12} className="text-emerald-500/70" />
-              <span>Reposted</span>
+              <span>
+                {post.username ?? 'Rider'} reposted
+                {post.original_user_name ? ` · ${post.original_user_name}` : ''}
+              </span>
             </div>
           )}
 
@@ -1546,7 +1554,7 @@ export default function HomePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
-  const { user, supabaseClient } = useAuth();
+  const { user, supabaseClient, loading: authLoading } = useAuth();
   const router = useRouter();
 
   // Fetch the current user's role for moderation access
@@ -1563,6 +1571,8 @@ export default function HomePage() {
   const isModeratorUser = userRole === 'owner' || userRole === 'admin';
 
   const fetchPosts = useCallback(async () => {
+    // Wait until Supabase auth has finished resolving so we know the real user
+    if (authLoading) return;
     if (!supabaseClient) {
       setPosts(PLACEHOLDER_POSTS);
       setIsLoading(false);
@@ -1593,17 +1603,44 @@ export default function HomePage() {
 
       if (postsResult.error) throw postsResult.error;
 
+      const rawPosts: any[] = postsResult.data ?? [];
+
+      // For repost rows, look up the original post's author so the banner can
+      // say "Reposted · original by <name>" instead of the reposter's name.
+      const repostOriginalIds = [...new Set(
+        rawPosts.filter((p) => p.repost_of_id).map((p) => p.repost_of_id as string)
+      )];
+      let originalAuthors: Record<string, string> = {};
+      if (repostOriginalIds.length > 0) {
+        const { data: originals } = await supabaseClient
+          .from('posts')
+          .select('id, user_name')
+          .in('id', repostOriginalIds);
+        (originals ?? []).forEach((o: any) => {
+          originalAuthors[o.id] = o.user_name ?? 'Rider';
+        });
+      }
+
       const likedIds = new Set((likesResult.data ?? []).map((r: any) => r.post_id));
       const savedIds = new Set((savedResult.data ?? []).map((r: any) => r.post_id));
+      // repostedIds contains the original post IDs that this user has reposted
       const repostedIds = new Set((repostsResult.data ?? []).map((r: any) => r.repost_of_id));
 
-      const normalised = (postsResult.data ?? []).map((p: any) => ({
+      const normalised = rawPosts.map((p: any) => ({
         ...p,
         username: p.user_name ?? 'Rider',
         role: p.role ?? 'user',
         liked_by_me: likedIds.has(p.id),
         bookmarked_by_me: savedIds.has(p.id),
-        reposted_by_me: repostedIds.has(p.id),
+        // For an original post: has the current user reposted it?
+        // For a repost row itself: has the current user reposted the same original?
+        reposted_by_me: p.repost_of_id
+          ? repostedIds.has(p.repost_of_id)
+          : repostedIds.has(p.id),
+        // Attach original author name so the repost banner can show it
+        original_user_name: p.repost_of_id
+          ? (originalAuthors[p.repost_of_id] ?? null)
+          : null,
       }));
       setPosts(normalised.length ? normalised : PLACEHOLDER_POSTS);
     } catch {
@@ -1611,9 +1648,9 @@ export default function HomePage() {
     } finally {
       setIsLoading(false);
     }
-  }, [supabaseClient, user]);
+  }, [supabaseClient, user, authLoading]);
 
-  // Re-run whenever auth state resolves so interactions hydrate correctly
+  // Re-run whenever auth state resolves (authLoading flips false) so interactions hydrate correctly
   useEffect(() => { fetchPosts(); }, [fetchPosts]);
 
   return (
