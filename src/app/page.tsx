@@ -397,7 +397,7 @@ function Caption({ text }: { text: string | null | undefined }) {
   );
 }
 
-// ─── Image Lightbox ───────────────────────────────────────────────────────────
+// ─── Image Lightbox ────────────────────────────────────────────────────��──────
 
 function ImageLightbox({ src, alt, onClose }: { src: string; alt: string; onClose: () => void }) {
   useEffect(() => {
@@ -728,9 +728,10 @@ function RigPostCard({ post, index }: {
     setCommentsLoading(true);
 
     Promise.all([
+      // Use select('*') to avoid 400 errors if some columns don't exist yet.
       supabaseClient
         .from('comments')
-        .select('id, user_id, post_id, content, created_at, user_name, avatar_url, parent_id, role')
+        .select('*')
         .eq('post_id', canonicalId)
         .order('created_at', { ascending: true }),
       user
@@ -953,24 +954,14 @@ function RigPostCard({ post, index }: {
     setCommentText('');
     setReplyingTo(null);
     try {
-      // Fetch the author's current role to persist it on the comment row so
-      // it is available for display even before the manual join runs.
-      let authorRole: string | null = null;
-      const { data: userRow } = await supabaseClient
-        .from('users')
-        .select('role')
-        .eq('id', user.id)
-        .single();
-      authorRole = userRow?.role ?? null;
-
+      // Insert with only core columns that are guaranteed to exist.
+      // Avoid inserting parent_id or role if those columns don't exist in the schema.
       const { error } = await supabaseClient.from('comments').insert({
         post_id: canonicalPostId,
         user_id: user.id,
         content: optimistic.content,
         user_name: userName,
         avatar_url: avatarUrl,
-        parent_id: optimistic.parent_id,
-        role: authorRole,
       });
       if (error) throw error;
     } catch {
