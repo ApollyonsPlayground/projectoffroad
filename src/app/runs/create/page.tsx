@@ -4,11 +4,13 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/context/AuthContext'
 import { createClient } from '@supabase/supabase-js'
-import { Users, AlertCircle } from 'lucide-react'
+import { Users, AlertCircle, Mountain } from 'lucide-react'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 const supabase = createClient(supabaseUrl, supabaseAnonKey)
+
+const NEW_TRAIL_SENTINEL = '__new_trail__'
 
 interface Club {
   id: string
@@ -17,16 +19,28 @@ interface Club {
   is_verified?: boolean
 }
 
+interface Trail {
+  id: string
+  title: string
+  location?: string
+  difficulty?: string
+}
+
 export default function CreateRunPage() {
   const router = useRouter()
   const { user, loading: authLoading } = useAuth()
   const [userClubs, setUserClubs] = useState<Club[]>([])
-  const [submitting, setSubmitting] = useState(false)
+  const [trails, setTrails] = useState<Trail[]>([])
   const [loadingClubs, setLoadingClubs] = useState(true)
+  const [loadingTrails, setLoadingTrails] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
+  const [showNewTrailInput, setShowNewTrailInput] = useState(false)
+  const [newTrailName, setNewTrailName] = useState('')
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     club_id: '',
+    trail_id: '',
     date: '',
     time: '10:00',
     meetup_location: '',
@@ -47,9 +61,13 @@ export default function CreateRunPage() {
     }
   }, [user])
 
+  useEffect(() => {
+    fetchTrails()
+  }, [])
+
   async function fetchUserClubs() {
     if (!user) return
-    
+
     const { data } = await supabase
       .from('club_members')
       .select('*, clubs!inner(id, name, is_verified)')
@@ -57,7 +75,7 @@ export default function CreateRunPage() {
       .in('role', ['owner', 'admin', 'leader'])
 
     setLoadingClubs(false)
-    
+
     if (data && data.length > 0) {
       const clubs = data
         .filter(item => item.clubs)
@@ -71,6 +89,28 @@ export default function CreateRunPage() {
     }
   }
 
+  async function fetchTrails() {
+    const { data } = await supabase
+      .from('trails')
+      .select('id, title, location, difficulty')
+      .order('title', { ascending: true })
+      .limit(200)
+
+    setLoadingTrails(false)
+    if (data) setTrails(data)
+  }
+
+  function handleTrailChange(value: string) {
+    if (value === NEW_TRAIL_SENTINEL) {
+      setShowNewTrailInput(true)
+      setFormData({ ...formData, trail_id: '' })
+    } else {
+      setShowNewTrailInput(false)
+      setNewTrailName('')
+      setFormData({ ...formData, trail_id: value })
+    }
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!user) return
@@ -80,13 +120,23 @@ export default function CreateRunPage() {
     }
 
     setSubmitting(true)
-    
+
     const dateTime = `${formData.date}T${formData.time}:00`
-    
+
+    // If a new trail was typed, send it to trail_suggestions for admin review
+    if (showNewTrailInput && newTrailName.trim()) {
+      await supabase.from('trail_suggestions').insert({
+        name: newTrailName.trim(),
+        suggested_by: user.id,
+        status: 'pending'
+      })
+    }
+
     const { error } = await supabase
       .from('runs')
       .insert({
         club_id: formData.club_id,
+        trail_id: formData.trail_id || null,
         title: formData.title,
         description: formData.description,
         date: dateTime,
@@ -98,7 +148,7 @@ export default function CreateRunPage() {
       })
 
     setSubmitting(false)
-    
+
     if (!error) {
       router.push('/runs')
     } else {
@@ -197,6 +247,51 @@ export default function CreateRunPage() {
                 </option>
               ))}
             </select>
+          </div>
+
+          {/* Trail - fetched from DB */}
+          <div>
+            <label className="block text-xs font-black uppercase tracking-widest text-neutral-400 mb-2">
+              Trail
+              <span className="ml-2 text-neutral-600 normal-case font-normal tracking-normal text-[10px]">
+                {loadingTrails ? 'Loading...' : `${trails.length} trails available`}
+              </span>
+            </label>
+            <div className="relative">
+              <Mountain size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500 pointer-events-none" />
+              <select
+                value={showNewTrailInput ? NEW_TRAIL_SENTINEL : formData.trail_id}
+                onChange={(e) => handleTrailChange(e.target.value)}
+                className="w-full bg-neutral-900 border-2 border-neutral-800 pl-9 pr-4 py-3 text-white focus:border-[#FF8C00] focus:outline-none transition"
+              >
+                <option value="">Select a trail (optional)...</option>
+                {trails.map((trail) => (
+                  <option key={trail.id} value={trail.id}>
+                    {trail.title}{trail.location ? ` — ${trail.location}` : ''}{trail.difficulty ? ` [${trail.difficulty}]` : ''}
+                  </option>
+                ))}
+                <option value={NEW_TRAIL_SENTINEL}>
+                  + Type a New Trail...
+                </option>
+              </select>
+            </div>
+
+            {/* New trail text input — shown when "Type a New Trail..." is selected */}
+            {showNewTrailInput && (
+              <div className="mt-2">
+                <input
+                  type="text"
+                  value={newTrailName}
+                  onChange={(e) => setNewTrailName(e.target.value)}
+                  placeholder="Enter new trail name (will be submitted for admin review)"
+                  className="w-full bg-neutral-900 border-2 border-[#FF8C00]/50 px-4 py-3 text-white focus:border-[#FF8C00] focus:outline-none transition placeholder:text-neutral-600 text-sm"
+                  autoFocus
+                />
+                <p className="mt-1 text-[11px] text-neutral-500">
+                  This trail suggestion will be sent to our admin team for review and approval.
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Date & Time */}

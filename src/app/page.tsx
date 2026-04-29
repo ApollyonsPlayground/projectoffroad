@@ -106,11 +106,28 @@ function NewPostDrawer({ open, onClose, onPosted }: {
         imageUrl = urlData.publicUrl;
       }
 
-      // Step 2: use user metadata directly (no DB lookup needed)
-      const userName = (user.user_metadata?.full_name as string) || (user.user_metadata?.name as string) || user.email?.split('@')[0] || 'Rider';
-      const userRole = 'user'; // Default role; will be set to 'owner' via Supabase if applicable
+      // Step 2: NSFW pre-flight check via Edge Function (only if image was uploaded)
+      if (imageUrl && supabaseClient) {
+        try {
+          const { data: fnData, error: fnError } = await supabaseClient.functions.invoke(
+            'moderate-image',
+            { body: { mode: 'preflight', image_url: imageUrl } }
+          );
+          if (!fnError && fnData?.allowed === false) {
+            showToast('Image flagged as inappropriate and cannot be posted.', 'error');
+            setIsSubmitting(false);
+            return;
+          }
+        } catch {
+          // Edge Function unavailable — allow the upload to proceed (fail open)
+          console.log('[v0] moderate-image edge function unavailable; proceeding');
+        }
+      }
 
-      // Step 3: insert post row — using supabaseClient from AuthContext (has auth session)
+      // Step 3: use user metadata directly (no DB lookup needed)
+      const userName = (user.user_metadata?.full_name as string) || (user.user_metadata?.name as string) || user.email?.split('@')[0] || 'Rider';
+
+      // Step 4: insert post row — using supabaseClient from AuthContext (has auth session)
       const { error: insertError } = await supabaseClient!
         .from('posts')
         .insert({
@@ -397,7 +414,7 @@ function Caption({ text }: { text: string | null | undefined }) {
   );
 }
 
-// ─── Image Lightbox ────────────────────────────────────────────────────��──────
+// ─── Image Lightbox ────────────────────────────────────────────────────���──────
 
 function ImageLightbox({ src, alt, onClose }: { src: string; alt: string; onClose: () => void }) {
   useEffect(() => {
@@ -585,14 +602,24 @@ function CommentRow({
   onLike,
   onFlag,
   onReply,
+  onDelete,
+  currentUserId,
+  currentUserRole,
   isReply = false,
 }: {
   comment: Comment;
   onLike: (c: Comment) => void;
   onFlag: (c: Comment) => void;
   onReply: (c: Comment) => void;
+  onDelete?: (c: Comment) => void;
+  currentUserId?: string;
+  currentUserRole?: string | null;
   isReply?: boolean;
 }) {
+  const canDelete = !!onDelete && (
+    comment.user_id === currentUserId ||
+    currentUserRole?.toLowerCase() === 'owner'
+  );
   return (
     <div className="flex gap-2 items-start group">
       <div className={`${isReply ? 'w-5 h-5' : 'w-6 h-6'} rounded-full bg-zinc-800 flex-shrink-0 overflow-hidden`}>
@@ -643,6 +670,16 @@ function CommentRow({
           >
             <Flag size={10} strokeWidth={1.8} />
           </button>
+          {/* Delete — only visible to comment owner or OWNER role */}
+          {canDelete && (
+            <button
+              onClick={() => onDelete!(comment)}
+              aria-label="Delete comment"
+              className="text-[11px] text-zinc-700 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+            >
+              <Trash2 size={10} strokeWidth={1.8} />
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -669,7 +706,8 @@ function RigPostCard({ post, index }: {
   post: Post;
   index: number;
 }) {
-  const { user, isConfigured, supabaseClient, loading: authLoading } = useAuth();
+  const { user, isConfigured, supabaseClient, loading: authLoading, profile } = useAuth();
+  const userRole = (profile?.role as string | null) ?? null;
   const { showToast } = useToast();
   const [liked, setLiked] = useState(post.liked_by_me ?? false);
   const [reposted, setReposted] = useState(post.reposted_by_me ?? false);
@@ -1011,6 +1049,27 @@ function RigPostCard({ post, index }: {
     }
   };
 
+  const deleteComment = async (comment: Comment) => {
+    if (!supabaseClient || !user) return;
+    const isOwner = userRole === 'owner';
+    if (comment.user_id !== user.id && !isOwner) return;
+    // Optimistic removal
+    setComments((prev) => prev.filter((c) => c.id !== comment.id));
+    setCommentsCount((n) => Math.max(0, n - 1));
+    const { error } = await supabaseClient
+      .from('comments')
+      .delete()
+      .eq('id', comment.id);
+    if (error) {
+      // Rollback on failure
+      setComments((prev) => [...prev, comment].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()));
+      setCommentsCount((n) => n + 1);
+      showToast('Failed to delete comment', 'error');
+    } else {
+      showToast('Comment deleted', 'success');
+    }
+  };
+
   const handleDelete = async () => {
     if (!supabaseClient || !user) return;
     // Guard: only owner or post author can delete
@@ -1253,6 +1312,9 @@ function RigPostCard({ post, index }: {
                             onLike={toggleCommentLike}
                             onFlag={flagComment}
                             onReply={(c) => { setReplyingTo(c); setTimeout(() => commentInputRef.current?.focus(), 80); }}
+                            onDelete={deleteComment}
+                            currentUserId={user?.id}
+                            currentUserRole={userRole}
                           />
                           {/* Replies (indented) */}
                           {comments.filter((r) => r.parent_id === c.id).map((reply) => (
@@ -1264,6 +1326,9 @@ function RigPostCard({ post, index }: {
                                   onLike={toggleCommentLike}
                                   onFlag={flagComment}
                                   onReply={(c) => { setReplyingTo(c); setTimeout(() => commentInputRef.current?.focus(), 80); }}
+                                  onDelete={deleteComment}
+                                  currentUserId={user?.id}
+                                  currentUserRole={userRole}
                                   isReply
                                 />
                               </div>
@@ -1641,10 +1706,11 @@ export default function HomePage() {
     }
     try {
       // Fetch posts + user interaction booleans in parallel
+      // Join users table to get the live avatar/photo url for post cards
       const [postsResult, likesResult, savedResult, repostsResult] = await Promise.all([
         supabaseClient
           .from('posts')
-          .select('*')
+          .select('*, users(avatar_url, photo_url)')
           .order('created_at', { ascending: false })
           .limit(30),
         user
@@ -1698,6 +1764,8 @@ export default function HomePage() {
           ...p,
           username: p.user_name ?? 'Rider',
           role: p.role ?? 'user',
+          // Prefer live avatar from users join; fall back to denormalised column
+          avatar_url: (p.users as any)?.avatar_url ?? (p.users as any)?.photo_url ?? p.avatar_url ?? null,
           liked_by_me: likedIds.has(p.id),
           bookmarked_by_me: savedIds.has(p.id),
           reposted_by_me: p.repost_of_id
