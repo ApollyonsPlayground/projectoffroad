@@ -566,10 +566,9 @@ interface Comment {
   id: string;
   user_id: string;
   post_id: string;
-  body: string;
+  content: string;
   created_at: string;
-  user_name?: string;
-  avatar_url?: string;
+  users?: { name: string | null; avatar_url: string | null } | null;
 }
 
 function RigPostCard({ post, index }: {
@@ -635,11 +634,11 @@ function RigPostCard({ post, index }: {
     setCommentsLoading(true);
     supabaseClient
       .from('comments')
-      .select('id, user_id, post_id, body, created_at, user_name, avatar_url')
+      .select('id, user_id, post_id, content, created_at, users(name, avatar_url)')
       .eq('post_id', post.id)
       .order('created_at', { ascending: true })
       .then(({ data }) => {
-        setComments((data as Comment[]) ?? []);
+        setComments((data as unknown as Comment[]) ?? []);
         setCommentsLoading(false);
         setTimeout(() => commentInputRef.current?.focus(), 150);
       });
@@ -723,10 +722,12 @@ function RigPostCard({ post, index }: {
       id: crypto.randomUUID(),
       user_id: user.id,
       post_id: post.id,
-      body: commentText.trim(),
+      content: commentText.trim(),
       created_at: new Date().toISOString(),
-      user_name: (user.user_metadata?.full_name as string) || user.email?.split('@')[0] || 'You',
-      avatar_url: (user.user_metadata?.avatar_url as string) || null,
+      users: {
+        name: (user.user_metadata?.full_name as string) || user.email?.split('@')[0] || 'You',
+        avatar_url: (user.user_metadata?.avatar_url as string) || null,
+      },
     };
     setComments((c) => [...c, optimistic]);
     setCommentsCount((n) => n + 1);
@@ -735,9 +736,7 @@ function RigPostCard({ post, index }: {
       const { error } = await supabaseClient.from('comments').insert({
         post_id: post.id,
         user_id: user.id,
-        body: optimistic.body,
-        user_name: optimistic.user_name,
-        avatar_url: optimistic.avatar_url,
+        content: optimistic.content,
       });
       if (error) throw error;
     } catch {
@@ -1003,17 +1002,17 @@ function RigPostCard({ post, index }: {
                       {comments.map((c) => (
                         <div key={c.id} className="flex gap-2 items-start">
                           <div className="w-6 h-6 rounded-full bg-zinc-800 flex-shrink-0 overflow-hidden">
-                            {c.avatar_url ? (
-                              <img src={c.avatar_url} alt="" className="w-full h-full object-cover" />
+                            {c.users?.avatar_url ? (
+                              <img src={c.users.avatar_url} alt="" className="w-full h-full object-cover" />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center text-[8px] font-bold text-zinc-500">
-                                {(c.user_name ?? 'U')[0].toUpperCase()}
+                                {(c.users?.name ?? 'U')[0].toUpperCase()}
                               </div>
                             )}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <span className="text-[12px] font-semibold text-zinc-300 mr-1.5">{c.user_name ?? 'Rider'}</span>
-                            <span className="text-[12px] text-zinc-400 break-words">{c.body}</span>
+                            <span className="text-[12px] font-semibold text-zinc-300 mr-1.5">{c.users?.name ?? 'Rider'}</span>
+                            <span className="text-[12px] text-zinc-400 break-words">{c.content}</span>
                           </div>
                         </div>
                       ))}

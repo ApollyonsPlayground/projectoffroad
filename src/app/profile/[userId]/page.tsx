@@ -18,7 +18,7 @@ interface PostRow {
 
 interface CommentRow {
   id: string;
-  body: string;
+  content: string;
   created_at: string;
   posts?: { id: string; body?: string; user_name?: string } | null;
 }
@@ -90,7 +90,7 @@ export default function UserProfilePage() {
       } else if (tab === 'comments') {
         const { data } = await supabaseClient
           .from('comments')
-          .select('id, body, created_at, posts(id, body, user_name)')
+          .select('id, content, created_at, posts(id, body, user_name)')
           .eq('user_id', userId)
           .order('created_at', { ascending: false })
           .limit(30);
@@ -215,7 +215,7 @@ export default function UserProfilePage() {
                     On: {c.posts.user_name ? `${c.posts.user_name}'s post` : 'a post'}
                   </p>
                 )}
-                <p className="text-white text-[13px] leading-relaxed">{c.body}</p>
+                <p className="text-white text-[13px] leading-relaxed">{c.content}</p>
                 <p className="text-zinc-600 text-[11px] mt-1">{timeAgo(c.created_at)}</p>
               </div>
             ))}
