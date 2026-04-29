@@ -562,6 +562,16 @@ function StatBtn({
 
 // ─── RigPostCard ──────────────────────────────────────────────────────────────
 
+interface Comment {
+  id: string;
+  user_id: string;
+  post_id: string;
+  body: string;
+  created_at: string;
+  user_name?: string;
+  avatar_url?: string;
+}
+
 function RigPostCard({ post, index }: {
   post: Post;
   index: number;
@@ -573,6 +583,12 @@ function RigPostCard({ post, index }: {
   const [bookmarked, setBookmarked] = useState(false);
   const [likesCount, setLikesCount] = useState(post.likes_count);
   const [repostsCount, setRepostsCount] = useState(post.reposts_count ?? 0);
+  const [commentsOpen, setCommentsOpen] = useState(false);
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [commentsLoading, setCommentsLoading] = useState(false);
+  const [commentText, setCommentText] = useState('');
+  const [submittingComment, setSubmittingComment] = useState(false);
+  const [commentsCount, setCommentsCount] = useState(post.comments_count ?? 0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [avatarError, setAvatarError] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -580,6 +596,7 @@ function RigPostCard({ post, index }: {
   const [reportReason, setReportReason] = useState('');
   const [isReporting, setIsReporting] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const commentInputRef = useRef<HTMLInputElement>(null);
 
   // Close menu on outside click
   useEffect(() => {
@@ -592,6 +609,41 @@ function RigPostCard({ post, index }: {
   }, [menuOpen]);
 
   async function haptic(s: ImpactStyle) { try { await Haptics.impact({ style: s }); } catch {} }
+
+  // Initialise liked + bookmarked state from DB
+  useEffect(() => {
+    if (!user || !supabaseClient) return;
+    supabaseClient
+      .from('post_likes')
+      .select('id')
+      .eq('post_id', post.id)
+      .eq('user_id', user.id)
+      .maybeSingle()
+      .then(({ data }) => { if (data) setLiked(true); });
+    supabaseClient
+      .from('saved_posts')
+      .select('id')
+      .eq('post_id', post.id)
+      .eq('user_id', user.id)
+      .maybeSingle()
+      .then(({ data }) => { if (data) setBookmarked(true); });
+  }, [user, supabaseClient, post.id]);
+
+  // Load comments when panel opens
+  useEffect(() => {
+    if (!commentsOpen || !supabaseClient) return;
+    setCommentsLoading(true);
+    supabaseClient
+      .from('comments')
+      .select('id, user_id, post_id, body, created_at, user_name, avatar_url')
+      .eq('post_id', post.id)
+      .order('created_at', { ascending: true })
+      .then(({ data }) => {
+        setComments((data as Comment[]) ?? []);
+        setCommentsLoading(false);
+        setTimeout(() => commentInputRef.current?.focus(), 150);
+      });
+  }, [commentsOpen, supabaseClient, post.id]);
 
   const requireAuth = (action: string): boolean => {
     if (!user) {
@@ -611,26 +663,23 @@ function RigPostCard({ post, index }: {
       try {
         if (nowLiked) {
           const { error } = await supabaseClient
-            .from('likes')
+            .from('post_likes')
             .insert({ post_id: post.id, user_id: user.id });
-          // Ignore UNIQUE constraint violations (already liked)
-          if (error && error.code !== '23505') {
-            throw error;
-          }
+          if (error && error.code !== '23505') throw error;
         } else {
           const { error } = await supabaseClient
-            .from('likes')
+            .from('post_likes')
             .delete()
             .match({ post_id: post.id, user_id: user.id });
           if (error) throw error;
         }
-      } catch (err) {
+      } catch {
         setLiked(!nowLiked);
         setLikesCount((c) => (nowLiked ? c - 1 : c + 1));
         showToast('Could not save like. Try again.', 'error');
       }
     } else if (!user) {
-      showToast('Sign in to sync your likes', 'info');
+      showToast('Sign in to like posts', 'info');
     }
   };
 
@@ -647,15 +696,56 @@ function RigPostCard({ post, index }: {
     setBookmarked(nowSaved);
     if (supabaseClient && user) {
       try {
-        if (bookmarked) {
-          await supabaseClient.from('bookmarks').insert({ post_id: post.id, user_id: user.id });
+        if (nowSaved) {
+          const { error } = await supabaseClient
+            .from('saved_posts')
+            .insert({ post_id: post.id, user_id: user.id });
+          if (error && error.code !== '23505') throw error;
         } else {
-          await supabaseClient.from('bookmarks').delete().match({ post_id: post.id, user_id: user.id });
+          const { error } = await supabaseClient
+            .from('saved_posts')
+            .delete()
+            .match({ post_id: post.id, user_id: user.id });
+          if (error) throw error;
         }
       } catch {
         setBookmarked(!nowSaved);
         showToast('Could not update bookmark', 'error');
       }
+    }
+  };
+
+  const submitComment = async () => {
+    if (!commentText.trim() || !user || !supabaseClient) return;
+    if (!requireAuth('comment')) return;
+    setSubmittingComment(true);
+    const optimistic: Comment = {
+      id: crypto.randomUUID(),
+      user_id: user.id,
+      post_id: post.id,
+      body: commentText.trim(),
+      created_at: new Date().toISOString(),
+      user_name: (user.user_metadata?.full_name as string) || user.email?.split('@')[0] || 'You',
+      avatar_url: (user.user_metadata?.avatar_url as string) || null,
+    };
+    setComments((c) => [...c, optimistic]);
+    setCommentsCount((n) => n + 1);
+    setCommentText('');
+    try {
+      const { error } = await supabaseClient.from('comments').insert({
+        post_id: post.id,
+        user_id: user.id,
+        body: optimistic.body,
+        user_name: optimistic.user_name,
+        avatar_url: optimistic.avatar_url,
+      });
+      if (error) throw error;
+    } catch {
+      setComments((c) => c.filter((x) => x.id !== optimistic.id));
+      setCommentsCount((n) => n - 1);
+      showToast('Failed to post comment', 'error');
+    } finally {
+      setSubmittingComment(false);
     }
   };
 
@@ -849,10 +939,20 @@ function RigPostCard({ post, index }: {
             </p>
           )}
 
-          {/* Action bar: Reply · Repost · Like · Share · Trail-Save */}
+          {/* Action bar */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-5">
-              <StatBtn icon={MessageCircle} count={post.comments_count} label="Reply" />
+              <StatBtn
+                icon={MessageCircle}
+                count={commentsCount}
+                active={commentsOpen}
+                activeColor="text-sky-400"
+                label="Comment"
+                onClick={() => {
+                  if (!requireAuth('comment')) return;
+                  setCommentsOpen((o) => !o);
+                }}
+              />
               <StatBtn
                 icon={Repeat2}
                 count={repostsCount}
@@ -871,8 +971,6 @@ function RigPostCard({ post, index }: {
               />
               <StatBtn icon={Share2} label="Share" onClick={handleShare} />
             </div>
-
-            {/* Bookmark */}
             <motion.button
               whileTap={{ scale: 1.28 }}
               transition={{ type: 'spring', stiffness: 600, damping: 14 }}
@@ -883,6 +981,79 @@ function RigPostCard({ post, index }: {
               <Bookmark size={17} strokeWidth={1.8} className={bookmarked ? 'fill-orange-500/40' : ''} />
             </motion.button>
           </div>
+
+          {/* Inline comment panel */}
+          <AnimatePresence>
+            {commentsOpen && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.2 }}
+                className="overflow-hidden"
+              >
+                <div className="pt-3 border-t border-zinc-800/60 mt-3 space-y-3">
+                  {/* Comment list */}
+                  {commentsLoading ? (
+                    <div className="text-zinc-600 text-[12px] py-1">Loading comments...</div>
+                  ) : comments.length === 0 ? (
+                    <div className="text-zinc-600 text-[12px] py-1">No comments yet. Be the first.</div>
+                  ) : (
+                    <div className="space-y-2.5 max-h-48 overflow-y-auto pr-1">
+                      {comments.map((c) => (
+                        <div key={c.id} className="flex gap-2 items-start">
+                          <div className="w-6 h-6 rounded-full bg-zinc-800 flex-shrink-0 overflow-hidden">
+                            {c.avatar_url ? (
+                              <img src={c.avatar_url} alt="" className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-[8px] font-bold text-zinc-500">
+                                {(c.user_name ?? 'U')[0].toUpperCase()}
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <span className="text-[12px] font-semibold text-zinc-300 mr-1.5">{c.user_name ?? 'Rider'}</span>
+                            <span className="text-[12px] text-zinc-400 break-words">{c.body}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Comment input */}
+                  <div className="flex gap-2 items-center">
+                    <div className="w-6 h-6 rounded-full bg-zinc-800 flex-shrink-0 overflow-hidden">
+                      {user?.user_metadata?.avatar_url ? (
+                        <img src={user.user_metadata.avatar_url as string} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-[8px] font-bold text-zinc-500">
+                          {user?.email?.[0]?.toUpperCase() ?? 'U'}
+                        </div>
+                      )}
+                    </div>
+                    <input
+                      ref={commentInputRef}
+                      type="text"
+                      value={commentText}
+                      onChange={(e) => setCommentText(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitComment(); } }}
+                      placeholder="Add a comment..."
+                      className="flex-1 bg-zinc-900 border border-zinc-800 rounded-full px-3 py-1.5 text-[12px] text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-600 transition-colors"
+                    />
+                    <motion.button
+                      whileTap={{ scale: 0.9 }}
+                      onClick={submitComment}
+                      disabled={!commentText.trim() || submittingComment}
+                      aria-label="Post comment"
+                      className="text-orange-500 disabled:text-zinc-700 transition-colors flex-shrink-0"
+                    >
+                      {submittingComment ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} strokeWidth={2} />}
+                    </motion.button>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </motion.article>
 
