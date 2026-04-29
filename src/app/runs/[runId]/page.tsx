@@ -61,7 +61,6 @@ interface RunAlert {
   run_id: string;
   user_id: string;
   user_name: string | null;
-  alert_type: string;
   latitude: number | null;
   longitude: number | null;
   message: string | null;
@@ -223,10 +222,9 @@ export default function RunDetailPage() {
 
     // Fetch any existing SOS alerts from the last 2 hours
     supabaseClient
-      .from('run_alerts')
+      .from('sos_alerts')
       .select('*')
       .eq('run_id', runId)
-      .eq('alert_type', 'sos')
       .gte('created_at', new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString())
       .order('created_at', { ascending: false })
       .then(({ data }) => {
@@ -235,20 +233,18 @@ export default function RunDetailPage() {
 
     // Subscribe to new SOS alerts in realtime
     const channel = supabaseClient
-      .channel(`run-sos-${runId}`)
+      .channel(`sos-alerts-${runId}`)
       .on(
         'postgres_changes',
         {
           event: 'INSERT',
           schema: 'public',
-          table: 'run_alerts',
+          table: 'sos_alerts',
           filter: `run_id=eq.${runId}`,
         },
         (payload) => {
           const alert = payload.new as RunAlert;
-          if (alert.alert_type === 'sos') {
-            setActiveAlerts((prev) => [alert, ...prev]);
-          }
+          setActiveAlerts((prev) => [alert, ...prev]);
         }
       )
       .subscribe();
@@ -278,11 +274,10 @@ export default function RunDetailPage() {
 
       const { latitude, longitude } = position.coords;
 
-      const { error } = await supabaseClient.from('run_alerts').insert({
+      const { error } = await supabaseClient.from('sos_alerts').insert({
         run_id: run.id,
         user_id: user.id,
         user_name: userName,
-        alert_type: 'sos',
         latitude,
         longitude,
         message: `${userName} needs assistance on ${run.title}.`,
@@ -293,11 +288,10 @@ export default function RunDetailPage() {
     } catch (err: any) {
       if (err?.code === 1) {
         // PERMISSION_DENIED — fall back to alert without coords
-        const { error } = await supabaseClient.from('run_alerts').insert({
+        const { error } = await supabaseClient.from('sos_alerts').insert({
           run_id: run.id,
           user_id: user.id,
           user_name: userName,
-          alert_type: 'sos',
           latitude: null,
           longitude: null,
           message: `${userName} needs assistance on ${run.title}. (Location unavailable)`,

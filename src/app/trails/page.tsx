@@ -20,7 +20,23 @@ import Link from 'next/link';
 import BottomNav from '@/components/BottomNav';
 import { useToast } from '@/components/Toast';
 import { TrailListSkeleton } from '@/components/SkeletonLoader';
+import { useAuth } from '@/context/AuthContext';
 import trailsData from '@/data/trails.json';
+
+/** Parse "34.3031, -117.4524" or Google Maps URL into [lat, lng]. */
+function parseCoordinates(trail: { coordinates?: string; mapsUrl?: string }): { lat: number; lng: number } | null {
+  if (trail.coordinates) {
+    const parts = trail.coordinates.split(',').map((s) => parseFloat(s.trim()));
+    if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+      return { lat: parts[0], lng: parts[1] };
+    }
+  }
+  if (trail.mapsUrl) {
+    const match = trail.mapsUrl.match(/query=([-\d.]+),([-\d.]+)/);
+    if (match) return { lat: parseFloat(match[1]), lng: parseFloat(match[2]) };
+  }
+  return null;
+}
 
 // Leaflet requires browser APIs — load with no SSR
 const TrailMap = dynamic(() => import('@/components/TrailMap'), {
@@ -190,7 +206,9 @@ function TrailCard({ trail, index, onSave }: {
 
 export default function TrailsPage() {
   const { showToast } = useToast();
+  const { supabaseClient } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
+  const [dbTrails, setDbTrails] = useState<Trail[]>([]);
 
   const handleSaveTrail = useCallback((trail: Trail) => {
     showToast(`"${trail.name}" saved to your trail list`, 'success');
@@ -201,6 +219,54 @@ export default function TrailsPage() {
   const [view, setView] = useState<'list' | 'map'>('list');
 
   const trails = trailsData as Trail[];
+
+  // ── Task 1: Upsert all trail coordinates from JSON into Supabase ────────────
+  const upsertTrailCoordinates = useCallback(async () => {
+    if (!supabaseClient) return;
+    const rows = trails.map((t) => {
+      const coords = parseCoordinates(t as any);
+      return {
+        id: t.id,
+        name: t.name,
+        location: t.location,
+        difficulty: t.difficulty || t.difficultyLevel,
+        description: t.description,
+        photo_url: t.image ?? null,
+        latitude: coords?.lat ?? null,
+        longitude: coords?.lng ?? null,
+      };
+    });
+    // Upsert in batches to avoid request size limits
+    const BATCH_SIZE = 20;
+    for (let i = 0; i < rows.length; i += BATCH_SIZE) {
+      await supabaseClient
+        .from('trails')
+        .upsert(rows.slice(i, i + BATCH_SIZE), { onConflict: 'id' });
+    }
+  }, [supabaseClient, trails]);
+
+  // ── Task 2: Fetch trails from Supabase for the map ──────────────────────────
+  useEffect(() => {
+    if (!supabaseClient) return;
+    // Run upsert first, then fetch
+    upsertTrailCoordinates().then(() => {
+      supabaseClient
+        .from('trails')
+        .select('id, name, location, difficulty, description, photo_url, latitude, longitude')
+        .order('name', { ascending: true })
+        .then(({ data }) => {
+          if (data && data.length > 0) {
+            setDbTrails(
+              data.map((t: any) => ({
+                ...t,
+                image: t.photo_url,
+                coordinates: t.latitude && t.longitude ? `${t.latitude}, ${t.longitude}` : undefined,
+              }))
+            );
+          }
+        });
+    });
+  }, [supabaseClient, upsertTrailCoordinates]);
 
   const filteredTrails = useMemo(() => {
     return trails.filter((trail) => {
@@ -336,7 +402,7 @@ export default function TrailsPage() {
               style={{ height: 'calc(100dvh - 168px)' }}
               className="relative"
             >
-              <TrailMap trails={trails} />
+              <TrailMap trails={dbTrails.length > 0 ? dbTrails : trails} />
             </motion.div>
           ) : isLoading ? (
             <motion.div
