@@ -193,8 +193,8 @@ export default function TrailMap({ trails }: TrailMapProps) {
             <span style={{ color: '#a1a1aa', fontSize: '11px', fontWeight: 600 }}>{label}</span>
           </div>
         ))}
-        <p style={{ color: '#52525b', fontSize: '10px', marginTop: '4px' }}>
-          {plotted.length} trails plotted
+        <p style={{ color: '#71717a', fontSize: '10px', marginTop: '6px', fontWeight: 600 }}>
+          {plotted.length} trail{plotted.length !== 1 ? 's' : ''} match{plotted.length === 1 ? 'es' : ''} your filter
         </p>
       </div>
     </div>
