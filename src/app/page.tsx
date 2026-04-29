@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -22,6 +22,8 @@ import {
   Bookmark,
   Loader2,
   Trash2,
+  CornerDownRight,
+  ShieldAlert,
 } from 'lucide-react';
 import Link from 'next/link';
 import BottomNav from '@/components/BottomNav';
@@ -295,6 +297,7 @@ interface Post {
   avatar_url?: string;
   verified?: boolean;
   role?: string;
+  repost_of_id?: string | null;
 }
 
 // ─── Placeholder data ─────────────────────────────────────────────────────────
@@ -560,6 +563,72 @@ function StatBtn({
   );
 }
 
+// ─── CommentRow ───────────────────────────────────────────────────────────────
+
+function CommentRow({
+  comment,
+  onLike,
+  onFlag,
+  onReply,
+  isReply = false,
+}: {
+  comment: Comment;
+  onLike: (c: Comment) => void;
+  onFlag: (c: Comment) => void;
+  onReply: (c: Comment) => void;
+  isReply?: boolean;
+}) {
+  return (
+    <div className="flex gap-2 items-start group">
+      <div className={`${isReply ? 'w-5 h-5' : 'w-6 h-6'} rounded-full bg-zinc-800 flex-shrink-0 overflow-hidden`}>
+        {comment.avatar_url ? (
+          <img src={comment.avatar_url} alt="" className="w-full h-full object-cover" />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-[8px] font-bold text-zinc-500">
+            {(comment.user_name ?? 'U')[0].toUpperCase()}
+          </div>
+        )}
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-baseline gap-1.5 flex-wrap">
+          <span className="text-[12px] font-semibold text-zinc-300">{comment.user_name ?? 'Rider'}</span>
+          <span className="text-[12px] text-zinc-400 break-words">{comment.content}</span>
+        </div>
+        {/* Sub-row: actions */}
+        <div className="flex items-center gap-3 mt-0.5">
+          {/* Comment like */}
+          <button
+            onClick={() => onLike(comment)}
+            aria-label={comment.liked_by_me ? 'Unlike comment' : 'Like comment'}
+            className={`flex items-center gap-0.5 text-[11px] transition-colors ${
+              comment.liked_by_me ? 'text-orange-400' : 'text-zinc-600 hover:text-zinc-400'
+            }`}
+          >
+            <Heart size={10} className={comment.liked_by_me ? 'fill-orange-400' : ''} strokeWidth={1.8} />
+            {(comment.likes_count ?? 0) > 0 && <span>{comment.likes_count}</span>}
+          </button>
+          {/* Reply */}
+          <button
+            onClick={() => onReply(comment)}
+            aria-label="Reply"
+            className="text-[11px] text-zinc-600 hover:text-sky-400 transition-colors"
+          >
+            Reply
+          </button>
+          {/* Flag */}
+          <button
+            onClick={() => onFlag(comment)}
+            aria-label="Flag comment"
+            className="text-[11px] text-zinc-700 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
+          >
+            <Flag size={10} strokeWidth={1.8} />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── RigPostCard ──────────────────────────────────────────────────────────────
 
 interface Comment {
@@ -568,7 +637,11 @@ interface Comment {
   post_id: string;
   content: string;
   created_at: string;
-  users?: { name: string | null; avatar_url: string | null } | null;
+  user_name?: string | null;
+  avatar_url?: string | null;
+  parent_id?: string | null;
+  likes_count?: number;
+  liked_by_me?: boolean;
 }
 
 function RigPostCard({ post, index }: {
@@ -586,8 +659,10 @@ function RigPostCard({ post, index }: {
   const [comments, setComments] = useState<Comment[]>([]);
   const [commentsLoading, setCommentsLoading] = useState(false);
   const [commentText, setCommentText] = useState('');
+  const [replyingTo, setReplyingTo] = useState<Comment | null>(null);
   const [submittingComment, setSubmittingComment] = useState(false);
   const [commentsCount, setCommentsCount] = useState(post.comments_count ?? 0);
+  const [postFlagged, setPostFlagged] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [avatarError, setAvatarError] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -632,17 +707,30 @@ function RigPostCard({ post, index }: {
   useEffect(() => {
     if (!commentsOpen || !supabaseClient) return;
     setCommentsLoading(true);
-    supabaseClient
-      .from('comments')
-      .select('id, user_id, post_id, content, created_at, users(name, avatar_url)')
-      .eq('post_id', post.id)
-      .order('created_at', { ascending: true })
-      .then(({ data }) => {
-        setComments((data as unknown as Comment[]) ?? []);
-        setCommentsLoading(false);
-        setTimeout(() => commentInputRef.current?.focus(), 150);
-      });
-  }, [commentsOpen, supabaseClient, post.id]);
+    Promise.all([
+      supabaseClient
+        .from('comments')
+        .select('id, user_id, post_id, content, created_at, user_name, avatar_url, parent_id')
+        .eq('post_id', post.id)
+        .order('created_at', { ascending: true }),
+      user
+        ? supabaseClient
+            .from('comment_likes')
+            .select('comment_id')
+            .eq('user_id', user.id)
+        : Promise.resolve({ data: [] }),
+    ]).then(([{ data: rawComments }, { data: myLikes }]) => {
+      const likedIds = new Set((myLikes ?? []).map((l: any) => l.comment_id));
+      const enriched: Comment[] = (rawComments ?? []).map((c: any) => ({
+        ...c,
+        liked_by_me: likedIds.has(c.id),
+        likes_count: 0,
+      }));
+      setComments(enriched);
+      setCommentsLoading(false);
+      setTimeout(() => commentInputRef.current?.focus(), 150);
+    });
+  }, [commentsOpen, supabaseClient, post.id, user]);
 
   const requireAuth = (action: string): boolean => {
     if (!user) {
@@ -684,8 +772,74 @@ function RigPostCard({ post, index }: {
 
   const toggleRepost = async () => {
     if (!requireAuth('repost')) return;
+    if (!supabaseClient || !user) return;
     await haptic(ImpactStyle.Light);
-    setReposted((p) => { setRepostsCount((c) => (p ? c - 1 : c + 1)); return !p; });
+    if (reposted) {
+      // Un-repost: delete the repost row
+      const { error } = await supabaseClient
+        .from('posts')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('repost_of_id', post.id);
+      if (!error) { setReposted(false); setRepostsCount((c) => c - 1); }
+    } else {
+      const userName = (user.user_metadata?.full_name as string) || user.email?.split('@')[0] || 'Rider';
+      const { error } = await supabaseClient.from('posts').insert({
+        user_id: user.id,
+        user_name: userName,
+        body: post.body ?? post.caption ?? '',
+        image_url: post.image_url ?? null,
+        rig_model: post.rig_model ?? null,
+        repost_of_id: post.id,
+        role: 'user',
+      });
+      if (!error) { setReposted(true); setRepostsCount((c) => c + 1); showToast('Reposted!', 'success'); }
+      else showToast('Could not repost', 'error');
+    }
+  };
+
+  const flagPost = async () => {
+    if (!requireAuth('flag posts')) return;
+    if (!supabaseClient || !user || postFlagged) return;
+    const { error } = await supabaseClient
+      .from('post_flags')
+      .insert({ post_id: post.id, user_id: user.id, reason: 'flagged' });
+    if (!error) { setPostFlagged(true); showToast('Post flagged for review', 'info'); }
+  };
+
+  const toggleCommentLike = async (comment: Comment) => {
+    if (!requireAuth('like comments')) return;
+    if (!supabaseClient || !user) return;
+    const nowLiked = !comment.liked_by_me;
+    setComments((prev) => prev.map((c) =>
+      c.id === comment.id
+        ? { ...c, liked_by_me: nowLiked, likes_count: (c.likes_count ?? 0) + (nowLiked ? 1 : -1) }
+        : c
+    ));
+    if (nowLiked) {
+      const { error } = await supabaseClient
+        .from('comment_likes')
+        .insert({ comment_id: comment.id, user_id: user.id });
+      if (error && error.code !== '23505') {
+        setComments((prev) => prev.map((c) =>
+          c.id === comment.id ? { ...c, liked_by_me: false, likes_count: (c.likes_count ?? 1) - 1 } : c
+        ));
+      }
+    } else {
+      await supabaseClient
+        .from('comment_likes')
+        .delete()
+        .match({ comment_id: comment.id, user_id: user.id });
+    }
+  };
+
+  const flagComment = async (comment: Comment) => {
+    if (!requireAuth('flag comments')) return;
+    if (!supabaseClient || !user) return;
+    const { error } = await supabaseClient
+      .from('comment_flags')
+      .insert({ comment_id: comment.id, user_id: user.id, reason: 'flagged' });
+    if (!error) showToast('Comment flagged', 'info');
   };
 
   const toggleBookmark = async () => {
@@ -718,25 +872,32 @@ function RigPostCard({ post, index }: {
     if (!commentText.trim() || !user || !supabaseClient) return;
     if (!requireAuth('comment')) return;
     setSubmittingComment(true);
+    const userName = (user.user_metadata?.full_name as string) || user.email?.split('@')[0] || 'Rider';
+    const avatarUrl = (user.user_metadata?.avatar_url as string) || null;
     const optimistic: Comment = {
       id: crypto.randomUUID(),
       user_id: user.id,
       post_id: post.id,
       content: commentText.trim(),
       created_at: new Date().toISOString(),
-      users: {
-        name: (user.user_metadata?.full_name as string) || user.email?.split('@')[0] || 'You',
-        avatar_url: (user.user_metadata?.avatar_url as string) || null,
-      },
+      user_name: userName,
+      avatar_url: avatarUrl,
+      parent_id: replyingTo?.id ?? null,
+      liked_by_me: false,
+      likes_count: 0,
     };
     setComments((c) => [...c, optimistic]);
     setCommentsCount((n) => n + 1);
     setCommentText('');
+    setReplyingTo(null);
     try {
       const { error } = await supabaseClient.from('comments').insert({
         post_id: post.id,
         user_id: user.id,
         content: optimistic.content,
+        user_name: userName,
+        avatar_url: avatarUrl,
+        parent_id: optimistic.parent_id,
       });
       if (error) throw error;
     } catch {
@@ -834,6 +995,14 @@ function RigPostCard({ post, index }: {
 
         {/* ── Right column: content ─────────────── */}
         <div className="flex-1 min-w-0">
+
+          {/* Repost banner */}
+          {post.repost_of_id && (
+            <div className="flex items-center gap-1 text-[11px] text-zinc-500 mb-1">
+              <Repeat2 size={12} className="text-emerald-500/70" />
+              <span>Reposted</span>
+            </div>
+          )}
 
           {/* Header row: name + verified + vehicle + time + menu */}
           <div className="flex items-start justify-between gap-2 mb-1">
@@ -940,7 +1109,7 @@ function RigPostCard({ post, index }: {
 
           {/* Action bar */}
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-5">
+            <div className="flex items-center gap-4">
               <StatBtn
                 icon={MessageCircle}
                 count={commentsCount}
@@ -969,6 +1138,16 @@ function RigPostCard({ post, index }: {
                 onClick={toggleLike}
               />
               <StatBtn icon={Share2} label="Share" onClick={handleShare} />
+              <motion.button
+                whileTap={{ scale: 1.2 }}
+                onClick={flagPost}
+                disabled={postFlagged}
+                aria-label="Flag post"
+                title="Flag for review"
+                className={`transition-colors ${postFlagged ? 'text-red-400' : 'text-zinc-600 hover:text-red-400'}`}
+              >
+                <Flag size={15} strokeWidth={1.8} />
+              </motion.button>
             </div>
             <motion.button
               whileTap={{ scale: 1.28 }}
@@ -998,24 +1177,44 @@ function RigPostCard({ post, index }: {
                   ) : comments.length === 0 ? (
                     <div className="text-zinc-600 text-[12px] py-1">No comments yet. Be the first.</div>
                   ) : (
-                    <div className="space-y-2.5 max-h-48 overflow-y-auto pr-1">
-                      {comments.map((c) => (
-                        <div key={c.id} className="flex gap-2 items-start">
-                          <div className="w-6 h-6 rounded-full bg-zinc-800 flex-shrink-0 overflow-hidden">
-                            {c.users?.avatar_url ? (
-                              <img src={c.users.avatar_url} alt="" className="w-full h-full object-cover" />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center text-[8px] font-bold text-zinc-500">
-                                {(c.users?.name ?? 'U')[0].toUpperCase()}
+                    <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                      {/* Top-level comments first, then replies */}
+                      {comments.filter((c) => !c.parent_id).map((c) => (
+                        <div key={c.id}>
+                          <CommentRow
+                            comment={c}
+                            onLike={toggleCommentLike}
+                            onFlag={flagComment}
+                            onReply={(c) => { setReplyingTo(c); setTimeout(() => commentInputRef.current?.focus(), 80); }}
+                          />
+                          {/* Replies (indented) */}
+                          {comments.filter((r) => r.parent_id === c.id).map((reply) => (
+                            <div key={reply.id} className="ml-7 mt-1.5 flex items-start gap-1 text-zinc-600">
+                              <CornerDownRight size={11} className="mt-1 flex-shrink-0" />
+                              <div className="flex-1 min-w-0">
+                                <CommentRow
+                                  comment={reply}
+                                  onLike={toggleCommentLike}
+                                  onFlag={flagComment}
+                                  onReply={(c) => { setReplyingTo(c); setTimeout(() => commentInputRef.current?.focus(), 80); }}
+                                  isReply
+                                />
                               </div>
-                            )}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <span className="text-[12px] font-semibold text-zinc-300 mr-1.5">{c.users?.name ?? 'Rider'}</span>
-                            <span className="text-[12px] text-zinc-400 break-words">{c.content}</span>
-                          </div>
+                            </div>
+                          ))}
                         </div>
                       ))}
+                    </div>
+                  )}
+
+                  {/* Reply-to chip */}
+                  {replyingTo && (
+                    <div className="flex items-center gap-2 text-[11px] text-zinc-500 bg-zinc-900 rounded-lg px-2 py-1">
+                      <CornerDownRight size={11} className="text-sky-400 flex-shrink-0" />
+                      <span className="flex-1 truncate">Replying to <span className="text-zinc-300 font-semibold">{replyingTo.user_name ?? 'Rider'}</span></span>
+                      <button onClick={() => setReplyingTo(null)} className="text-zinc-600 hover:text-white transition-colors flex-shrink-0">
+                        <X size={12} />
+                      </button>
                     </div>
                   )}
 
@@ -1036,7 +1235,7 @@ function RigPostCard({ post, index }: {
                       value={commentText}
                       onChange={(e) => setCommentText(e.target.value)}
                       onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitComment(); } }}
-                      placeholder="Add a comment..."
+                      placeholder={replyingTo ? `Reply to ${replyingTo.user_name ?? 'Rider'}…` : 'Add a comment…'}
                       className="flex-1 bg-zinc-900 border border-zinc-800 rounded-full px-3 py-1.5 text-[12px] text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-600 transition-colors"
                     />
                     <motion.button
@@ -1183,12 +1382,185 @@ function PullToRefreshFeed({ children, onRefresh }: { children: React.ReactNode;
 
 // ─── Page ───��─────────────────────────────────────────────────────────────────
 
+// ─── Moderation Panel ─────────────────────────────────────────────────────────
+
+function ModerationPanel() {
+  const { supabaseClient } = useAuth();
+  const [open, setOpen] = useState(false);
+  const [flaggedPosts, setFlaggedPosts] = useState<any[]>([]);
+  const [flaggedComments, setFlaggedComments] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const load = async () => {
+    if (!supabaseClient) return;
+    setLoading(true);
+    const [postFlagData, commentFlagData] = await Promise.all([
+      supabaseClient.from('post_flags').select('post_id'),
+      supabaseClient.from('comment_flags').select('comment_id'),
+    ]);
+
+    const postCounts: Record<string, number> = {};
+    (postFlagData.data ?? []).forEach((r: any) => {
+      postCounts[r.post_id] = (postCounts[r.post_id] ?? 0) + 1;
+    });
+    const flaggedPostIds = Object.entries(postCounts).filter(([, n]) => n >= 3).map(([id]) => id);
+
+    const commentCounts: Record<string, number> = {};
+    (commentFlagData.data ?? []).forEach((r: any) => {
+      commentCounts[r.comment_id] = (commentCounts[r.comment_id] ?? 0) + 1;
+    });
+    const flaggedCommentIds = Object.entries(commentCounts).filter(([, n]) => n >= 3).map(([id]) => id);
+
+    const [postRows, commentRows] = await Promise.all([
+      flaggedPostIds.length > 0
+        ? supabaseClient.from('posts').select('id, body, user_name, created_at').in('id', flaggedPostIds)
+        : Promise.resolve({ data: [] }),
+      flaggedCommentIds.length > 0
+        ? supabaseClient.from('comments').select('id, content, user_name, created_at').in('id', flaggedCommentIds)
+        : Promise.resolve({ data: [] }),
+    ]);
+
+    setFlaggedPosts(postRows.data ?? []);
+    setFlaggedComments(commentRows.data ?? []);
+    setLoading(false);
+  };
+
+  const dismiss = async (type: 'post' | 'comment', id: string) => {
+    if (!supabaseClient) return;
+    if (type === 'post') {
+      await supabaseClient.from('post_flags').delete().eq('post_id', id);
+      setFlaggedPosts((p) => p.filter((x) => x.id !== id));
+    } else {
+      await supabaseClient.from('comment_flags').delete().eq('comment_id', id);
+      setFlaggedComments((p) => p.filter((x) => x.id !== id));
+    }
+  };
+
+  const totalFlags = flaggedPosts.length + flaggedComments.length;
+
+  return (
+    <>
+      <button
+        onClick={() => { setOpen(true); load(); }}
+        className="relative flex items-center gap-1.5 px-3 py-1.5 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400 text-[12px] font-semibold hover:bg-red-500/20 transition-colors"
+      >
+        <ShieldAlert size={13} />
+        Moderation
+        {totalFlags > 0 && (
+          <span className="ml-0.5 bg-red-500 text-white text-[10px] font-black rounded-full px-1.5 py-px leading-none">
+            {totalFlags}
+          </span>
+        )}
+      </button>
+
+      <AnimatePresence>
+        {open && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[9990] bg-black/80 backdrop-blur-sm"
+              onClick={() => setOpen(false)}
+            />
+            <motion.div
+              initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+              transition={{ type: 'spring', stiffness: 420, damping: 36 }}
+              className="fixed bottom-0 left-0 right-0 z-[9991] max-w-md mx-auto bg-zinc-950 border border-zinc-800 rounded-t-2xl max-h-[80dvh] flex flex-col"
+              style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between px-4 py-4 border-b border-zinc-800 flex-shrink-0">
+                <div className="flex items-center gap-2">
+                  <ShieldAlert size={15} className="text-red-400" />
+                  <h3 className="font-bold text-white text-[15px]">Moderation Queue</h3>
+                </div>
+                <button onClick={() => setOpen(false)} className="text-zinc-500 hover:text-white transition-colors">
+                  <X size={18} />
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                {loading ? (
+                  <div className="flex justify-center pt-4"><Loader2 size={20} className="animate-spin text-zinc-600" /></div>
+                ) : (flaggedPosts.length + flaggedComments.length) === 0 ? (
+                  <p className="text-zinc-600 text-[14px] text-center pt-4">No flagged content.</p>
+                ) : (
+                  <>
+                    {flaggedPosts.length > 0 && (
+                      <div>
+                        <p className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider mb-2">
+                          Flagged Posts ({flaggedPosts.length})
+                        </p>
+                        <div className="space-y-2">
+                          {flaggedPosts.map((p) => (
+                            <div key={p.id} className="bg-zinc-900 border border-zinc-800 rounded-xl p-3 flex items-start gap-3">
+                              <div className="flex-1 min-w-0">
+                                <p className="text-zinc-400 text-[11px] mb-0.5">{p.user_name ?? 'Unknown'}</p>
+                                <p className="text-white text-[13px] leading-relaxed line-clamp-3">{p.body}</p>
+                              </div>
+                              <button
+                                onClick={() => dismiss('post', p.id)}
+                                className="flex-shrink-0 text-[11px] text-zinc-500 hover:text-emerald-400 transition-colors border border-zinc-700 rounded-lg px-2 py-1"
+                              >
+                                Dismiss
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {flaggedComments.length > 0 && (
+                      <div>
+                        <p className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider mb-2">
+                          Flagged Comments ({flaggedComments.length})
+                        </p>
+                        <div className="space-y-2">
+                          {flaggedComments.map((c) => (
+                            <div key={c.id} className="bg-zinc-900 border border-zinc-800 rounded-xl p-3 flex items-start gap-3">
+                              <div className="flex-1 min-w-0">
+                                <p className="text-zinc-400 text-[11px] mb-0.5">{c.user_name ?? 'Unknown'}</p>
+                                <p className="text-white text-[13px] leading-relaxed line-clamp-3">{c.content}</p>
+                              </div>
+                              <button
+                                onClick={() => dismiss('comment', c.id)}
+                                className="flex-shrink-0 text-[11px] text-zinc-500 hover:text-emerald-400 transition-colors border border-zinc-700 rounded-lg px-2 py-1"
+                              >
+                                Dismiss
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+    </>
+  );
+}
+
 export default function HomePage() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [userRole, setUserRole] = useState<string | null>(null);
   const { user, supabaseClient } = useAuth();
   const router = useRouter();
+
+  // Fetch the current user's role for moderation access
+  useEffect(() => {
+    if (!user || !supabaseClient) return;
+    supabaseClient
+      .from('users')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+      .then(({ data }) => { if (data) setUserRole(data.role ?? null); });
+  }, [user, supabaseClient]);
+
+  const isModeratorUser = userRole === 'owner' || userRole === 'admin';
 
   const fetchPosts = async () => {
     if (!supabaseClient) {
@@ -1233,6 +1605,7 @@ export default function HomePage() {
               Project<span className="text-orange-500">Offroad</span>
             </span>
           </div>
+          {isModeratorUser && <ModerationPanel />}
         </div>
       </header>
 

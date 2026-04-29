@@ -2,25 +2,19 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Grid3X3, Bookmark, MessageCircle, BadgeCheck, Loader2 } from 'lucide-react';
+import { ArrowLeft, Grid3X3, Bookmark, Heart, Repeat2, BadgeCheck, Loader2 } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import BottomNav from '@/components/BottomNav';
 
-type Tab = 'posts' | 'favorites' | 'comments';
+type Tab = 'posts' | 'reposts' | 'liked' | 'favorites';
 
 interface PostRow {
   id: string;
   image_url?: string;
   body?: string;
   created_at: string;
-}
-
-interface CommentRow {
-  id: string;
-  content: string;
-  created_at: string;
-  posts?: { id: string; body?: string; user_name?: string } | null;
+  repost_of_id?: string | null;
 }
 
 function timeAgo(iso: string | null | undefined) {
@@ -30,6 +24,25 @@ function timeAgo(iso: string | null | undefined) {
   if (secs < 3600) return `${Math.floor(secs / 60)}m`;
   if (secs < 86400) return `${Math.floor(secs / 3600)}h`;
   return `${Math.floor(secs / 86400)}d`;
+}
+
+function PostGrid({ posts }: { posts: PostRow[] }) {
+  if (posts.length === 0) return null;
+  return (
+    <div className="grid grid-cols-3 gap-0.5">
+      {posts.map((p) => (
+        <div key={p.id} className="aspect-square bg-zinc-900 overflow-hidden relative">
+          {p.image_url ? (
+            <img src={p.image_url} alt="" className="w-full h-full object-cover" loading="lazy" />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center p-2">
+              <p className="text-zinc-500 text-[10px] text-center leading-tight line-clamp-4">{p.body}</p>
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
 }
 
 export default function UserProfilePage() {
@@ -42,18 +55,17 @@ export default function UserProfilePage() {
   const [error, setError] = useState<string | null>(null);
 
   const [activeTab, setActiveTab] = useState<Tab>('posts');
-  const [posts, setPosts] = useState<PostRow[]>([]);
+  const [myPosts, setMyPosts] = useState<PostRow[]>([]);
+  const [reposts, setReposts] = useState<PostRow[]>([]);
+  const [liked, setLiked] = useState<PostRow[]>([]);
   const [favorites, setFavorites] = useState<PostRow[]>([]);
-  const [commentsList, setCommentsList] = useState<CommentRow[]>([]);
   const [tabLoading, setTabLoading] = useState(false);
 
   // Fetch profile
   useEffect(() => {
     if (!userId) { setError('Invalid user ID'); setIsLoading(false); return; }
-    const client = supabaseClient;
-    if (!client) { setError('Not connected'); setIsLoading(false); return; }
-
-    client
+    if (!supabaseClient) { setError('Not connected'); setIsLoading(false); return; }
+    supabaseClient
       .from('users')
       .select('*')
       .eq('id', userId)
@@ -65,7 +77,6 @@ export default function UserProfilePage() {
       });
   }, [userId, supabaseClient]);
 
-  // Fetch tab data
   const fetchTab = useCallback(async (tab: Tab) => {
     if (!supabaseClient || !userId) return;
     setTabLoading(true);
@@ -73,28 +84,39 @@ export default function UserProfilePage() {
       if (tab === 'posts') {
         const { data } = await supabaseClient
           .from('posts')
-          .select('id, image_url, body, created_at')
+          .select('id, image_url, body, created_at, repost_of_id')
+          .eq('user_id', userId)
+          .is('repost_of_id', null)
+          .order('created_at', { ascending: false })
+          .limit(30);
+        setMyPosts((data as PostRow[]) ?? []);
+      } else if (tab === 'reposts') {
+        const { data } = await supabaseClient
+          .from('posts')
+          .select('id, image_url, body, created_at, repost_of_id')
+          .eq('user_id', userId)
+          .not('repost_of_id', 'is', null)
+          .order('created_at', { ascending: false })
+          .limit(30);
+        setReposts((data as PostRow[]) ?? []);
+      } else if (tab === 'liked') {
+        const { data } = await supabaseClient
+          .from('post_likes')
+          .select('posts(id, image_url, body, created_at, repost_of_id)')
           .eq('user_id', userId)
           .order('created_at', { ascending: false })
           .limit(30);
-        setPosts((data as PostRow[]) ?? []);
+        const flat = (data ?? []).map((r: any) => r.posts).filter(Boolean) as PostRow[];
+        setLiked(flat);
       } else if (tab === 'favorites') {
         const { data } = await supabaseClient
           .from('saved_posts')
-          .select('post_id, posts(id, image_url, body, created_at)')
+          .select('posts(id, image_url, body, created_at, repost_of_id)')
           .eq('user_id', userId)
           .order('created_at', { ascending: false })
           .limit(30);
         const flat = (data ?? []).map((r: any) => r.posts).filter(Boolean) as PostRow[];
         setFavorites(flat);
-      } else if (tab === 'comments') {
-        const { data } = await supabaseClient
-          .from('comments')
-          .select('id, content, created_at, posts(id, body, user_name)')
-          .eq('user_id', userId)
-          .order('created_at', { ascending: false })
-          .limit(30);
-        setCommentsList((data as CommentRow[]) ?? []);
       }
     } finally {
       setTabLoading(false);
@@ -128,12 +150,21 @@ export default function UserProfilePage() {
   }
 
   const TABS: { id: Tab; label: string; icon: any }[] = [
-    { id: 'posts', label: 'Posts', icon: Grid3X3 },
+    { id: 'posts',     label: 'Posts',     icon: Grid3X3 },
+    { id: 'reposts',   label: 'Reposts',   icon: Repeat2 },
+    { id: 'liked',     label: 'Liked',     icon: Heart },
     { id: 'favorites', label: 'Favorites', icon: Bookmark },
-    { id: 'comments', label: 'Comments', icon: MessageCircle },
   ];
 
-  const currentData = activeTab === 'posts' ? posts : activeTab === 'favorites' ? favorites : commentsList;
+  const dataMap: Record<Tab, PostRow[]> = { posts: myPosts, reposts, liked, favorites };
+  const currentData = dataMap[activeTab];
+
+  const emptyMessages: Record<Tab, string> = {
+    posts:     'No posts yet.',
+    reposts:   'No reposts yet.',
+    liked:     'No liked posts yet.',
+    favorites: 'No saved posts yet.',
+  };
 
   return (
     <div className="min-h-screen bg-black pb-24">
@@ -181,13 +212,13 @@ export default function UserProfilePage() {
             <button
               key={id}
               onClick={() => setActiveTab(id)}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-3 text-[13px] font-semibold transition-colors border-b-2 ${
+              className={`flex-1 flex items-center justify-center gap-1 py-3 text-[12px] font-semibold transition-colors border-b-2 ${
                 activeTab === id
                   ? 'border-orange-500 text-white'
                   : 'border-transparent text-zinc-500 hover:text-zinc-300'
               }`}
             >
-              <Icon size={14} />
+              <Icon size={13} />
               {label}
             </button>
           ))}
@@ -195,46 +226,17 @@ export default function UserProfilePage() {
       </div>
 
       {/* Tab content */}
-      <div className="max-w-md mx-auto px-4 pt-4">
+      <div className="max-w-md mx-auto pt-1">
         {tabLoading ? (
           <div className="flex justify-center pt-10">
             <Loader2 size={22} className="animate-spin text-zinc-600" />
           </div>
         ) : currentData.length === 0 ? (
           <div className="text-center pt-12">
-            <p className="text-zinc-600 text-[14px]">
-              {activeTab === 'posts' ? 'No posts yet.' : activeTab === 'favorites' ? 'No saved posts yet.' : 'No comments yet.'}
-            </p>
-          </div>
-        ) : activeTab === 'comments' ? (
-          <div className="space-y-3">
-            {(currentData as CommentRow[]).map((c) => (
-              <div key={c.id} className="bg-zinc-900 border border-zinc-800 rounded-xl p-3">
-                {c.posts && (
-                  <p className="text-zinc-600 text-[11px] mb-1 truncate">
-                    On: {c.posts.user_name ? `${c.posts.user_name}'s post` : 'a post'}
-                  </p>
-                )}
-                <p className="text-white text-[13px] leading-relaxed">{c.content}</p>
-                <p className="text-zinc-600 text-[11px] mt-1">{timeAgo(c.created_at)}</p>
-              </div>
-            ))}
+            <p className="text-zinc-600 text-[14px]">{emptyMessages[activeTab]}</p>
           </div>
         ) : (
-          /* Posts / Favorites grid */
-          <div className="grid grid-cols-3 gap-0.5">
-            {(currentData as PostRow[]).map((p) => (
-              <div key={p.id} className="aspect-square bg-zinc-900 overflow-hidden relative">
-                {p.image_url ? (
-                  <img src={p.image_url} alt="" className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center p-2">
-                    <p className="text-zinc-500 text-[10px] text-center leading-tight line-clamp-4">{p.body}</p>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
+          <PostGrid posts={currentData} />
         )}
       </div>
 
