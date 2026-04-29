@@ -109,20 +109,29 @@ function NewPostDrawer({ open, onClose, onPosted }: {
       const userRole = 'user'; // Default role; will be set to 'owner' via Supabase if applicable
 
       // Step 3: insert post row
-      console.log('[v0] handleSubmit - user.id:', user.id, 'user_name:', userName);
-      const { error: insertError } = await supabase!.from('posts').insert({
-        body: body.trim(),
-        rig_model: rig.trim() || null,
-        user_id: user.id,
-        user_name: userName,
-        role: userRole,
-        image_url: imageUrl,
-      });
+      const { error: insertError, data: insertedData } = await supabase!
+        .from('posts')
+        .insert({
+          body: body.trim(),
+          rig_model: rig.trim() || null,
+          user_id: user.id,
+          user_name: userName,
+          role: userRole,
+          image_url: imageUrl,
+        })
+        .select();
+      
       if (insertError) {
-        console.log('[v0] insertError:', insertError);
-        throw insertError;
+        console.error('[v0] Post insert failed:', {
+          code: insertError.code,
+          message: insertError.message,
+          details: insertError.details,
+          hint: insertError.hint,
+        });
+        throw new Error(`Failed to create post: ${insertError.message}`);
       }
-      console.log('[v0] post inserted successfully');
+      
+      console.log('[v0] Post created:', insertedData);
 
       showToast('Post uploaded!', 'success');
       onPosted?.();
