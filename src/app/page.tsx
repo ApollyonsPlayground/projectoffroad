@@ -375,7 +375,8 @@ const TRAIL_UPDATES = [
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function timeAgo(iso: string) {
+function timeAgo(iso: string | null | undefined) {
+  if (!iso) return '';
   const secs = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
   if (secs < 60) return 'just now';
   if (secs < 3600) return `${Math.floor(secs / 60)}m`;
@@ -383,7 +384,8 @@ function timeAgo(iso: string) {
   return `${Math.floor(secs / 86400)}d`;
 }
 
-function Caption({ text }: { text: string }) {
+function Caption({ text }: { text: string | null | undefined }) {
+  if (!text) return null;
   const parts = text.split(/(#\w+)/g);
   return (
     <>
@@ -814,7 +816,7 @@ function RigPostCard({ post, index }: {
 
           {/* Caption body */}
           <p className="text-[14px] text-zinc-200 leading-relaxed mb-3">
-            <Caption text={post.caption} />
+              <Caption text={post.body ?? post.caption} />
           </p>
 
           {/* Optional media — natural aspect ratio, NOT forced square */}

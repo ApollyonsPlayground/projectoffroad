@@ -101,7 +101,7 @@ export default function TrailCard({ trail, index }: TrailCardProps) {
           <div className="text-center p-3 bg-stone-900/50 rounded-lg border border-stone-700/50">
             <Wrench size={20} className="mx-auto mb-1 text-orange-500" />
             <div className="text-stone-400 text-xs uppercase tracking-wider">Rig</div>
-            <div className="text-stone-200 font-semibold text-xs">{trail.rigRequirements.split('/')[0]}</div>
+            <div className="text-stone-200 font-semibold text-xs">{trail.rigRequirements?.split('/')[0] ?? '—'}</div>
           </div>
         </div>
 
