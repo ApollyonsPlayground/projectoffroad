@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import dynamic from 'next/dynamic';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   AlertTriangle, 
@@ -13,12 +14,26 @@ import {
   Clock,
   Ruler,
   MapPin,
+  List,
 } from 'lucide-react';
 import Link from 'next/link';
 import BottomNav from '@/components/BottomNav';
 import { useToast } from '@/components/Toast';
 import { TrailListSkeleton } from '@/components/SkeletonLoader';
 import trailsData from '@/data/trails.json';
+
+// Leaflet requires browser APIs — load with no SSR
+const TrailMap = dynamic(() => import('@/components/TrailMap'), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-full flex items-center justify-center bg-zinc-900 rounded-xl border border-zinc-800">
+      <div className="flex flex-col items-center gap-2">
+        <div className="w-8 h-8 rounded-full border-2 border-orange-500/30 border-t-orange-500 animate-spin" />
+        <p className="text-zinc-500 text-[12px]">Loading map…</p>
+      </div>
+    </div>
+  ),
+});
 
 type Difficulty = 'All' | 'Beginner' | 'Intermediate' | 'Moderate' | 'Advanced' | 'Extreme';
 
@@ -183,6 +198,7 @@ export default function TrailsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty>('All');
   const [showFilters, setShowFilters] = useState(false);
+  const [view, setView] = useState<'list' | 'map'>('list');
 
   const trails = trailsData as Trail[];
 
@@ -216,15 +232,40 @@ export default function TrailsPage() {
         <div className="px-4 py-3">
           <div className="flex items-center justify-between mb-3">
             <h1 className="text-xl font-bold text-white">Trail Explorer</h1>
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              onClick={() => setShowFilters(!showFilters)}
-              className={`p-2 rounded-lg transition-colors ${
-                showFilters ? 'bg-orange-500 text-zinc-950' : 'bg-zinc-800 text-zinc-400'
-              }`}
-            >
-              <Filter size={18} />
-            </motion.button>
+            <div className="flex items-center gap-2">
+              {/* List / Map toggle */}
+              <div className="flex items-center bg-zinc-800 rounded-lg p-0.5">
+                <motion.button
+                  whileTap={{ scale: 0.92 }}
+                  onClick={() => setView('list')}
+                  className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[12px] font-semibold transition-colors ${
+                    view === 'list' ? 'bg-orange-500 text-black' : 'text-zinc-400 hover:text-zinc-200'
+                  }`}
+                >
+                  <List size={14} />
+                  List
+                </motion.button>
+                <motion.button
+                  whileTap={{ scale: 0.92 }}
+                  onClick={() => setView('map')}
+                  className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[12px] font-semibold transition-colors ${
+                    view === 'map' ? 'bg-orange-500 text-black' : 'text-zinc-400 hover:text-zinc-200'
+                  }`}
+                >
+                  <Map size={14} />
+                  Map
+                </motion.button>
+              </div>
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setShowFilters(!showFilters)}
+                className={`p-2 rounded-lg transition-colors ${
+                  showFilters ? 'bg-orange-500 text-zinc-950' : 'bg-zinc-800 text-zinc-400'
+                }`}
+              >
+                <Filter size={18} />
+              </motion.button>
+            </div>
           </div>
 
           {/* Search Bar */}
@@ -282,10 +323,22 @@ export default function TrailsPage() {
         </div>
       </div>
 
-      {/* Trail List */}
-      <main className="max-w-md mx-auto px-4 pt-4 pb-24">
+      {/* Main content — List or Map */}
+      <main className={view === 'map' ? 'px-3 pt-3 pb-24' : 'max-w-md mx-auto px-4 pt-4 pb-24'}>
         <AnimatePresence mode="wait">
-          {isLoading ? (
+          {view === 'map' ? (
+            <motion.div
+              key="map"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              // height accounts for header + warning banner + bottom nav
+              style={{ height: 'calc(100dvh - 168px)' }}
+              className="relative"
+            >
+              <TrailMap trails={trails} />
+            </motion.div>
+          ) : isLoading ? (
             <motion.div
               key="skeleton"
               initial={{ opacity: 0 }}

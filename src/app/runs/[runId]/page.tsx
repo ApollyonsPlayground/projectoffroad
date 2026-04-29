@@ -19,6 +19,8 @@ import {
   User,
   BadgeCheck,
   Flag,
+  Siren,
+  X,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
@@ -52,6 +54,18 @@ interface Participant {
     name: string | null;
     avatar_url: string | null;
   } | null;
+}
+
+interface RunAlert {
+  id: string;
+  run_id: string;
+  user_id: string;
+  user_name: string | null;
+  alert_type: string;
+  latitude: number | null;
+  longitude: number | null;
+  message: string | null;
+  created_at: string;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -101,6 +115,12 @@ export default function RunDetailPage() {
   const [joined, setJoined] = useState(false);
   const [joining, setJoining] = useState(false);
   const [activating, setActivating] = useState(false);
+
+  // SOS state
+  const [sosSending, setSosSending] = useState(false);
+  const [sosConfirmOpen, setSosConfirmOpen] = useState(false);
+  const [activeAlerts, setActiveAlerts] = useState<RunAlert[]>([]);
+  const [dismissedAlerts, setDismissedAlerts] = useState<Set<string>>(new Set());
 
   const fetchDetail = useCallback(async () => {
     if (!supabaseClient || !runId) return;
@@ -194,6 +214,104 @@ export default function RunDetailPage() {
       showToast('Could not activate run', 'error');
     } finally {
       setActivating(false);
+    }
+  };
+
+  // ── SOS: fetch existing alerts + subscribe to new ones ──────────────────────
+  useEffect(() => {
+    if (!supabaseClient || !runId) return;
+
+    // Fetch any existing SOS alerts from the last 2 hours
+    supabaseClient
+      .from('run_alerts')
+      .select('*')
+      .eq('run_id', runId)
+      .eq('alert_type', 'sos')
+      .gte('created_at', new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString())
+      .order('created_at', { ascending: false })
+      .then(({ data }) => {
+        if (data && data.length > 0) setActiveAlerts(data as RunAlert[]);
+      });
+
+    // Subscribe to new SOS alerts in realtime
+    const channel = supabaseClient
+      .channel(`run-sos-${runId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'run_alerts',
+          filter: `run_id=eq.${runId}`,
+        },
+        (payload) => {
+          const alert = payload.new as RunAlert;
+          if (alert.alert_type === 'sos') {
+            setActiveAlerts((prev) => [alert, ...prev]);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => { supabaseClient.removeChannel(channel); };
+  }, [supabaseClient, runId]);
+
+  // ── SOS: send alert with current GPS coords ──────────────────────────────────
+  const handleSendSOS = async () => {
+    if (!user || !supabaseClient || !run) return;
+    setSosSending(true);
+    setSosConfirmOpen(false);
+
+    const userName =
+      (user.user_metadata?.full_name as string) ||
+      user.email?.split('@')[0] ||
+      'A rider';
+
+    try {
+      // Grab browser GPS
+      const position = await new Promise<GeolocationPosition>((resolve, reject) =>
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 10000,
+        })
+      );
+
+      const { latitude, longitude } = position.coords;
+
+      const { error } = await supabaseClient.from('run_alerts').insert({
+        run_id: run.id,
+        user_id: user.id,
+        user_name: userName,
+        alert_type: 'sos',
+        latitude,
+        longitude,
+        message: `${userName} needs assistance on ${run.title}.`,
+      });
+
+      if (error) throw error;
+      showToast('SOS alert sent to all riders in this run.', 'success');
+    } catch (err: any) {
+      if (err?.code === 1) {
+        // PERMISSION_DENIED — fall back to alert without coords
+        const { error } = await supabaseClient.from('run_alerts').insert({
+          run_id: run.id,
+          user_id: user.id,
+          user_name: userName,
+          alert_type: 'sos',
+          latitude: null,
+          longitude: null,
+          message: `${userName} needs assistance on ${run.title}. (Location unavailable)`,
+        });
+        if (!error) {
+          showToast('SOS sent — could not get your location. Enable GPS and try again.', 'info');
+        } else {
+          showToast('Could not send SOS alert.', 'error');
+        }
+      } else {
+        showToast('Could not send SOS alert. Check your connection.', 'error');
+      }
+    } finally {
+      setSosSending(false);
     }
   };
 
@@ -368,6 +486,129 @@ export default function RunDetailPage() {
             </button>
           )}
         </motion.div>
+
+        {/* ── Live SOS Alerts ───────────────────────────────────────────── */}
+        <AnimatePresence>
+          {activeAlerts
+            .filter((a) => !dismissedAlerts.has(a.id))
+            .map((alert) => (
+              <motion.div
+                key={alert.id}
+                initial={{ opacity: 0, y: -8, scale: 0.97 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="bg-red-950/60 border border-red-500/50 rounded-2xl p-4"
+              >
+                <div className="flex items-start justify-between gap-2 mb-3">
+                  <div className="flex items-center gap-2">
+                    <span className="flex items-center justify-center w-7 h-7 rounded-full bg-red-500 animate-pulse flex-shrink-0">
+                      <Siren size={14} className="text-white" />
+                    </span>
+                    <div>
+                      <p className="text-[14px] font-black text-red-400 leading-none">SOS ALERT</p>
+                      <p className="text-[11px] text-red-400/60 mt-0.5">
+                        {new Date(alert.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setDismissedAlerts((prev) => new Set([...prev, alert.id]))}
+                    className="text-zinc-500 hover:text-zinc-300 transition-colors flex-shrink-0"
+                    aria-label="Dismiss alert"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+
+                <p className="text-[13px] text-red-200/90 leading-relaxed mb-3">
+                  {alert.message ?? `${alert.user_name ?? 'A rider'} needs assistance.`}
+                </p>
+
+                {alert.latitude != null && alert.longitude != null && (
+                  <a
+                    href={`https://www.google.com/maps/dir/?api=1&destination=${alert.latitude},${alert.longitude}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-2 w-full py-2.5 bg-red-500 hover:bg-red-600 text-white text-[13px] font-black rounded-xl transition-colors"
+                  >
+                    <Navigation size={14} />
+                    Navigate to Stranded Rider
+                  </a>
+                )}
+              </motion.div>
+            ))}
+        </AnimatePresence>
+
+        {/* ── SOS Button (participants + active runs) ────────────────────── */}
+        {(joined || isHost) && (
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.12 }}
+          >
+            <button
+              onClick={() => setSosConfirmOpen(true)}
+              disabled={sosSending}
+              className="w-full flex items-center justify-center gap-2.5 py-3.5 bg-red-500/10 hover:bg-red-500/20 border border-red-500/40 hover:border-red-500/70 text-red-400 hover:text-red-300 text-[14px] font-black rounded-2xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {sosSending ? (
+                <Loader2 size={17} className="animate-spin" />
+              ) : (
+                <Siren size={17} />
+              )}
+              {sosSending ? 'Sending SOS…' : 'SOS — I Need Assistance'}
+            </button>
+          </motion.div>
+        )}
+
+        {/* ── SOS Confirmation Modal ─────────────────────────────────────── */}
+        <AnimatePresence>
+          {sosConfirmOpen && (
+            <>
+              {/* Backdrop */}
+              <motion.div
+                key="sos-backdrop"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setSosConfirmOpen(false)}
+                className="fixed inset-0 bg-black/70 backdrop-blur-sm z-40"
+              />
+              {/* Modal */}
+              <motion.div
+                key="sos-modal"
+                initial={{ opacity: 0, scale: 0.92, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.92, y: 20 }}
+                className="fixed bottom-0 left-0 right-0 z-50 max-w-md mx-auto px-4 pb-8"
+              >
+                <div className="bg-zinc-950 border border-red-500/40 rounded-2xl p-5">
+                  <div className="flex items-center justify-center w-12 h-12 rounded-full bg-red-500/15 border border-red-500/30 mx-auto mb-4">
+                    <Siren size={22} className="text-red-400" />
+                  </div>
+                  <h3 className="text-[17px] font-black text-white text-center mb-2">Send SOS Alert?</h3>
+                  <p className="text-[13px] text-zinc-400 text-center leading-relaxed mb-5">
+                    This will broadcast an emergency alert with your GPS location to everyone in this run. Only use for genuine emergencies.
+                  </p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      onClick={() => setSosConfirmOpen(false)}
+                      className="py-3 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-[14px] font-bold rounded-xl transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleSendSOS}
+                      className="py-3 bg-red-500 hover:bg-red-600 text-white text-[14px] font-black rounded-xl transition-colors"
+                    >
+                      Send SOS
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
 
         {/* ── Manage Run (host only) ────────────────────────────────────── */}
         <AnimatePresence>
