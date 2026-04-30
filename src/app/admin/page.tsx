@@ -7,7 +7,7 @@ import { ShieldCheck, CheckCircle2, XCircle, Mountain, Clock, Loader2, RefreshCw
 
 interface TrailSuggestion {
   id: string
-  name: string
+  trail_name: string        // matches DB column name
   status: 'pending' | 'approved' | 'rejected'
   admin_notes: string | null
   created_at: string
@@ -191,7 +191,7 @@ export default function AdminDashboard() {
                   {/* Row 1: trail name + status badge */}
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
-                      <p className="text-white font-bold text-[15px] leading-snug">{s.name}</p>
+                      <p className="text-white font-bold text-[15px] leading-snug">{s.trail_name}</p>
                       <p className="text-neutral-500 text-[11px] mt-0.5">
                         Suggested by{' '}
                         <span className="text-neutral-400">

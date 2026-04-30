@@ -3,12 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/context/AuthContext'
-import { createClient } from '@supabase/supabase-js'
 import { Users, AlertCircle, Mountain } from 'lucide-react'
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
 const NEW_TRAIL_SENTINEL = '__new_trail__'
 
@@ -28,7 +23,7 @@ interface Trail {
 
 export default function CreateRunPage() {
   const router = useRouter()
-  const { user, loading: authLoading } = useAuth()
+  const { user, loading: authLoading, supabaseClient: supabase } = useAuth()
   const [userClubs, setUserClubs] = useState<Club[]>([])
   const [trails, setTrails] = useState<Trail[]>([])
   const [loadingClubs, setLoadingClubs] = useState(true)
@@ -66,7 +61,7 @@ export default function CreateRunPage() {
   }, [])
 
   async function fetchUserClubs() {
-    if (!user) return
+    if (!user || !supabase) return
 
     const { data } = await supabase
       .from('club_members')
@@ -90,14 +85,18 @@ export default function CreateRunPage() {
   }
 
   async function fetchTrails() {
+    if (!supabase) { setLoadingTrails(false); return }
     const { data } = await supabase
       .from('trails')
-      .select('id, title, location, difficulty')
-      .order('title', { ascending: true })
+      .select('id, name, location, difficulty')   // column is "name", not "title"
+      .order('name', { ascending: true })
       .limit(200)
 
     setLoadingTrails(false)
-    if (data) setTrails(data)
+    if (data) {
+      // Normalize to the Trail interface (map name -> title for display)
+      setTrails(data.map((t: any) => ({ id: t.id, title: t.name, location: t.location, difficulty: t.difficulty })))
+    }
   }
 
   function handleTrailChange(value: string) {
@@ -113,7 +112,7 @@ export default function CreateRunPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!user) return
+    if (!user || !supabase) return
     if (!formData.club_id) {
       alert('Please select a club to host this run')
       return
@@ -124,17 +123,22 @@ export default function CreateRunPage() {
     const dateTime = `${formData.date}T${formData.time}:00`
 
     // If a new trail was typed, send it to trail_suggestions for admin review
+    // Column is "trail_name" (not "name") per the schema
     if (showNewTrailInput && newTrailName.trim()) {
-      await supabase.from('trail_suggestions').insert({
-        name: newTrailName.trim(),
+      const { error: suggestionError } = await supabase.from('trail_suggestions').insert({
+        trail_name: newTrailName.trim(),
         suggested_by: user.id,
         status: 'pending'
       })
+      if (suggestionError) {
+        console.error('[runs/create] trail_suggestion insert error:', suggestionError.message)
+      }
     }
 
     const { error } = await supabase
       .from('runs')
       .insert({
+        host_id: user.id,
         club_id: formData.club_id,
         trail_id: formData.trail_id || null,
         title: formData.title,
@@ -152,6 +156,7 @@ export default function CreateRunPage() {
     if (!error) {
       router.push('/runs')
     } else {
+      console.error('[runs/create] insert error:', error.message)
       alert('Error creating run: ' + error.message)
     }
   }

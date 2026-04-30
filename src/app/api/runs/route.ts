@@ -4,9 +4,19 @@ import { createClient } from '@supabase/supabase-js'
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
+// Build a Supabase client that forwards the caller's auth token so RLS works
+function makeClient(request: NextRequest) {
+  const authHeader = request.headers.get('Authorization')
+  const token = authHeader?.replace('Bearer ', '') ?? null
+  const client = createClient(supabaseUrl, supabaseAnonKey, {
+    global: token ? { headers: { Authorization: `Bearer ${token}` } } : {},
+  })
+  return client
+}
+
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createClient(supabaseUrl, supabaseAnonKey)
+    const supabase = makeClient(request)
     const { searchParams } = new URL(request.url)
     const status = searchParams.get('status') || 'upcoming'
     const clubId = searchParams.get('club_id')
@@ -41,7 +51,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createClient(supabaseUrl, supabaseAnonKey)
+    const supabase = makeClient(request)
     const body = await request.json()
     const { club_id, trail_id, title, description, date, meetup_location, difficulty, max_participants, vehicle_requirements } = body
 

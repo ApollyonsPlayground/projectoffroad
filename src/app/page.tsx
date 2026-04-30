@@ -1015,14 +1015,13 @@ function RigPostCard({ post, index }: {
     setCommentText('');
     setReplyingTo(null);
     try {
-      // Insert with only core columns that are guaranteed to exist.
-      // Avoid inserting parent_id or role if those columns don't exist in the schema.
       const { error } = await supabaseClient.from('comments').insert({
         post_id: canonicalPostId,
         user_id: user.id,
         content: optimistic.content,
         user_name: userName,
         avatar_url: avatarUrl,
+        parent_id: replyingTo?.id ?? null,
       });
       if (error) throw error;
     } catch {
