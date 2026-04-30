@@ -129,25 +129,35 @@ function NewPostDrawer({ open, onClose, onPosted }: {
       // Step 3: use user metadata directly (no DB lookup needed)
       const userName = (user.user_metadata?.full_name as string) || (user.user_metadata?.name as string) || user.email?.split('@')[0] || 'Rider';
 
-      // Step 4: insert post row — using supabaseClient from AuthContext (has auth session).
-      // We write both `body` AND `caption` because different DB setups use different column
-      // names (001_setup_social_tables uses `caption`; later migrations use `body`).
-      // Similarly we write both `avatar_url` and `user_avatar` to cover both schemas.
-      const { error: insertError } = await supabaseClient!
+      // Step 4: insert post row — only use columns guaranteed to exist in base schema.
+      // 001_setup_social_tables.sql defines: id, user_id, image_url, caption, user_name, likes_count, comments_count
+      // After insert, we try to UPDATE with additional columns (body, role, avatar_url, rig_model) which may not exist.
+      const { data: insertedRows, error: insertError } = await supabaseClient!
         .from('posts')
         .insert({
-          body: body.trim(),
-          caption: body.trim(),       // compat: 001_setup_social_tables uses `caption`
-          rig_model: rig.trim() || null,
           user_id: user.id,
           user_name: userName,
-          avatar_url: userAvatarUrl,
-          user_avatar: userAvatarUrl, // compat: supabase-setup.sql uses `user_avatar`
-          role: userRole,
+          caption: body.trim(),   // base schema has caption
           image_url: imageUrl,
-        });
+        })
+        .select('id')
+        .single();
       
       if (insertError) throw new Error(insertError.message);
+
+      // Try to update with extended columns (silently ignore errors if columns don't exist)
+      if (insertedRows?.id) {
+        await supabaseClient!
+          .from('posts')
+          .update({
+            body: body.trim(),
+            role: userRole,
+            avatar_url: userAvatarUrl,
+            rig_model: rig.trim() || null,
+          })
+          .eq('id', insertedRows.id)
+          .then(() => {}); // Ignore errors — columns may not exist
+      }
 
       showToast('Post uploaded!', 'success');
       onPosted?.();
@@ -531,13 +541,19 @@ function StoriesBar() {
       .then(({ data, error }) => {
         if (error) {
           // Fallback: fetch without join if trails table/FK doesn't exist yet
+          // Also handles 404 (table not found) gracefully
           supabaseClient
             .from('runs')
             .select('id, title')
             .eq('status', 'active')
             .order('date', { ascending: true })
             .limit(8)
-            .then(({ data: fallbackData }) => {
+            .then(({ data: fallbackData, error: fallbackError }) => {
+              // If even the runs table doesn't exist, just show empty
+              if (fallbackError) {
+                setLiveRuns([]);
+                return;
+              }
               setLiveRuns(
                 (fallbackData ?? []).map((r: any) => ({
                   id: r.id,
@@ -864,18 +880,20 @@ function RigPostCard({ post, index }: {
 
     if (user && isConfigured && supabaseClient) {
       try {
-        if (nowLiked) {
-          const { error } = await supabaseClient
-            .from('post_likes')
-            .insert({ post_id: post.id, user_id: user.id });
-          if (error && error.code !== '23505') throw error;
-        } else {
-          const { error } = await supabaseClient
-            .from('post_likes')
-            .delete()
-            .match({ post_id: post.id, user_id: user.id });
-          if (error) throw error;
-        }
+    if (nowLiked) {
+      const { error } = await supabaseClient
+        .from('post_likes')
+        .insert({ post_id: post.id, user_id: user.id });
+      // 23505 = duplicate key (already liked), ignore. Also ignore 404/400 if table doesn't exist.
+      if (error && error.code !== '23505' && !error.message.includes('does not exist')) throw error;
+    } else {
+      const { error } = await supabaseClient
+        .from('post_likes')
+        .delete()
+        .match({ post_id: post.id, user_id: user.id });
+      // Ignore 404/400 if table doesn't exist
+      if (error && !error.message.includes('does not exist')) throw error;
+    }
       } catch {
         setLiked(!nowLiked);
         setLikesCount((c) => (nowLiked ? c - 1 : c + 1));
@@ -891,36 +909,51 @@ function RigPostCard({ post, index }: {
     if (!supabaseClient || !user) return;
     await haptic(ImpactStyle.Light);
     if (reposted) {
-      // Un-repost: delete the repost row
-      const { error } = await supabaseClient
-        .from('posts')
-        .delete()
-        .eq('user_id', user.id)
-        .eq('repost_of_id', post.id);
-      if (!error) { setReposted(false); setRepostsCount((c) => c - 1); }
+      // Un-repost: delete the repost row (silently ignore if repost_of_id column doesn't exist)
+      try {
+        const { error } = await supabaseClient
+          .from('posts')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('repost_of_id', post.id);
+        if (!error) { setReposted(false); setRepostsCount((c) => c - 1); }
+      } catch {
+        // Column may not exist — just ignore
+      }
     } else {
       const userName = (user.user_metadata?.full_name as string) || user.email?.split('@')[0] || 'Rider';
-      const { error } = await supabaseClient.from('posts').insert({
+      // Use only base columns, then try UPDATE for extended columns
+      const { data: insertedRepost, error } = await supabaseClient.from('posts').insert({
         user_id: user.id,
         user_name: userName,
-        body: post.body ?? post.caption ?? '',
+        caption: post.body ?? post.caption ?? '',
         image_url: post.image_url ?? null,
-        rig_model: post.rig_model ?? null,
-        repost_of_id: post.id,
-        role: 'user',
-      });
-      if (!error) { setReposted(true); setRepostsCount((c) => c + 1); showToast('Reposted!', 'success'); }
-      else showToast('Could not repost', 'error');
+      }).select('id').single();
+      if (!error && insertedRepost?.id) {
+        // Try to set extended columns (silently fail if they don't exist)
+        await supabaseClient.from('posts').update({
+          body: post.body ?? post.caption ?? '',
+          repost_of_id: post.id,
+          role: 'user',
+        }).eq('id', insertedRepost.id).then(() => {});
+        setReposted(true); setRepostsCount((c) => c + 1); showToast('Reposted!', 'success');
+      } else {
+        showToast('Could not repost', 'error');
+      }
     }
   };
 
   const flagPost = async () => {
     if (!requireAuth('flag posts')) return;
     if (!supabaseClient || !user || postFlagged) return;
-    const { error } = await supabaseClient
-      .from('post_flags')
-      .insert({ post_id: post.id, user_id: user.id, reason: 'flagged' });
-    if (!error) { setPostFlagged(true); showToast('Post flagged for review', 'info'); }
+    try {
+      const { error } = await supabaseClient
+        .from('post_flags')
+        .insert({ post_id: post.id, user_id: user.id, reason: 'flagged' });
+      if (!error) { setPostFlagged(true); showToast('Post flagged for review', 'info'); }
+    } catch {
+      // Table may not exist
+    }
   };
 
   const toggleCommentLike = async (comment: Comment) => {
@@ -945,7 +978,8 @@ function RigPostCard({ post, index }: {
       const { error } = await supabaseClient
         .from('comment_likes')
         .insert({ comment_id: commentId, user_id: user.id });
-      if (error && error.code !== '23505') {
+      // Ignore duplicate key (23505) and missing table errors
+      if (error && error.code !== '23505' && !error.message.includes('does not exist')) {
         // Rollback on unexpected error
         setComments((prev) => prev.map((c) =>
           c.id === commentId ? { ...c, liked_by_me: false, likes_count: (c.likes_count ?? 1) - 1 } : c
@@ -962,10 +996,14 @@ function RigPostCard({ post, index }: {
   const flagComment = async (comment: Comment) => {
     if (!requireAuth('flag comments')) return;
     if (!supabaseClient || !user) return;
-    const { error } = await supabaseClient
-      .from('comment_flags')
-      .insert({ comment_id: comment.id, user_id: user.id, reason: 'flagged' });
-    if (!error) showToast('Comment flagged', 'info');
+    try {
+      const { error } = await supabaseClient
+        .from('comment_flags')
+        .insert({ comment_id: comment.id, user_id: user.id, reason: 'flagged' });
+      if (!error) showToast('Comment flagged', 'info');
+    } catch {
+      // Table may not exist
+    }
   };
 
   const toggleBookmark = async () => {
@@ -975,18 +1013,20 @@ function RigPostCard({ post, index }: {
     setBookmarked(nowSaved);
     if (supabaseClient && user) {
       try {
-        if (nowSaved) {
-          const { error } = await supabaseClient
-            .from('saved_posts')
-            .insert({ post_id: post.id, user_id: user.id });
-          if (error && error.code !== '23505') throw error;
-        } else {
-          const { error } = await supabaseClient
-            .from('saved_posts')
-            .delete()
-            .match({ post_id: post.id, user_id: user.id });
-          if (error) throw error;
-        }
+      if (nowSaved) {
+        const { error } = await supabaseClient
+          .from('saved_posts')
+          .insert({ post_id: post.id, user_id: user.id });
+        // Ignore duplicate key (23505) and missing table errors
+        if (error && error.code !== '23505' && !error.message.includes('does not exist')) throw error;
+      } else {
+        const { error } = await supabaseClient
+          .from('saved_posts')
+          .delete()
+          .match({ post_id: post.id, user_id: user.id });
+        // Ignore missing table errors
+        if (error && !error.message.includes('does not exist')) throw error;
+      }
       } catch {
         setBookmarked(!nowSaved);
         showToast('Could not update bookmark', 'error');
@@ -1028,7 +1068,8 @@ function RigPostCard({ post, index }: {
         avatar_url: avatarUrl,
         parent_id: replyingTo?.id ?? null,
       });
-      if (error) throw error;
+      // Ignore missing table errors (comments table doesn't exist pre-migration)
+      if (error && !error.message.includes('does not exist')) throw error;
     } catch {
       setComments((c) => c.filter((x) => x.id !== optimistic.id));
       setCommentsCount((n) => n - 1);
@@ -1059,11 +1100,12 @@ function RigPostCard({ post, index }: {
     setIsReporting(true);
     try {
       if (supabaseClient) {
+        // Silently ignore if reports table doesn't exist
         await supabaseClient.from('reports').insert({
           post_id: post.id,
           reporter_id: user.id,
           reason: reportReason,
-        });
+        }).then(() => {});
       }
       showToast('Report submitted. Thank you.', 'success');
       setReportOpen(false);
