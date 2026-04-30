@@ -41,7 +41,9 @@ function NewPostDrawer({ open, onClose, onPosted }: {
   onClose: () => void;
   onPosted?: () => void;
 }) {
-  const { user, isConfigured, supabaseClient } = useAuth();
+  const { user, isConfigured, supabaseClient, profile } = useAuth();
+  const userRole = (profile?.role as string) ?? 'user';
+  const userAvatarUrl = (profile?.avatar_url as string) ?? (user?.user_metadata?.avatar_url as string) ?? null;
   const { showToast } = useToast();
   const [body, setBody] = useState('');
   const [rig, setRig] = useState('');
@@ -135,6 +137,7 @@ function NewPostDrawer({ open, onClose, onPosted }: {
           rig_model: rig.trim() || null,
           user_id: user.id,
           user_name: userName,
+          avatar_url: userAvatarUrl,
           role: userRole,
           image_url: imageUrl,
         });
@@ -1706,11 +1709,12 @@ export default function HomePage() {
     }
     try {
       // Fetch posts + user interaction booleans in parallel
-      // Join users table to get the live avatar/photo url for post cards
+      // Note: posts.user_id references auth.users, not public.users, so we can't join.
+      // We rely on denormalized avatar_url/role columns on posts table.
       const [postsResult, likesResult, savedResult, repostsResult] = await Promise.all([
         supabaseClient
           .from('posts')
-          .select('*, users(avatar_url, photo_url)')
+          .select('*')
           .order('created_at', { ascending: false })
           .limit(30),
         user
@@ -1764,8 +1768,8 @@ export default function HomePage() {
           ...p,
           username: p.user_name ?? 'Rider',
           role: p.role ?? 'user',
-          // Prefer live avatar from users join; fall back to denormalised column
-          avatar_url: (p.users as any)?.avatar_url ?? (p.users as any)?.photo_url ?? p.avatar_url ?? null,
+          // Use denormalized avatar_url from posts table
+          avatar_url: p.avatar_url ?? null,
           liked_by_me: likedIds.has(p.id),
           bookmarked_by_me: savedIds.has(p.id),
           reposted_by_me: p.repost_of_id

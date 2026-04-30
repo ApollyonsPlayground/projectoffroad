@@ -49,8 +49,8 @@ export default function AdminDashboard() {
       router.replace('/login')
       return
     }
-    const role = (profile?.role as string | null)?.toUpperCase()
-    if (role !== 'OWNER') {
+    const role = (profile?.role as string | null)?.toLowerCase()
+    if (role !== 'owner') {
       router.replace('/')
     }
   }, [authLoading, user, profile, router])
@@ -75,7 +75,7 @@ export default function AdminDashboard() {
   }, [supabaseClient, filter])
 
   useEffect(() => {
-    if (!authLoading && user && (profile?.role as string | null)?.toUpperCase() === 'OWNER') {
+    if (!authLoading && user && (profile?.role as string | null)?.toLowerCase() === 'owner') {
       fetchSuggestions()
     }
   }, [fetchSuggestions, authLoading, user, profile])
@@ -114,8 +114,8 @@ export default function AdminDashboard() {
   }
 
   // Role check not yet passed (will redirect)
-  const role = (profile?.role as string | null)?.toUpperCase()
-  if (role !== 'OWNER') return null
+  const role = (profile?.role as string | null)?.toLowerCase()
+  if (role !== 'owner') return null
 
   return (
     <div className="min-h-screen bg-[#050705]">

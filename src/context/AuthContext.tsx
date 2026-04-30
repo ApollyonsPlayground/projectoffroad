@@ -68,22 +68,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function fetchProfile(userId: string) {
     if (!supabase) return
-    // Upsert: ensure user record exists with data from Google session
+    // Try to fetch existing profile first
+    const { data: existingProfile, error: fetchError } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', userId)
+      .single()
+
+    if (!fetchError && existingProfile) {
+      // Profile exists — use it directly (preserve role!)
+      setProfile(existingProfile)
+      setLoading(false)
+      return
+    }
+
+    // Profile doesn't exist — create one with default role
     const session = (await supabase.auth.getSession()).data?.session
     if (session?.user) {
-      const { error: upsertError } = await supabase.from('users').upsert(
-        {
-          id: userId,
-          name: (session.user.user_metadata?.full_name as string) || session.user.email?.split('@')[0] || 'Rider',
-          email: session.user.email ?? '',
-          avatar_url: (session.user.user_metadata?.avatar_url as string) || null,
-          role: 'user',
-        },
-        { onConflict: 'id' }
-      )
-      if (upsertError) console.error('[v0] upsert error:', upsertError)
+      const { error: insertError } = await supabase.from('users').insert({
+        id: userId,
+        name: (session.user.user_metadata?.full_name as string) || session.user.email?.split('@')[0] || 'Rider',
+        email: session.user.email ?? '',
+        avatar_url: (session.user.user_metadata?.avatar_url as string) || null,
+        role: 'user', // Default role for new users only
+      })
+      if (insertError && insertError.code !== '23505') {
+        // 23505 = unique violation (profile already exists, race condition)
+        console.error('[v0] insert error:', insertError)
+      }
     }
-    // Fetch profile after upsert
+
+    // Re-fetch to get the inserted or existing profile
     const { data, error } = await supabase
       .from('users')
       .select('*')
