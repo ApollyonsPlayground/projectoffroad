@@ -26,13 +26,22 @@ export default function BottomNav() {
     if (!supabaseClient || !user) { setHasUnread(false); return; }
 
     const checkUnread = async () => {
-      const { data } = await supabaseClient
-        .from('conversation_participants')
-        .select('is_read')
-        .eq('user_id', user.id)
-        .eq('is_read', false)
-        .limit(1);
-      setHasUnread((data?.length ?? 0) > 0);
+      try {
+        const { data, error } = await supabaseClient
+          .from('conversation_participants')
+          .select('is_read')
+          .eq('user_id', user.id)
+          .eq('is_read', false)
+          .limit(1);
+        // Gracefully handle missing table (404) or other errors
+        if (error) {
+          setHasUnread(false);
+          return;
+        }
+        setHasUnread((data?.length ?? 0) > 0);
+      } catch {
+        setHasUnread(false);
+      }
     };
 
     checkUnread();

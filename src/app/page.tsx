@@ -516,18 +516,38 @@ function StoriesBar() {
 
   useEffect(() => {
     if (!supabaseClient) return;
+    // Use left join syntax: trail_id references trails table
     supabaseClient
       .from('runs')
-      .select('id, title, trails(photo_url)')
+      .select('id, title, trail_id, trail:trails(photo_url)')
       .eq('status', 'active')
       .order('date', { ascending: true })
       .limit(8)
-      .then(({ data }) => {
+      .then(({ data, error }) => {
+        if (error) {
+          // Fallback: fetch without join if trails table/FK doesn't exist yet
+          supabaseClient
+            .from('runs')
+            .select('id, title')
+            .eq('status', 'active')
+            .order('date', { ascending: true })
+            .limit(8)
+            .then(({ data: fallbackData }) => {
+              setLiveRuns(
+                (fallbackData ?? []).map((r: any) => ({
+                  id: r.id,
+                  title: r.title ?? 'Live Run',
+                  trail_photo: null,
+                }))
+              );
+            });
+          return;
+        }
         setLiveRuns(
           (data ?? []).map((r: any) => ({
             id: r.id,
             title: r.title ?? 'Live Run',
-            trail_photo: r.trails?.photo_url ?? null,
+            trail_photo: r.trail?.photo_url ?? null,
           }))
         );
       });
@@ -1076,7 +1096,7 @@ function RigPostCard({ post, index }: {
   const handleDelete = async () => {
     if (!supabaseClient || !user) return;
     // Guard: only owner or post author can delete
-    if (user.id !== post.user_id && (user as any).role !== 'owner') {
+    if (user.id !== post.user_id && userRole !== 'owner') {
       showToast('You cannot delete this post', 'error');
       return;
     }
@@ -1187,7 +1207,7 @@ function RigPostCard({ post, index }: {
                     >
                       <Flag size={14} /> Report Post
                     </button>
-                    {(user?.id === post.user_id || user?.role === 'owner') && (
+                    {(user?.id === post.user_id || userRole === 'owner') && (
                       <button
                         onClick={() => { handleDelete(); setMenuOpen(false); }}
                         className="flex items-center gap-2.5 w-full px-4 py-3 text-[13px] text-red-500 hover:bg-red-500/10 transition-colors text-left border-t border-zinc-800"

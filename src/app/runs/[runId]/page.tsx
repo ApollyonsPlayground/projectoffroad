@@ -125,19 +125,30 @@ export default function RunDetailPage() {
     if (!supabaseClient || !runId) return;
     setIsLoading(true);
     try {
-      const [runRes, participantsRes] = await Promise.all([
-        supabaseClient
+      // Try with trail join first
+      let runRes = await supabaseClient
+        .from('runs')
+        .select(
+          'id, title, description, date, meetup_location, difficulty, max_participants, vehicle_requirements, status, host_id, club_id, trail_id, created_at, club:clubs(name, logo), trail:trails(name, difficulty)'
+        )
+        .eq('id', runId)
+        .single();
+
+      // Fallback without trail join if FK doesn't exist
+      if (runRes.error && runRes.error.code === 'PGRST200') {
+        runRes = await supabaseClient
           .from('runs')
           .select(
-            'id, title, description, date, meetup_location, difficulty, max_participants, vehicle_requirements, status, host_id, club_id, trail_id, created_at, club:clubs(name, logo), trail:trails(name, difficulty)'
+            'id, title, description, date, meetup_location, difficulty, max_participants, vehicle_requirements, status, host_id, club_id, trail_id, created_at, club:clubs(name, logo)'
           )
           .eq('id', runId)
-          .single(),
-        supabaseClient
-          .from('run_participants')
-          .select('id, user_id, rsvp_status, users(name, avatar_url)')
-          .eq('run_id', runId),
-      ]);
+          .single();
+      }
+
+      const participantsRes = await supabaseClient
+        .from('run_participants')
+        .select('id, user_id, rsvp_status, users(name, avatar_url)')
+        .eq('run_id', runId);
 
       if (runRes.error) throw runRes.error;
       setRun(runRes.data as unknown as RunDetail);

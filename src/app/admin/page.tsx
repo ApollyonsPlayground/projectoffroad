@@ -3,13 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/context/AuthContext'
-import { createClient } from '@supabase/supabase-js'
 import { ShieldCheck, CheckCircle2, XCircle, Mountain, Clock, Loader2, RefreshCw } from 'lucide-react'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
 
 interface TrailSuggestion {
   id: string
@@ -81,8 +75,9 @@ export default function AdminDashboard() {
   }, [fetchSuggestions, authLoading, user, profile])
 
   async function updateStatus(id: string, status: 'approved' | 'rejected') {
+    if (!supabaseClient) return
     setUpdatingId(id)
-    const { error } = await supabase
+    const { error } = await supabaseClient
       .from('trail_suggestions')
       .update({
         status,
