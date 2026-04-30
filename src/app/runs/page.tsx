@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Calendar,
@@ -80,6 +81,7 @@ function HostRunDrawer({
   onClose: () => void;
   onSuccess: () => void;
 }) {
+  const router = useRouter();
   const { user, supabaseClient } = useAuth();
   const { showToast } = useToast();
 
@@ -120,7 +122,7 @@ function HostRunDrawer({
     // Fetch trails — try with is_active filter first, fallback to all trails
     supabaseClient
       .from('trails')
-      .select('id, name')
+      .select('id, name, location, difficulty')
       .eq('is_active', true)
       .order('name', { ascending: true })
       .then(({ data, error }) => {
@@ -128,7 +130,7 @@ function HostRunDrawer({
           // Fallback: fetch all trails without is_active filter (column may not exist)
           supabaseClient
             .from('trails')
-            .select('id, name')
+            .select('id, name, location, difficulty')
             .order('name', { ascending: true })
             .then(({ data: fallbackData }) => {
               setTrails((fallbackData ?? []) as Trail[]);
@@ -172,7 +174,7 @@ function HostRunDrawer({
     };
 
     try {
-      const { data, error } = await supabaseClient.from('runs').insert(payload).select();
+      const { data, error } = await supabaseClient.from('runs').insert(payload).select('id').single();
 
       if (error) {
         console.error('[HostRunDrawer] Insert error:', error);
@@ -180,7 +182,7 @@ function HostRunDrawer({
         return;
       }
 
-      console.log('[HostRunDrawer] Run created successfully:', data);
+      const newRunId = data?.id;
       showToast('Run created!', 'success');
       setForm({ ...EMPTY_FORM });
       setCustomTrailName('');
@@ -188,6 +190,11 @@ function HostRunDrawer({
       setTrailSearch('');
       onSuccess();
       onClose();
+
+      // Redirect to the new run's detail page
+      if (newRunId) {
+        router.push(`/runs/${newRunId}`);
+      }
     } catch (err: unknown) {
       console.error('[HostRunDrawer] Unexpected error:', err);
       const msg = err instanceof Error ? err.message : 'Failed to create run. Check database columns.';
@@ -444,7 +451,12 @@ function HostRunDrawer({
                                   type="button"
                                   className="w-full px-3 py-2.5 text-left text-[13px] text-white hover:bg-zinc-800 flex items-center justify-between"
                                   onClick={() => {
-                                    setForm((prev) => ({ ...prev, trail_id: t.id }));
+                                    // Set trail_id and auto-fill meetup_location from trail's location
+                                    setForm((prev) => ({
+                                      ...prev,
+                                      trail_id: t.id,
+                                      meetup_location: t.location ?? prev.meetup_location,
+                                    }));
                                     setTrailComboOpen(false);
                                     setTrailSearch('');
                                   }}
