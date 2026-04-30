@@ -210,60 +210,71 @@ export default function TrailsPage() {
 
   // ── Fetch trails from Supabase ─────────────────────────────────────────────
   useEffect(() => {
-    if (!supabaseClient) {
-      // No client — use local JSON immediately
-      setDbTrails(localTrails);
-      setIsLoading(false);
-      return;
-    }
+    const fetchTrails = async () => {
+      // Always start with local data as fallback
+      if (!supabaseClient) {
+        setDbTrails(localTrails);
+        setIsLoading(false);
+        return;
+      }
 
-    // Try fetching with is_active filter first
-    supabaseClient
-      .from('trails')
-      .select('*')
-      .eq('is_active', true)
-      .order('name', { ascending: true })
-      .then(({ data, error }) => {
-        // If is_active column doesn't exist, fallback to fetch all
-        if (error || !data || data.length === 0) {
-          supabaseClient
-            .from('trails')
-            .select('*')
-            .order('name', { ascending: true })
-            .then(({ data: fallbackData }) => {
-              if (fallbackData && fallbackData.length > 0) {
-                setDbTrails(
-                  fallbackData.map((t: any) => ({
-                    ...t,
-                    image: t.photo_url ?? t.image,
-                    difficultyLevel: t.difficulty,
-                    coordinates: t.latitude && t.longitude ? `${t.latitude}, ${t.longitude}` : undefined,
-                    mapsUrl: t.latitude && t.longitude
-                      ? `https://www.google.com/maps/search/?api=1&query=${t.latitude},${t.longitude}`
-                      : t.mapsUrl,
-                  }))
-                );
-              } else {
-                setDbTrails(localTrails);
-              }
-              setIsLoading(false);
-            });
+      try {
+        // Try fetching all trails (don't filter by is_active since column may not exist)
+        const { data, error } = await supabaseClient
+          .from('trails')
+          .select('*')
+          .order('name', { ascending: true });
+
+        if (error) {
+          console.log('[v0] Supabase trails fetch error:', error.message);
+          // Fall back to local JSON on error
+          setDbTrails(localTrails);
+          setIsLoading(false);
           return;
         }
 
-        setDbTrails(
-          data.map((t: any) => ({
-            ...t,
-            image: t.photo_url ?? t.image,
-            difficultyLevel: t.difficulty,
-            coordinates: t.latitude && t.longitude ? `${t.latitude}, ${t.longitude}` : undefined,
-            mapsUrl: t.latitude && t.longitude
-              ? `https://www.google.com/maps/search/?api=1&query=${t.latitude},${t.longitude}`
-              : t.mapsUrl,
-          }))
-        );
+        if (!data || data.length === 0) {
+          console.log('[v0] No trails in database, using local JSON');
+          setDbTrails(localTrails);
+          setIsLoading(false);
+          return;
+        }
+
+        console.log('[v0] Fetched', data.length, 'trails from database');
+
+        // Map database fields to component interface
+        const mappedTrails = data.map((t: any) => ({
+          id: t.id,
+          name: t.name ?? t.title ?? 'Unnamed Trail',
+          location: t.location ?? '',
+          difficulty: t.difficulty ?? 'Moderate',
+          difficultyLevel: t.difficulty ?? 'Moderate',
+          distance: t.distance ?? '',
+          time: t.time ?? t.duration ?? '',
+          terrain: t.terrain ?? '',
+          description: t.description ?? '',
+          image: t.photo_url ?? t.image ?? '',
+          mapsUrl: t.latitude && t.longitude
+            ? `https://www.google.com/maps/search/?api=1&query=${t.latitude},${t.longitude}`
+            : t.mapsUrl ?? '',
+          onxUrl: t.onxUrl ?? t.onx_url ?? '',
+          rigRequirements: t.rigRequirements ?? t.rig_requirements ?? '',
+          tags: t.tags ?? [],
+          latitude: t.latitude,
+          longitude: t.longitude,
+          coordinates: t.latitude && t.longitude ? `${t.latitude}, ${t.longitude}` : t.coordinates,
+        }));
+
+        setDbTrails(mappedTrails);
+      } catch (err) {
+        console.log('[v0] Unexpected error fetching trails:', err);
+        setDbTrails(localTrails);
+      } finally {
         setIsLoading(false);
-      });
+      }
+    };
+
+    fetchTrails();
   }, [supabaseClient, localTrails]);
 
   // ── Filter trails based on search and difficulty ─────────────────────────────
