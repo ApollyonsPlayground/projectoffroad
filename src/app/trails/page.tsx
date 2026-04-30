@@ -87,8 +87,8 @@ function TrailCard({ trail, index, onSave }: {
     <motion.article
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.05 }}
-      className="bg-zinc-900 border border-zinc-800 overflow-hidden hover:border-orange-500/50 transition-colors"
+      transition={{ delay: index * 0.03 }}
+      className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden hover:border-orange-500/50 transition-colors flex flex-col h-full"
     >
       {/* Trail Image */}
       {trail.image && (
@@ -116,7 +116,7 @@ function TrailCard({ trail, index, onSave }: {
       )}
 
       {/* Content */}
-      <div className="p-4">
+      <div className="p-4 flex flex-col flex-1">
         {/* Stats */}
         <div className="flex items-center gap-4 text-sm text-zinc-500 mb-3">
           <div className="flex items-center gap-1.5">
@@ -134,8 +134,8 @@ function TrailCard({ trail, index, onSave }: {
         </div>
 
         {/* Description */}
-        <p className="text-sm text-zinc-400 line-clamp-2 mb-4">
-          {trail.description}
+        <p className="text-sm text-zinc-400 line-clamp-2 mb-4 flex-grow">
+          {trail.description || 'No description available.'}
         </p>
 
         {/* Rig Requirements */}
@@ -145,8 +145,8 @@ function TrailCard({ trail, index, onSave }: {
           </p>
         )}
 
-        {/* Action Buttons */}
-        <div className="flex gap-2">
+        {/* Action Buttons — stick to bottom */}
+        <div className="flex gap-2 mt-auto">
           <a
             href={trail.mapsUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(trail.name + ' ' + trail.location)}`}
             target="_blank"
@@ -216,29 +216,52 @@ export default function TrailsPage() {
       setIsLoading(false);
       return;
     }
+
+    // Try fetching with is_active filter first
     supabaseClient
       .from('trails')
       .select('*')
+      .eq('is_active', true)
       .order('name', { ascending: true })
-      .then(({ data }) => {
-        if (data && data.length > 0) {
-          setDbTrails(
-            data.map((t: any) => ({
-              ...t,
-              image: t.photo_url ?? t.image,
-              difficultyLevel: t.difficulty,
-              // Construct coordinates string from lat/lng for map component
-              coordinates: t.latitude && t.longitude ? `${t.latitude}, ${t.longitude}` : undefined,
-              // Build mapsUrl if coordinates exist
-              mapsUrl: t.latitude && t.longitude
-                ? `https://www.google.com/maps/search/?api=1&query=${t.latitude},${t.longitude}`
-                : t.mapsUrl,
-            }))
-          );
-        } else {
-          // Fallback to local JSON if Supabase is empty
-          setDbTrails(localTrails);
+      .then(({ data, error }) => {
+        // If is_active column doesn't exist, fallback to fetch all
+        if (error || !data || data.length === 0) {
+          supabaseClient
+            .from('trails')
+            .select('*')
+            .order('name', { ascending: true })
+            .then(({ data: fallbackData }) => {
+              if (fallbackData && fallbackData.length > 0) {
+                setDbTrails(
+                  fallbackData.map((t: any) => ({
+                    ...t,
+                    image: t.photo_url ?? t.image,
+                    difficultyLevel: t.difficulty,
+                    coordinates: t.latitude && t.longitude ? `${t.latitude}, ${t.longitude}` : undefined,
+                    mapsUrl: t.latitude && t.longitude
+                      ? `https://www.google.com/maps/search/?api=1&query=${t.latitude},${t.longitude}`
+                      : t.mapsUrl,
+                  }))
+                );
+              } else {
+                setDbTrails(localTrails);
+              }
+              setIsLoading(false);
+            });
+          return;
         }
+
+        setDbTrails(
+          data.map((t: any) => ({
+            ...t,
+            image: t.photo_url ?? t.image,
+            difficultyLevel: t.difficulty,
+            coordinates: t.latitude && t.longitude ? `${t.latitude}, ${t.longitude}` : undefined,
+            mapsUrl: t.latitude && t.longitude
+              ? `https://www.google.com/maps/search/?api=1&query=${t.latitude},${t.longitude}`
+              : t.mapsUrl,
+          }))
+        );
         setIsLoading(false);
       });
   }, [supabaseClient, localTrails]);
@@ -351,7 +374,7 @@ export default function TrailsPage() {
       </div>
 
       {/* Main content — List or Map */}
-      <main className={view === 'map' ? 'px-3 pt-3 pb-24' : 'max-w-md mx-auto px-4 pt-4 pb-24'}>
+      <main className={view === 'map' ? 'px-3 pt-3 pb-24' : 'max-w-6xl mx-auto px-4 pt-4 pb-24'}>
         <AnimatePresence mode="wait">
           {view === 'map' ? (
             <motion.div
@@ -361,7 +384,7 @@ export default function TrailsPage() {
               exit={{ opacity: 0 }}
               // height accounts for header + warning banner + bottom nav
               style={{ height: 'calc(100dvh - 168px)' }}
-              className="relative"
+              className="relative w-full"
             >
               <TrailMap trails={filteredTrails} />
             </motion.div>
@@ -372,7 +395,7 @@ export default function TrailsPage() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
             >
-              <TrailListSkeleton count={5} />
+              <TrailListSkeleton count={6} />
             </motion.div>
           ) : filteredTrails.length === 0 ? (
             <motion.div
@@ -392,14 +415,16 @@ export default function TrailsPage() {
               key="trails"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="space-y-4"
             >
-              <p className="text-sm text-zinc-500">
+              <p className="text-sm text-zinc-500 mb-4">
                 {filteredTrails.length} trail{filteredTrails.length !== 1 ? 's' : ''} found
               </p>
-              {filteredTrails.map((trail, index) => (
-                <TrailCard key={trail.id} trail={trail} index={index} onSave={handleSaveTrail} />
-              ))}
+              {/* Responsive grid: 1 col mobile, 2 col tablet, 3 col desktop */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filteredTrails.map((trail, index) => (
+                  <TrailCard key={trail.id} trail={trail} index={index} onSave={handleSaveTrail} />
+                ))}
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
