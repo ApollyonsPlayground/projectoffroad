@@ -129,15 +129,20 @@ function NewPostDrawer({ open, onClose, onPosted }: {
       // Step 3: use user metadata directly (no DB lookup needed)
       const userName = (user.user_metadata?.full_name as string) || (user.user_metadata?.name as string) || user.email?.split('@')[0] || 'Rider';
 
-      // Step 4: insert post row — using supabaseClient from AuthContext (has auth session)
+      // Step 4: insert post row — using supabaseClient from AuthContext (has auth session).
+      // We write both `body` AND `caption` because different DB setups use different column
+      // names (001_setup_social_tables uses `caption`; later migrations use `body`).
+      // Similarly we write both `avatar_url` and `user_avatar` to cover both schemas.
       const { error: insertError } = await supabaseClient!
         .from('posts')
         .insert({
           body: body.trim(),
+          caption: body.trim(),       // compat: 001_setup_social_tables uses `caption`
           rig_model: rig.trim() || null,
           user_id: user.id,
           user_name: userName,
           avatar_url: userAvatarUrl,
+          user_avatar: userAvatarUrl, // compat: supabase-setup.sql uses `user_avatar`
           role: userRole,
           image_url: imageUrl,
         });
@@ -1787,8 +1792,11 @@ export default function HomePage() {
           ...p,
           username: p.user_name ?? 'Rider',
           role: p.role ?? 'user',
-          // Use denormalized avatar_url from posts table
-          avatar_url: p.avatar_url ?? null,
+          // Cover both schema variants: 001_setup uses `avatar_url`,
+          // supabase-setup.sql uses `user_avatar`. Fall back gracefully.
+          avatar_url: p.avatar_url ?? p.user_avatar ?? null,
+          // Ensure `caption` is always set for components that read post.caption
+          caption: p.body ?? p.caption ?? '',
           liked_by_me: likedIds.has(p.id),
           bookmarked_by_me: savedIds.has(p.id),
           reposted_by_me: p.repost_of_id
