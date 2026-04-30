@@ -129,35 +129,24 @@ function NewPostDrawer({ open, onClose, onPosted }: {
       // Step 3: use user metadata directly (no DB lookup needed)
       const userName = (user.user_metadata?.full_name as string) || (user.user_metadata?.name as string) || user.email?.split('@')[0] || 'Rider';
 
-      // Step 4: insert post row — only use columns guaranteed to exist in base schema.
-      // 001_setup_social_tables.sql defines: id, user_id, image_url, caption, user_name, likes_count, comments_count
-      // After insert, we try to UPDATE with additional columns (body, role, avatar_url, rig_model) which may not exist.
-      const { data: insertedRows, error: insertError } = await supabaseClient!
+      // Step 4: insert post row with all columns in a single call.
+      // Send both body AND caption (same content), both avatar_url AND user_avatar (same URL)
+      // to cover all schema variants.
+      const { error: insertError } = await supabaseClient!
         .from('posts')
         .insert({
           user_id: user.id,
           user_name: userName,
-          caption: body.trim(),   // base schema has caption
+          body: body.trim(),
+          caption: body.trim(),
+          avatar_url: userAvatarUrl,
+          user_avatar: userAvatarUrl,
+          role: userRole,
+          rig_model: rig.trim() || null,
           image_url: imageUrl,
-        })
-        .select('id')
-        .single();
+        });
       
       if (insertError) throw new Error(insertError.message);
-
-      // Try to update with extended columns (silently ignore errors if columns don't exist)
-      if (insertedRows?.id) {
-        await supabaseClient!
-          .from('posts')
-          .update({
-            body: body.trim(),
-            role: userRole,
-            avatar_url: userAvatarUrl,
-            rig_model: rig.trim() || null,
-          })
-          .eq('id', insertedRows.id)
-          .then(() => {}); // Ignore errors — columns may not exist
-      }
 
       showToast('Post uploaded!', 'success');
       onPosted?.();
@@ -922,20 +911,18 @@ function RigPostCard({ post, index }: {
       }
     } else {
       const userName = (user.user_metadata?.full_name as string) || user.email?.split('@')[0] || 'Rider';
-      // Use only base columns, then try UPDATE for extended columns
-      const { data: insertedRepost, error } = await supabaseClient.from('posts').insert({
+      const postContent = post.body ?? post.caption ?? '';
+      // Single insert with all columns
+      const { error } = await supabaseClient.from('posts').insert({
         user_id: user.id,
         user_name: userName,
-        caption: post.body ?? post.caption ?? '',
+        body: postContent,
+        caption: postContent,
         image_url: post.image_url ?? null,
-      }).select('id').single();
-      if (!error && insertedRepost?.id) {
-        // Try to set extended columns (silently fail if they don't exist)
-        await supabaseClient.from('posts').update({
-          body: post.body ?? post.caption ?? '',
-          repost_of_id: post.id,
-          role: 'user',
-        }).eq('id', insertedRepost.id).then(() => {});
+        repost_of_id: post.id,
+        role: 'user',
+      });
+      if (!error) {
         setReposted(true); setRepostsCount((c) => c + 1); showToast('Reposted!', 'success');
       } else {
         showToast('Could not repost', 'error');
