@@ -99,29 +99,46 @@ function HostRunDrawer({
   useEffect(() => {
     if (!open || !supabaseClient || !user) return;
     setLoadingDropdowns(true);
-    Promise.all([
-      // Clubs where user is owner or admin via club_members
-      supabaseClient
-        .from('club_members')
-        .select('club_id, clubs(id, name)')
-        .eq('user_id', user.id)
-        .in('role', ['owner', 'admin']),
-      supabaseClient
-        .from('trails')
-        .select('id, name, location, difficulty')
-        .order('name', { ascending: true }),
-    ]).then(([membersRes, trailsRes]) => {
-      const clubList: Club[] = (membersRes.data ?? [])
-        .map((r: any) => r.clubs)
-        .filter(Boolean)
-        .reduce((acc: Club[], c: Club) => {
-          if (!acc.find((x) => x.id === c.id)) acc.push(c);
-          return acc;
-        }, []);
-      setClubs(clubList);
-      setTrails((trailsRes.data ?? []) as Trail[]);
-      setLoadingDropdowns(false);
-    });
+
+    // Fetch clubs where user is owner or admin
+    supabaseClient
+      .from('club_members')
+      .select('club_id, clubs(id, name)')
+      .eq('user_id', user.id)
+      .in('role', ['owner', 'admin'])
+      .then(({ data: membersData }) => {
+        const clubList: Club[] = (membersData ?? [])
+          .map((r: any) => r.clubs)
+          .filter(Boolean)
+          .reduce((acc: Club[], c: Club) => {
+            if (!acc.find((x) => x.id === c.id)) acc.push(c);
+            return acc;
+          }, []);
+        setClubs(clubList);
+      });
+
+    // Fetch trails — try with is_active filter first, fallback to all trails
+    supabaseClient
+      .from('trails')
+      .select('id, name')
+      .eq('is_active', true)
+      .order('name', { ascending: true })
+      .then(({ data, error }) => {
+        if (error || !data || data.length === 0) {
+          // Fallback: fetch all trails without is_active filter (column may not exist)
+          supabaseClient
+            .from('trails')
+            .select('id, name')
+            .order('name', { ascending: true })
+            .then(({ data: fallbackData }) => {
+              setTrails((fallbackData ?? []) as Trail[]);
+              setLoadingDropdowns(false);
+            });
+        } else {
+          setTrails(data as Trail[]);
+          setLoadingDropdowns(false);
+        }
+      });
   }, [open, supabaseClient, user]);
 
   const set = (key: keyof typeof EMPTY_FORM) => (
@@ -136,24 +153,34 @@ function HostRunDrawer({
       return;
     }
     setSubmitting(true);
+
+    // Determine if this is a custom trail suggestion
+    const isCustomTrail = showCustomTrailInput && customTrailName.trim();
+
+    // Build payload matching exact schema
+    const payload = {
+      title: form.title.trim(),
+      description: form.description.trim() || null,
+      date: new Date(form.date).toISOString(),
+      meetup_location: form.meetup_location.trim(),
+      max_riders: form.max_participants ? parseInt(form.max_participants, 10) : null,
+      difficulty: form.difficulty,
+      host_id: user.id,
+      trail_id: isCustomTrail ? null : (form.trail_id || null),
+      trail_name_custom: isCustomTrail ? customTrailName.trim() : null,
+      status: isCustomTrail ? 'pending_approval' : 'upcoming',
+    };
+
     try {
-      // If custom trail was typed, set trail_name_custom and trail_id to null
-      const isCustomTrail = showCustomTrailInput && customTrailName.trim();
-      const { error } = await supabaseClient.from('runs').insert({
-        title: form.title.trim(),
-        description: form.description.trim() || null,
-        date: new Date(form.date).toISOString(),
-        meetup_location: form.meetup_location.trim(),
-        max_participants: form.max_participants ? parseInt(form.max_participants, 10) : null,
-        max_riders: form.max_participants ? parseInt(form.max_participants, 10) : null,
-        difficulty: form.difficulty,
-        club_id: form.club_id || null,
-        trail_id: isCustomTrail ? null : (form.trail_id || null),
-        trail_name_custom: isCustomTrail ? customTrailName.trim() : null,
-        host_id: user.id,
-        status: 'upcoming',
-      });
-      if (error) throw error;
+      const { data, error } = await supabaseClient.from('runs').insert(payload).select();
+
+      if (error) {
+        console.error('[HostRunDrawer] Insert error:', error);
+        showToast(`Failed to create run: ${error.message}`, 'error');
+        return;
+      }
+
+      console.log('[HostRunDrawer] Run created successfully:', data);
       showToast('Run created!', 'success');
       setForm({ ...EMPTY_FORM });
       setCustomTrailName('');
@@ -162,7 +189,8 @@ function HostRunDrawer({
       onSuccess();
       onClose();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Failed to create run';
+      console.error('[HostRunDrawer] Unexpected error:', err);
+      const msg = err instanceof Error ? err.message : 'Failed to create run. Check database columns.';
       showToast(msg, 'error');
     } finally {
       setSubmitting(false);
