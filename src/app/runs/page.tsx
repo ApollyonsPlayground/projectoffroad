@@ -16,6 +16,9 @@ import {
   Mountain,
   ChevronDown,
   Flag,
+  Search,
+  Check,
+  PlusCircle,
 } from 'lucide-react';
 
 import Link from 'next/link';
@@ -86,6 +89,12 @@ function HostRunDrawer({
   const [loadingDropdowns, setLoadingDropdowns] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
+  // Trail Combobox state
+  const [trailSearch, setTrailSearch] = useState('');
+  const [trailComboOpen, setTrailComboOpen] = useState(false);
+  const [customTrailName, setCustomTrailName] = useState('');
+  const [showCustomTrailInput, setShowCustomTrailInput] = useState(false);
+
   // Fetch clubs + trails when drawer opens
   useEffect(() => {
     if (!open || !supabaseClient || !user) return;
@@ -128,21 +137,28 @@ function HostRunDrawer({
     }
     setSubmitting(true);
     try {
+      // If custom trail was typed, set trail_name_custom and trail_id to null
+      const isCustomTrail = showCustomTrailInput && customTrailName.trim();
       const { error } = await supabaseClient.from('runs').insert({
         title: form.title.trim(),
         description: form.description.trim() || null,
         date: new Date(form.date).toISOString(),
         meetup_location: form.meetup_location.trim(),
         max_participants: form.max_participants ? parseInt(form.max_participants, 10) : null,
+        max_riders: form.max_participants ? parseInt(form.max_participants, 10) : null,
         difficulty: form.difficulty,
         club_id: form.club_id || null,
-        trail_id: form.trail_id || null,
+        trail_id: isCustomTrail ? null : (form.trail_id || null),
+        trail_name_custom: isCustomTrail ? customTrailName.trim() : null,
         host_id: user.id,
         status: 'upcoming',
       });
       if (error) throw error;
       showToast('Run created!', 'success');
       setForm({ ...EMPTY_FORM });
+      setCustomTrailName('');
+      setShowCustomTrailInput(false);
+      setTrailSearch('');
       onSuccess();
       onClose();
     } catch (err: unknown) {
@@ -305,28 +321,133 @@ function HostRunDrawer({
                 )}
               </div>
 
-              {/* Trail dropdown */}
+              {/* Trail Searchable Combobox */}
               <div>
                 <label className={labelClass}>
                   <Mountain size={11} className="inline mr-1" />
                   Trail
                 </label>
-                <div className="relative">
-                  <select
-                    className={`${inputClass} appearance-none pr-8`}
-                    value={form.trail_id}
-                    onChange={set('trail_id')}
-                    disabled={loadingDropdowns}
-                  >
-                    <option value="">Select a trail (optional)</option>
-                    {trails.map((t) => (
-                      <option key={t.id} value={t.id} className="bg-zinc-900">
-                        {t.name}{t.location ? ` — ${t.location}` : ''}
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500" />
-                </div>
+                {showCustomTrailInput ? (
+                  // Custom trail input mode
+                  <div className="space-y-2">
+                    <input
+                      type="text"
+                      className={inputClass}
+                      placeholder="Type new trail name..."
+                      value={customTrailName}
+                      onChange={(e) => setCustomTrailName(e.target.value)}
+                      autoFocus
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowCustomTrailInput(false);
+                        setCustomTrailName('');
+                      }}
+                      className="text-[11px] text-orange-500 hover:text-orange-400"
+                    >
+                      Cancel — choose existing trail
+                    </button>
+                  </div>
+                ) : (
+                  // Searchable combobox
+                  <div className="relative">
+                    <div
+                      className={`${inputClass} cursor-pointer flex items-center justify-between`}
+                      onClick={() => setTrailComboOpen(!trailComboOpen)}
+                    >
+                      <span className={form.trail_id ? 'text-white' : 'text-zinc-500'}>
+                        {form.trail_id
+                          ? trails.find((t) => t.id === form.trail_id)?.name ?? 'Select a trail'
+                          : 'Select a trail (optional)'}
+                      </span>
+                      <ChevronDown size={14} className={`text-zinc-500 transition-transform ${trailComboOpen ? 'rotate-180' : ''}`} />
+                    </div>
+
+                    {/* Dropdown */}
+                    <AnimatePresence>
+                      {trailComboOpen && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -8 }}
+                          className="absolute z-50 w-full mt-1 bg-zinc-900 border border-zinc-700 rounded-xl shadow-xl overflow-hidden"
+                        >
+                          {/* Search input */}
+                          <div className="p-2 border-b border-zinc-800">
+                            <div className="relative">
+                              <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-500" />
+                              <input
+                                type="text"
+                                className="w-full pl-8 pr-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-[13px] text-white placeholder-zinc-500 focus:outline-none focus:border-orange-500/60"
+                                placeholder="Search trails..."
+                                value={trailSearch}
+                                onChange={(e) => setTrailSearch(e.target.value)}
+                                onClick={(e) => e.stopPropagation()}
+                              />
+                            </div>
+                          </div>
+
+                          {/* Options list */}
+                          <div className="max-h-48 overflow-y-auto">
+                            {/* Clear selection option */}
+                            <button
+                              type="button"
+                              className="w-full px-3 py-2.5 text-left text-[13px] text-zinc-400 hover:bg-zinc-800 flex items-center justify-between"
+                              onClick={() => {
+                                setForm((prev) => ({ ...prev, trail_id: '' }));
+                                setTrailComboOpen(false);
+                                setTrailSearch('');
+                              }}
+                            >
+                              No trail selected
+                              {!form.trail_id && <Check size={14} className="text-orange-500" />}
+                            </button>
+
+                            {/* Filtered trails */}
+                            {trails
+                              .filter((t) =>
+                                t.name.toLowerCase().includes(trailSearch.toLowerCase()) ||
+                                (t.location ?? '').toLowerCase().includes(trailSearch.toLowerCase())
+                              )
+                              .map((t) => (
+                                <button
+                                  key={t.id}
+                                  type="button"
+                                  className="w-full px-3 py-2.5 text-left text-[13px] text-white hover:bg-zinc-800 flex items-center justify-between"
+                                  onClick={() => {
+                                    setForm((prev) => ({ ...prev, trail_id: t.id }));
+                                    setTrailComboOpen(false);
+                                    setTrailSearch('');
+                                  }}
+                                >
+                                  <span>
+                                    {t.name}
+                                    {t.location && <span className="text-zinc-500 ml-1">— {t.location}</span>}
+                                  </span>
+                                  {form.trail_id === t.id && <Check size={14} className="text-orange-500" />}
+                                </button>
+                              ))}
+
+                            {/* Suggest new trail option */}
+                            <button
+                              type="button"
+                              className="w-full px-3 py-2.5 text-left text-[13px] text-orange-500 hover:bg-orange-500/10 flex items-center gap-2 border-t border-zinc-800"
+                              onClick={() => {
+                                setShowCustomTrailInput(true);
+                                setTrailComboOpen(false);
+                                setForm((prev) => ({ ...prev, trail_id: '' }));
+                              }}
+                            >
+                              <PlusCircle size={14} />
+                              + Suggest a New Trail...
+                            </button>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                )}
               </div>
 
               {/* Submit */}

@@ -3,7 +3,18 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/context/AuthContext'
-import { ShieldCheck, CheckCircle2, XCircle, Mountain, Clock, Loader2, RefreshCw } from 'lucide-react'
+import { ShieldCheck, CheckCircle2, XCircle, Mountain, Clock, Loader2, RefreshCw, Flag, Calendar, MapPin } from 'lucide-react'
+
+interface RunWithCustomTrail {
+  id: string
+  title: string
+  trail_name_custom: string
+  date: string
+  meetup_location: string
+  host_id: string
+  created_at: string
+  users?: { name: string | null; email: string | null } | null
+}
 
 interface TrailSuggestion {
   id: string
@@ -31,7 +42,9 @@ export default function AdminDashboard() {
   const router = useRouter()
   const { user, profile, loading: authLoading, supabaseClient } = useAuth()
   const [suggestions, setSuggestions] = useState<TrailSuggestion[]>([])
+  const [runsWithCustomTrails, setRunsWithCustomTrails] = useState<RunWithCustomTrail[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadingRuns, setLoadingRuns] = useState(true)
   const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('pending')
   const [updatingId, setUpdatingId] = useState<string | null>(null)
   const [noteInputs, setNoteInputs] = useState<Record<string, string>>({})
@@ -68,11 +81,28 @@ export default function AdminDashboard() {
     setLoading(false)
   }, [supabaseClient, filter])
 
+  // Fetch runs where trail_name_custom is NOT NULL (community-suggested trails)
+  const fetchRunsWithCustomTrails = useCallback(async () => {
+    if (!supabaseClient) return
+    setLoadingRuns(true)
+    const { data, error } = await supabaseClient
+      .from('runs')
+      .select('id, title, trail_name_custom, date, meetup_location, host_id, created_at')
+      .not('trail_name_custom', 'is', null)
+      .order('created_at', { ascending: false })
+
+    if (!error && data) {
+      setRunsWithCustomTrails(data as RunWithCustomTrail[])
+    }
+    setLoadingRuns(false)
+  }, [supabaseClient])
+
   useEffect(() => {
     if (!authLoading && user && (profile?.role as string | null)?.toLowerCase() === 'owner') {
       fetchSuggestions()
+      fetchRunsWithCustomTrails()
     }
-  }, [fetchSuggestions, authLoading, user, profile])
+  }, [fetchSuggestions, fetchRunsWithCustomTrails, authLoading, user, profile])
 
   async function updateStatus(id: string, status: 'approved' | 'rejected') {
     if (!supabaseClient) return
@@ -250,6 +280,69 @@ export default function AdminDashboard() {
                       </div>
                     </div>
                   )}
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+
+        {/* Runs with Custom Trail Suggestions */}
+        <section>
+          <div className="flex items-center gap-2 mb-4">
+            <Flag size={18} className="text-[#FF8C00]" />
+            <h2 className="text-white font-black uppercase tracking-widest text-sm">
+              Runs with Custom Trails
+            </h2>
+            {runsWithCustomTrails.length > 0 && (
+              <span className="px-2 py-px bg-blue-500 text-white text-[10px] font-black rounded-full leading-none">
+                {runsWithCustomTrails.length}
+              </span>
+            )}
+          </div>
+
+          {loadingRuns ? (
+            <div className="flex justify-center py-12">
+              <Loader2 size={24} className="text-[#FF8C00] animate-spin" />
+            </div>
+          ) : runsWithCustomTrails.length === 0 ? (
+            <div className="border-2 border-dashed border-neutral-800 rounded-xl p-12 text-center">
+              <Flag size={32} className="text-neutral-700 mx-auto mb-3" />
+              <p className="text-neutral-500 text-sm">No runs with custom trail suggestions.</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {runsWithCustomTrails.map((run) => (
+                <div
+                  key={run.id}
+                  className="bg-neutral-900 border border-neutral-800 rounded-xl p-4"
+                >
+                  <div className="flex items-start justify-between gap-3 mb-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-white font-bold text-[15px] leading-snug">{run.title}</p>
+                      <p className="text-[11px] text-neutral-500 mt-0.5">
+                        {new Date(run.date).toLocaleDateString('en-US', {
+                          month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit'
+                        })}
+                      </p>
+                    </div>
+                    <span className="flex-shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-full border text-[10px] font-bold uppercase tracking-wide bg-blue-500/10 text-blue-400 border-blue-500/30">
+                      <Mountain size={9} />
+                      Custom Trail
+                    </span>
+                  </div>
+
+                  {/* Custom trail name highlight */}
+                  <div className="bg-[#FF8C00]/10 border border-[#FF8C00]/30 rounded-lg px-3 py-2 mb-3">
+                    <p className="text-[11px] text-[#FF8C00] font-semibold uppercase tracking-wide mb-0.5">Suggested Trail Name</p>
+                    <p className="text-white font-bold text-[14px]">{run.trail_name_custom}</p>
+                  </div>
+
+                  <div className="flex items-center gap-4 text-[12px] text-neutral-500">
+                    <div className="flex items-center gap-1">
+                      <MapPin size={12} />
+                      <span className="truncate max-w-[180px]">{run.meetup_location}</span>
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>

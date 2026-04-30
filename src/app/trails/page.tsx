@@ -36,7 +36,7 @@ const TrailMap = dynamic(() => import('@/components/TrailMap'), {
   ),
 });
 
-type Difficulty = 'All' | 'Beginner' | 'Intermediate' | 'Moderate' | 'Advanced' | 'Extreme';
+type Difficulty = 'All' | 'Beginner' | 'Moderate' | 'Advanced' | 'Extreme';
 
 interface Trail {
   id: string;
@@ -44,15 +44,18 @@ interface Trail {
   location: string;
   difficulty: string;
   difficultyLevel?: string;
-  distance: string;
-  time: string;
-  terrain: string;
-  description: string;
+  distance?: string;
+  time?: string;
+  terrain?: string;
+  description?: string;
   image?: string;
   mapsUrl?: string;
   onxUrl?: string;
   rigRequirements?: string;
   tags?: string[];
+  latitude?: number;
+  longitude?: number;
+  coordinates?: string;
 }
 
 const difficulties: Difficulty[] = ['All', 'Beginner', 'Moderate', 'Advanced', 'Extreme'];
@@ -205,7 +208,7 @@ export default function TrailsPage() {
 
   const localTrails = trailsData as Trail[];
 
-  // ── Fetch trails from Supabase (no auto-upsert — DB should be pre-populated) ─
+  // ── Fetch trails from Supabase ─────────────────────────────────────────────
   useEffect(() => {
     if (!supabaseClient) {
       // No client — use local JSON immediately
@@ -215,16 +218,21 @@ export default function TrailsPage() {
     }
     supabaseClient
       .from('trails')
-      .select('id, name, location, difficulty, description, photo_url, latitude, longitude')
+      .select('*')
       .order('name', { ascending: true })
       .then(({ data }) => {
         if (data && data.length > 0) {
           setDbTrails(
             data.map((t: any) => ({
               ...t,
-              image: t.photo_url,
+              image: t.photo_url ?? t.image,
               difficultyLevel: t.difficulty,
+              // Construct coordinates string from lat/lng for map component
               coordinates: t.latitude && t.longitude ? `${t.latitude}, ${t.longitude}` : undefined,
+              // Build mapsUrl if coordinates exist
+              mapsUrl: t.latitude && t.longitude
+                ? `https://www.google.com/maps/search/?api=1&query=${t.latitude},${t.longitude}`
+                : t.mapsUrl,
             }))
           );
         } else {
@@ -312,36 +320,24 @@ export default function TrailsPage() {
           </div>
         </div>
 
-        {/* Difficulty Filter Chips */}
-        <AnimatePresence>
-          {showFilters && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              className="overflow-hidden border-t border-zinc-800"
-            >
-              <div className="px-4 py-3">
-                <p className="text-xs text-zinc-500 uppercase tracking-wider mb-2">Difficulty</p>
-                <div className="flex flex-wrap gap-2">
-                  {difficulties.map((difficulty) => (
-                    <button
-                      key={difficulty}
-                      onClick={() => setSelectedDifficulty(difficulty)}
-                      className={`px-3 py-1.5 text-xs font-semibold uppercase tracking-wider transition-all ${
-                        selectedDifficulty === difficulty
-                          ? 'bg-orange-500 text-zinc-950'
-                          : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
-                      }`}
-                    >
-                      {difficulty}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {/* Difficulty Filter Chips — always visible */}
+        <div className="px-4 py-2 border-t border-zinc-800">
+          <div className="flex flex-wrap gap-2">
+            {difficulties.map((difficulty) => (
+              <button
+                key={difficulty}
+                onClick={() => setSelectedDifficulty(difficulty)}
+                className={`px-3 py-1.5 text-xs font-semibold uppercase tracking-wider rounded-lg transition-all ${
+                  selectedDifficulty === difficulty
+                    ? 'bg-orange-500 text-zinc-950'
+                    : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
+                }`}
+              >
+                {difficulty}
+              </button>
+            ))}
+          </div>
+        </div>
       </header>
 
       {/* Trail Warning */}
