@@ -18,6 +18,8 @@ Copy [.env.example](.env.example) to `.env.local` and fill:
 
 **If auth suddenly fails everywhere:** Open **`/api/health/supabase`** on that deployment (e.g. `https://yoursite.com/api/health/supabase`). It checks reachability of your project’s Auth service (`/auth/v1/health`). **`configured: false`** means env vars are missing on the server. **`ok: false`** with a 4xx/5xx often means the Supabase project is **paused** (free tier), **unhealthy**, or the URL is wrong — check the [Supabase dashboard](https://supabase.com/dashboard) and [status](https://status.supabase.com).
 
+**Browser console: `GET …/rest/v1/users?…select=… 400 (Bad Request)`** — PostgREST rejects the query when a **column in `select=` does not exist** on `public.users`. The app expects columns from newer migrations (e.g. `username`, `hide_display_name` in [`20260503240000_users_identity_privacy.sql`](supabase/migrations/20260503240000_users_identity_privacy.sql)). Run **`npm run db:link`** (pick the **same** project as `NEXT_PUBLIC_SUPABASE_URL`) then **`npm run db:push`**, or run the pending migration SQL in the Supabase **SQL Editor**.
+
 Restart `npm run dev` after changing `NEXT_PUBLIC_*` values.
 
 Optional: **`NEXT_PUBLIC_CLUB_VERIFICATION_EMAIL`** — overrides the default **`socaloffroaders@socaloffroaders.com`** inbox for club verification mailto + copy on [clubs/create](src/app/clubs/create/page.tsx).

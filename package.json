@@ -10,7 +10,7 @@
     "lint": "eslint",
     "seed:trails": "node --env-file=.env.local scripts/upsert-trails.mjs",
     "db:login": "supabase login",
-    "db:link": "supabase link --project-ref pvdqageridqjgxswcalm",
+    "db:link": "supabase link",
     "db:push": "supabase db push",
     "db:push:dry": "supabase db push --dry-run",
     "cap:sync": "npx cap sync"
