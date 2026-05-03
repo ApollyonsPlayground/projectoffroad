@@ -18,6 +18,7 @@ import {
 import BottomNav from '@/components/BottomNav';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/Toast';
+import { SITE_SUPPORT_EMAIL } from '@/lib/siteContact';
 
 type DmAllow = 'everyone' | 'nobody';
 
@@ -302,7 +303,7 @@ export default function SettingsPage() {
               <span className="text-neutral-600">→</span>
             </Link>
             <a
-              href="mailto:support@socaloffroaders.org"
+              href={`mailto:${SITE_SUPPORT_EMAIL}`}
               className="flex items-center justify-between text-neutral-400 hover:text-white py-2"
             >
               <span>Contact Us</span>

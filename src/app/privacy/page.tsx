@@ -1,4 +1,5 @@
-import Link from 'next/link'
+import Link from 'next/link';
+import { SITE_SUPPORT_EMAIL } from '@/lib/siteContact';
 
 export default function PrivacyPage() {
   return (
@@ -80,7 +81,12 @@ export default function PrivacyPage() {
             <li><strong>Right to Opt-Out:</strong> Opt out of the sale of personal data (we do not sell data)</li>
             <li><strong>Right to Non-Discrimination:</strong> We will not discriminate against you for exercising these rights</li>
           </ul>
-          <p className="text-gray-300 mt-2">To exercise these rights, contact us at privacy@projectoffroad.app</p>
+          <p className="text-gray-300 mt-2">
+            To exercise these rights, contact us at{' '}
+            <a className="text-amber-400 hover:underline" href={`mailto:${SITE_SUPPORT_EMAIL}`}>
+              {SITE_SUPPORT_EMAIL}
+            </a>
+          </p>
 
           <h2 className="text-white mt-8">8. Data Security</h2>
           <p className="text-gray-300">We implement industry-standard security measures including encryption (TLS/SSL), secure authentication, regular security audits, and access controls. However, no method of electronic storage or transmission over the internet is 100% secure. We cannot guarantee absolute security, but we are committed to protecting your data.</p>
@@ -97,7 +103,12 @@ export default function PrivacyPage() {
 
           <h2 className="text-white mt-8">12. Contact Information</h2>
           <p className="text-gray-300">For questions about this Privacy Policy or to exercise your rights, contact us at:</p>
-          <p className="text-gray-300 mt-2">Email: privacy@projectoffroad.app</p>
+          <p className="text-gray-300 mt-2">
+            Email:{' '}
+            <a className="text-amber-400 hover:underline" href={`mailto:${SITE_SUPPORT_EMAIL}`}>
+              {SITE_SUPPORT_EMAIL}
+            </a>
+          </p>
           <p className="text-gray-300">Mailing Address: [To be added]</p>
         </div>
 

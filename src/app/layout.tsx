@@ -17,7 +17,7 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "SoCalOffroaders | Community App",
   description:
-    "Southern California off-road community — trails, runs, and clubs. Official companion for socaloffroaders.org.",
+    "Southern California off-road community — trails, runs, and clubs. Official companion for socaloffroaders.com.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,

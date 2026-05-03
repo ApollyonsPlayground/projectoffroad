@@ -23,14 +23,6 @@ export function ClubVerificationCallout({ variant = 'banner', clubName, clubSlug
       'Please verify our club listing so we can host official runs and show the verified badge.',
   });
 
-  if (!email || !mailto) {
-    return (
-      <p className="text-[12px] text-zinc-500 text-center">
-        After creating your club, contact the app organizer to request verification if your club should show as verified.
-      </p>
-    );
-  }
-
   const copyEmail = async () => {
     try {
       await navigator.clipboard.writeText(email);

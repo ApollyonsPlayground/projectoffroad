@@ -18,7 +18,7 @@ Copy [.env.example](.env.example) to `.env.local` and fill:
 
 Restart `npm run dev` after changing `NEXT_PUBLIC_*` values.
 
-Optional: **`NEXT_PUBLIC_CLUB_VERIFICATION_EMAIL`** — inbox you check for club verification requests; drives the mailto + copy button on [clubs/create](src/app/clubs/create/page.tsx). Without it, the UI falls back to generic “contact the organizer” copy.
+Optional: **`NEXT_PUBLIC_CLUB_VERIFICATION_EMAIL`** — overrides the default **`socaloffroaders@socaloffroaders.com`** inbox for club verification mailto + copy on [clubs/create](src/app/clubs/create/page.tsx).
 
 ### Google sign-in (`Unsupported provider: provider is not enabled`)
 
