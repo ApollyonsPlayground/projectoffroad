@@ -19,6 +19,7 @@ import BottomNav from '@/components/BottomNav';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/Toast';
 import { SITE_SUPPORT_EMAIL } from '@/lib/siteContact';
+import { resolvePublicDisplayName } from '@/lib/profileDisplay';
 
 type DmAllow = 'everyone' | 'nobody';
 
@@ -31,8 +32,10 @@ export default function SettingsPage() {
   const [notifyClubs, setNotifyClubs] = useState(true);
   const [notifyMessages, setNotifyMessages] = useState(false);
   const [dmAllow, setDmAllow] = useState<DmAllow>('everyone');
-  const [blockedRows, setBlockedRows] = useState<{ blocked_id: string; name: string }[]>([]);
+  const [blockedRows, setBlockedRows] = useState<{ blocked_id: string; label: string }[]>([]);
   const [loadingBlocks, setLoadingBlocks] = useState(false);
+  const [hideDisplayName, setHideDisplayName] = useState(false);
+  const [syncGoogleName, setSyncGoogleName] = useState(false);
 
   useEffect(() => {
     if (!profile) return;
@@ -41,6 +44,8 @@ export default function SettingsPage() {
     setNotifyMessages(profile.notify_messages === true);
     const dm = String(profile.dm_allow_from ?? 'everyone');
     setDmAllow(dm === 'nobody' ? 'nobody' : 'everyone');
+    setHideDisplayName(profile.hide_display_name === true);
+    setSyncGoogleName(profile.sync_display_name_from_google === true);
   }, [profile]);
 
   const loadBlocks = useCallback(async () => {
@@ -58,10 +63,21 @@ export default function SettingsPage() {
       const ids = [...new Set(rows.map((r) => r.blocked_id))];
       const { data: profiles } = await supabaseClient
         .from('users')
-        .select('id, name')
+        .select('id, name, username, hide_display_name, email')
         .in('id', ids);
-      const names = new Map((profiles ?? []).map((u: { id: string; name: string | null }) => [u.id, u.name?.trim() || 'Member']));
-      setBlockedRows(ids.map((id) => ({ blocked_id: id, name: names.get(id) ?? 'Member' })));
+      const labelById = new Map(
+        (profiles ?? []).map((u: Record<string, unknown>) => [
+          u.id as string,
+          resolvePublicDisplayName({
+            id: u.id as string,
+            name: u.name as string | null,
+            username: u.username as string | null,
+            hide_display_name: u.hide_display_name as boolean | null,
+            email: u.email as string | null,
+          }),
+        ])
+      );
+      setBlockedRows(ids.map((id) => ({ blocked_id: id, label: labelById.get(id) ?? 'Member' })));
     } catch {
       setBlockedRows([]);
     } finally {
@@ -102,6 +118,16 @@ export default function SettingsPage() {
   const changeDm = async (v: DmAllow) => {
     setDmAllow(v);
     await persistPrefs({ dm_allow_from: v });
+  };
+
+  const toggleHideDisplayName = async (v: boolean) => {
+    setHideDisplayName(v);
+    await persistPrefs({ hide_display_name: v });
+  };
+
+  const toggleSyncGoogleName = async (v: boolean) => {
+    setSyncGoogleName(v);
+    await persistPrefs({ sync_display_name_from_google: v });
   };
 
   const unblock = async (blockedId: string) => {
@@ -218,6 +244,55 @@ export default function SettingsPage() {
           </div>
         </div>
 
+        {/* Identity */}
+        <div className="bg-neutral-900 border-2 border-neutral-800 rounded-lg p-4">
+          <div className="flex items-center gap-3 mb-4">
+            <User className="text-muted-gold" size={20} />
+            <h2 className="text-white font-bold uppercase tracking-wide">Profile & identity</h2>
+          </div>
+          {!user ? (
+            <p className="text-neutral-500 text-sm">Sign in to manage how others see your name.</p>
+          ) : (
+            <div className="space-y-4">
+              <p className="text-neutral-600 text-[12px] leading-relaxed">
+                Set your display name and optional @username under{' '}
+                <Link href="/profile/edit" className="text-orange-400 hover:text-orange-300">
+                  Edit profile
+                </Link>
+                . New posts and comments use your current public label (not stale Google metadata).
+              </p>
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={hideDisplayName}
+                  onChange={(e) => void toggleHideDisplayName(e.target.checked)}
+                  className="w-5 h-5 mt-0.5 accent-muted-gold flex-shrink-0"
+                />
+                <span>
+                  <span className="text-neutral-300 text-sm font-semibold block">Hide display name</span>
+                  <span className="text-neutral-600 text-[12px] leading-relaxed">
+                    Others see your @username if set, otherwise a neutral label. Your profile details stay separate from Google after sign-in.
+                  </span>
+                </span>
+              </label>
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={syncGoogleName}
+                  onChange={(e) => void toggleSyncGoogleName(e.target.checked)}
+                  className="w-5 h-5 mt-0.5 accent-muted-gold flex-shrink-0"
+                />
+                <span>
+                  <span className="text-neutral-300 text-sm font-semibold block">Keep display name in sync with Google</span>
+                  <span className="text-neutral-600 text-[12px] leading-relaxed">
+                    When enabled, your saved display name updates whenever you sign in with Google. Turn off to keep a custom name.
+                  </span>
+                </span>
+              </label>
+            </div>
+          )}
+        </div>
+
         {/* Messages / privacy */}
         <div className="bg-neutral-900 border-2 border-neutral-800 rounded-lg p-4">
           <div className="flex items-center gap-3 mb-4">
@@ -258,7 +333,7 @@ export default function SettingsPage() {
                   className="flex items-center justify-between gap-2 py-2 border-b border-neutral-800 last:border-0"
                 >
                   <Link href={`/profile/${row.blocked_id}`} className="text-neutral-300 text-sm truncate hover:text-white">
-                    {row.name}
+                    {row.label}
                   </Link>
                   <button
                     type="button"

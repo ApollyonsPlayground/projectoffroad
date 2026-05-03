@@ -7,6 +7,7 @@ import { ArrowLeft, Loader2, Save } from 'lucide-react';
 import BottomNav from '@/components/BottomNav';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/Toast';
+import { validateUsernameInput } from '@/lib/profileDisplay';
 
 const LEVELS = ['Beginner', 'Intermediate', 'Expert'] as const;
 
@@ -16,6 +17,7 @@ export default function EditProfilePage() {
   const { showToast } = useToast();
 
   const [name, setName] = useState('');
+  const [username, setUsername] = useState('');
   const [bio, setBio] = useState('');
   const [location, setLocation] = useState('');
   const [experienceLevel, setExperienceLevel] = useState<string>('Beginner');
@@ -24,6 +26,7 @@ export default function EditProfilePage() {
   useEffect(() => {
     if (!profile) return;
     setName(String(profile.name ?? '').trim());
+    setUsername(String(profile.username ?? '').trim());
     setBio(String(profile.bio ?? ''));
     setLocation(String(profile.location ?? ''));
     const lvl = String(profile.experience_level ?? 'Beginner');
@@ -37,18 +40,31 @@ export default function EditProfilePage() {
       showToast('Display name is required', 'error');
       return;
     }
+    const unameCheck = validateUsernameInput(username);
+    if (!unameCheck.ok) {
+      showToast(unameCheck.message, 'error');
+      return;
+    }
     setSaving(true);
     try {
       const { error } = await supabaseClient
         .from('users')
         .update({
           name: n,
+          username: unameCheck.value,
           bio: bio.trim() || null,
           location: location.trim() || null,
           experience_level: experienceLevel,
         })
         .eq('id', user.id);
-      if (error) throw error;
+      if (error) {
+        if (error.code === '23505') {
+          showToast('That username is already taken', 'error');
+          setSaving(false);
+          return;
+        }
+        throw error;
+      }
       await refreshProfile();
       showToast('Profile updated', 'success');
       router.push('/profile');
@@ -110,6 +126,30 @@ export default function EditProfilePage() {
             className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2.5 text-[15px] text-white outline-none focus:border-orange-500/50"
             autoComplete="name"
           />
+          <p className="text-[11px] text-zinc-600 mt-1.5 leading-relaxed">
+            Shown when your name isn&apos;t hidden — separate from Google; turn off sync in Settings if needed.
+          </p>
+        </div>
+
+        <div>
+          <label className="block text-[11px] font-semibold text-zinc-500 uppercase tracking-wider mb-1.5">
+            Username
+          </label>
+          <div className="flex items-center gap-1 bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2.5 focus-within:border-orange-500/50">
+            <span className="text-zinc-500 text-[15px] select-none">@</span>
+            <input
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="trail_name"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              className="flex-1 min-w-0 bg-transparent text-[15px] text-white outline-none placeholder:text-zinc-600"
+            />
+          </div>
+          <p className="text-[11px] text-zinc-600 mt-1.5 leading-relaxed">
+            Optional · 3–24 characters · letters, numbers, underscores · shown as @handle when you hide your display name
+          </p>
         </div>
 
         <div>

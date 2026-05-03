@@ -44,6 +44,11 @@ import {
   insertSavedPost,
 } from '@/lib/supabase/resilientSocial';
 import { mapDbTrailRow } from '@/lib/trails/mapDbTrail';
+import {
+  resolveOwnProfileDisplayName,
+  resolvePublicDisplayName,
+  snapshotPublicIdentity,
+} from '@/lib/profileDisplay';
 
 // ─── NewPostDrawer ─────────────────────────────────────────────────────────────
 
@@ -52,7 +57,7 @@ function NewPostDrawer({ open, onClose, onPosted }: {
   onClose: () => void;
   onPosted?: () => void;
 }) {
-  const { user, isConfigured, supabaseClient } = useAuth();
+  const { user, profile, isConfigured, supabaseClient } = useAuth();
   const { showToast } = useToast();
   const [body, setBody] = useState('');
   const [rig, setRig] = useState('');
@@ -154,8 +159,7 @@ function NewPostDrawer({ open, onClose, onPosted }: {
         imageUrl = urlData.publicUrl;
       }
 
-      // Step 3: use user metadata directly (no DB lookup needed)
-      const userName = (user.user_metadata?.full_name as string) || (user.user_metadata?.name as string) || user.email?.split('@')[0] || 'Rider';
+      const userName = snapshotPublicIdentity(profile ?? undefined, user);
       const userRole = 'user'; // Default role; will be set to 'owner' via Supabase if applicable
 
       setUploadProgress('inserting');
@@ -1038,7 +1042,7 @@ function RigPostCard({ post, index }: {
         .eq('repost_of_id', canonicalPostId);
       if (!error) { setReposted(false); setRepostsCount((c) => c - 1); }
     } else {
-      const userName = (user.user_metadata?.full_name as string) || user.email?.split('@')[0] || 'Rider';
+      const userName = snapshotPublicIdentity(profile ?? undefined, user);
       const snippet = post.body ?? post.content ?? post.caption ?? '';
       const { error } = await insertAdaptive(supabaseClient, 'posts', {
         user_id: user.id,
@@ -1969,6 +1973,8 @@ export default function HomePage() {
       type AuthorRow = {
         name?: string | null;
         email?: string | null;
+        username?: string | null;
+        hide_display_name?: boolean | null;
         role?: string | null;
         is_verified?: boolean | null;
         avatar_url?: string | null;
@@ -1983,6 +1989,8 @@ export default function HomePage() {
           authorById[String(u.id)] = {
             name: u.name ?? null,
             email: u.email ?? null,
+            username: u.username ?? null,
+            hide_display_name: u.hide_display_name ?? null,
             role: u.role ?? null,
             is_verified: u.is_verified ?? null,
             avatar_url: u.avatar_url ?? null,

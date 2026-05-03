@@ -7,6 +7,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import BottomNav from '@/components/BottomNav';
 import { useToast } from '@/components/Toast';
+import { resolveOwnProfileDisplayName, resolvePublicDisplayName } from '@/lib/profileDisplay';
 import {
   fetchLikedPostIdsRecent,
   fetchPostsByIds,
@@ -384,10 +385,22 @@ export default function UserProfilePage() {
     favorites: 'No saved posts yet.',
   };
 
-  const memberDisplayName =
-    String(profile?.name ?? '').trim() ||
-    String(profile?.email ?? '').split('@')[0] ||
-    'Rider';
+  const viewerSelf = Boolean(user && userId && user.id === userId);
+  const memberDisplayName = viewerSelf
+    ? resolveOwnProfileDisplayName({
+        id: userId,
+        name: profile?.name as string | undefined,
+        username: profile?.username as string | undefined,
+        hide_display_name: profile?.hide_display_name as boolean | undefined,
+        email: user?.email ?? (profile?.email as string | undefined) ?? null,
+      })
+    : resolvePublicDisplayName({
+        id: userId,
+        name: profile?.name as string | undefined,
+        username: profile?.username as string | undefined,
+        hide_display_name: profile?.hide_display_name as boolean | undefined,
+        email: profile?.email as string | undefined,
+      });
 
   return (
     <div className="min-h-screen bg-black pb-24">

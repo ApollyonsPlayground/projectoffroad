@@ -57,28 +57,53 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function fetchProfile(userId: string) {
     if (!supabase) return
-    // Upsert: ensure user record exists with data from Google session
     const session = (await supabase.auth.getSession()).data?.session
     if (session?.user) {
       const email =
         session.user.email?.trim() ||
         `${userId.replace(/-/g, '')}@oauth.placeholder.local`
 
-      // Omit `role` on upsert so existing owner/admin rows are not reset to 'user'.
-      const { error: upsertError } = await supabase.from('users').upsert(
-        {
+      const googleName =
+        (session.user.user_metadata?.full_name as string) ||
+        (session.user.user_metadata?.name as string) ||
+        session.user.email?.split('@')[0] ||
+        'Rider'
+
+      const avatar_url = (session.user.user_metadata?.avatar_url as string) || null
+
+      const { data: existing, error: selErr } = await supabase
+        .from('users')
+        .select('id, sync_display_name_from_google')
+        .eq('id', userId)
+        .maybeSingle()
+
+      if (selErr) console.warn('[Auth] profile select:', selErr.message)
+
+      if (!existing) {
+        const { error: insErr } = await supabase.from('users').insert({
           id: userId,
           email,
-          name:
-            (session.user.user_metadata?.full_name as string) ||
-            (session.user.user_metadata?.name as string) ||
-            session.user.email?.split('@')[0] ||
-            'Rider',
-          avatar_url: (session.user.user_metadata?.avatar_url as string) || null,
-        },
-        { onConflict: 'id' }
-      )
-      if (upsertError) console.warn('[Auth] profile upsert:', upsertError.message)
+          name: googleName,
+          avatar_url,
+          sync_display_name_from_google: false,
+        })
+        if (insErr?.code === '23505') {
+          const { error: raceUpd } = await supabase
+            .from('users')
+            .update({ email, avatar_url })
+            .eq('id', userId)
+          if (raceUpd) console.warn('[Auth] profile race update:', raceUpd.message)
+        } else if (insErr) {
+          console.warn('[Auth] profile insert:', insErr.message)
+        }
+      } else {
+        const patch: Record<string, unknown> = { email, avatar_url }
+        if (existing.sync_display_name_from_google === true) {
+          patch.name = googleName
+        }
+        const { error: updErr } = await supabase.from('users').update(patch).eq('id', userId)
+        if (updErr) console.warn('[Auth] profile update:', updErr.message)
+      }
     }
     // maybeSingle: avoids 406 when row still missing after a failed upsert
     const { data, error } = await supabase

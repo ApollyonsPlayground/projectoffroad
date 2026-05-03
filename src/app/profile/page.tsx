@@ -31,6 +31,7 @@ import BottomNav from '@/components/BottomNav';
 import { ProfileSkeleton } from '@/components/SkeletonLoader';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/Toast';
+import { resolveOwnProfileDisplayName } from '@/lib/profileDisplay';
 import { supabase } from '@/lib/db/supabase';
 import {
   fetchLikedPostIdsRecent,
@@ -303,12 +304,13 @@ export default function ProfilePage() {
   type DisplayProfile = typeof PLACEHOLDER_PROFILE & { avatar_url?: string | null };
   const displayProfile: DisplayProfile = (profile as DisplayProfile | null) || PLACEHOLDER_PROFILE;
 
-  const displayName =
-    String(displayProfile.name ?? '').trim() ||
-    String((user?.user_metadata?.full_name as string) ?? '').trim() ||
-    String((user?.user_metadata?.name as string) ?? '').trim() ||
-    user?.email?.split('@')[0] ||
-    'Rider';
+  const displayName = resolveOwnProfileDisplayName({
+    id: user?.id,
+    name: displayProfile.name as string | undefined,
+    username: displayProfile.username as string | undefined,
+    hide_display_name: displayProfile.hide_display_name as boolean | undefined,
+    email: user?.email ?? (displayProfile.email as string | undefined) ?? null,
+  });
 
   // Fetch vehicles only (tab data handled separately)
   const fetchData = useCallback(async () => {

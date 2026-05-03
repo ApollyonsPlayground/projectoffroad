@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/db/supabase'
+import { resolvePublicDisplayName } from '@/lib/profileDisplay'
 
 interface SearchResult {
   type: 'run' | 'club' | 'user'
@@ -76,19 +77,37 @@ export default function SearchPage() {
       })
     }
 
-    // Search users
-    const { data: users } = await supabase
-      .from('users')
-      .select('id, name, location')
-      .ilike('name', `%${searchQuery}%`)
-      .limit(5)
-    
-    if (users) {
+    const like = `%${searchQuery.trim()}%`
+    const [{ data: byName }, { data: byUsername }] = await Promise.all([
+      supabase
+        .from('users')
+        .select('id, name, username, hide_display_name, email, location')
+        .ilike('name', like)
+        .limit(5),
+      supabase
+        .from('users')
+        .select('id, name, username, hide_display_name, email, location')
+        .ilike('username', like)
+        .limit(5),
+    ])
+    const userMap = new Map<string, (typeof byName)[0]>()
+    ;[...(byName ?? []), ...(byUsername ?? [])].forEach((user) => {
+      if (user?.id) userMap.set(user.id, user)
+    })
+    const users = [...userMap.values()].slice(0, 5)
+
+    if (users.length) {
       users.forEach(user => {
         results.push({
           type: 'user',
           id: user.id,
-          title: user.name,
+          title: resolvePublicDisplayName({
+            id: user.id,
+            name: user.name,
+            username: user.username,
+            hide_display_name: user.hide_display_name,
+            email: user.email,
+          }),
           subtitle: user.location || ''
         })
       })
