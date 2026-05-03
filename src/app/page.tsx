@@ -10,7 +10,6 @@ import {
   Share2,
   MoreHorizontal,
   BadgeCheck,
-  Radio,
   Mountain,
   Plus,
   ZoomIn,
@@ -29,6 +28,7 @@ import Link from 'next/link';
 import BottomNav from '@/components/BottomNav';
 import { FeedSkeleton } from '@/components/SkeletonLoader';
 import DisclaimerModal from '@/components/DisclaimerModal';
+import { FollowingStoriesStrip } from '@/components/stories/FollowingStoriesStrip';
 
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/Toast';
@@ -604,7 +604,7 @@ interface LiveRun {
   isLive: boolean;
 }
 
-function StoriesBar() {
+function StoriesBar({ embedded = false }: { embedded?: boolean } = {}) {
   const { supabaseClient } = useAuth();
   const [liveRuns, setLiveRuns] = useState<LiveRun[]>([]);
 
@@ -682,17 +682,33 @@ function StoriesBar() {
   }, [supabaseClient]);
 
   return (
-    <div className="sticky top-[52px] z-40 bg-black border-b border-zinc-900">
-      <div className="flex gap-3 px-4 py-3 overflow-x-auto scrollbar-hide">
+    <div>
+      {!embedded && (
+        <div className="px-4 pt-2">
+          <p className="text-[11px] font-black uppercase tracking-wider text-zinc-500">Runs</p>
+        </div>
+      )}
+      <div
+        className={`flex gap-3 px-4 overflow-x-auto scrollbar-hide [overscroll-behavior-x:contain] touch-pan-x ${embedded ? 'py-2' : 'py-3'} ${liveRuns.length === 0 ? 'justify-center' : ''}`}
+      >
 
         {liveRuns.length === 0 ? (
-          /* No active runs — show a single static Runs link */
-          <Link href="/runs" className="flex flex-col items-center gap-1.5 flex-shrink-0 select-none">
-            <div className="relative w-[58px] h-[58px] rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center">
-              <Radio size={18} className="text-zinc-500" />
+          <div className="flex flex-col items-center gap-2.5 py-1 flex-shrink-0 text-center max-w-[260px] select-none">
+            <div className="relative">
+              <div className="w-[56px] h-[56px] rounded-2xl bg-gradient-to-br from-orange-500/30 via-orange-500/10 to-zinc-900 border border-orange-500/45 flex items-center justify-center shadow-[0_8px_28px_-8px_rgba(249,115,22,0.35)]">
+                <span className="text-orange-400 font-black text-[15px] tracking-tight">SO</span>
+              </div>
+              <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full bg-black border border-orange-500/60 text-[8px] font-black uppercase tracking-wider text-orange-400 whitespace-nowrap">
+                Coming soon
+              </span>
             </div>
-            <span className="text-[10px] text-zinc-500 font-medium">Runs</span>
-          </Link>
+            <div className="space-y-0.5">
+              <p className="text-[11px] font-black uppercase tracking-[0.14em] text-zinc-300">Runs reel</p>
+              <p className="text-[10px] text-zinc-500 leading-snug px-1">
+                Live & upcoming runs will show here — check back after the next trail day.
+              </p>
+            </div>
+          </div>
         ) : (
           liveRuns.map((run) => (
             <StoryAvatar
@@ -711,6 +727,87 @@ function StoriesBar() {
             />
           ))
         )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Runs / Stories pager (Runs first — main feature; Stories second; independent horizontal scroll) ─
+
+function HomeStoriesRunsPager({
+  supabaseClient,
+  user,
+}: {
+  supabaseClient: ReturnType<typeof useAuth>['supabaseClient'];
+  user: ReturnType<typeof useAuth>['user'];
+}) {
+  const pagerRef = useRef<HTMLDivElement>(null);
+  const [activeStrip, setActiveStrip] = useState<'stories' | 'runs'>('runs');
+
+  const syncTabFromScroll = useCallback(() => {
+    const el = pagerRef.current;
+    if (!el || el.clientWidth < 8) return;
+    const page = Math.round(el.scrollLeft / el.clientWidth);
+    setActiveStrip(page <= 0 ? 'runs' : 'stories');
+  }, []);
+
+  const goStrip = useCallback((strip: 'stories' | 'runs') => {
+    const el = pagerRef.current;
+    if (!el) return;
+    const page = strip === 'runs' ? 0 : 1;
+    el.scrollTo({ left: page * el.clientWidth, behavior: 'smooth' });
+    setActiveStrip(strip);
+  }, []);
+
+  return (
+    <div className="sticky top-[52px] z-40 bg-black border-b border-zinc-900">
+      <div className="flex border-b border-zinc-800">
+        <button
+          type="button"
+          onClick={() => goStrip('runs')}
+          className={`relative flex-1 py-2.5 text-center text-[11px] font-black uppercase tracking-wider transition-colors ${
+            activeStrip === 'runs' ? 'text-orange-500' : 'text-zinc-500 hover:text-zinc-300'
+          }`}
+        >
+          Runs
+          {activeStrip === 'runs' && (
+            <motion.span
+              layoutId="home-feed-strip-tab"
+              className="absolute bottom-0 left-3 right-3 h-0.5 rounded-full bg-orange-500"
+              transition={{ type: 'spring', stiffness: 500, damping: 38 }}
+            />
+          )}
+        </button>
+        <button
+          type="button"
+          onClick={() => goStrip('stories')}
+          className={`relative flex-1 py-2.5 text-center text-[11px] font-black uppercase tracking-wider transition-colors ${
+            activeStrip === 'stories' ? 'text-orange-500' : 'text-zinc-500 hover:text-zinc-300'
+          }`}
+        >
+          Stories
+          {activeStrip === 'stories' && (
+            <motion.span
+              layoutId="home-feed-strip-tab"
+              className="absolute bottom-0 left-3 right-3 h-0.5 rounded-full bg-orange-500"
+              transition={{ type: 'spring', stiffness: 500, damping: 38 }}
+            />
+          )}
+        </button>
+      </div>
+
+      <div
+        ref={pagerRef}
+        onScroll={syncTabFromScroll}
+        className="flex overflow-x-auto overflow-y-hidden snap-x snap-mandatory scrollbar-hide scroll-smooth"
+        style={{ WebkitOverflowScrolling: 'touch' }}
+      >
+        <section className="snap-start snap-always shrink-0 grow-0 basis-full w-full box-border overflow-x-hidden">
+          <StoriesBar embedded />
+        </section>
+        <section className="snap-start snap-always shrink-0 grow-0 basis-full w-full box-border overflow-x-hidden">
+          <FollowingStoriesStrip embedded supabaseClient={supabaseClient} user={user} />
+        </section>
       </div>
     </div>
   );
@@ -2203,8 +2300,7 @@ export default function HomePage() {
 
       {/* ── Main ──────────────────────────────────── */}
       <main className="max-w-md mx-auto min-h-screen bg-black pb-24">
-        {/* Stories */}
-        <StoriesBar />
+        <HomeStoriesRunsPager supabaseClient={supabaseClient} user={user} />
 
         {/* Feed */}
         <AnimatePresence mode="wait">

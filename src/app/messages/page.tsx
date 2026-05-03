@@ -42,7 +42,10 @@ export default function MessagesPage() {
   const [search, setSearch] = useState('');
 
   const fetchConversations = useCallback(async () => {
-    if (!supabaseClient || !user) return;
+    if (!supabaseClient || !user) {
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
     try {
       // Get all conversations this user participates in
@@ -129,7 +132,7 @@ export default function MessagesPage() {
 
   // Redirect unauthenticated users
   useEffect(() => {
-    if (!authLoading && !user) router.replace('/login');
+    if (!authLoading && !user) router.replace('/login/');
   }, [authLoading, user, router]);
 
   const filtered = conversations.filter((c) =>

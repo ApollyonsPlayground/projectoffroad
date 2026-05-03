@@ -315,28 +315,40 @@ export default function UserProfilePage() {
       }
 
       if (existingConvId) {
-        router.push(`/messages/${existingConvId}`);
+        router.push(`/messages/${existingConvId}/`);
         return;
       }
 
-      // Create a new conversation
+      // Create a new conversation (created_by required for RLS + RETURNING before participants exist)
       const { data: newConv, error: convErr } = await supabaseClient
         .from('conversations')
-        .insert({ last_message_content: null, last_message_at: new Date().toISOString() })
+        .insert({
+          created_by: user.id,
+          last_message_content: null,
+          last_message_at: new Date().toISOString(),
+        })
         .select()
         .single();
 
       if (convErr || !newConv) throw convErr ?? new Error('Failed to create conversation');
 
-      // Add both participants
-      await supabaseClient.from('conversation_participants').insert([
-        { conversation_id: newConv.id, user_id: user.id, is_read: true },
-        { conversation_id: newConv.id, user_id: userId, is_read: true },
-      ]);
+      // Two inserts so RLS can see the first row before adding the other user
+      const { error: p1 } = await supabaseClient.from('conversation_participants').insert({
+        conversation_id: newConv.id,
+        user_id: user.id,
+        is_read: true,
+      });
+      if (p1) throw p1;
+      const { error: p2 } = await supabaseClient.from('conversation_participants').insert({
+        conversation_id: newConv.id,
+        user_id: userId,
+        is_read: true,
+      });
+      if (p2) throw p2;
 
-      router.push(`/messages/${newConv.id}`);
+      router.push(`/messages/${newConv.id}/`);
     } catch {
-      // Silently fail — user stays on profile page
+      showToast('Could not open messages. If this keeps happening, ask an admin to apply DB migrations.', 'error');
     } finally {
       setMessagingLoading(false);
     }

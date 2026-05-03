@@ -11,11 +11,11 @@ import { useAuth } from '@/context/AuthContext';
 const DM_UNAVAILABLE_KEY = 'socaloffroaders_dm_unavailable';
 
 const NAV_ITEMS = [
-  { href: '/',          label: 'Home',     icon: Home,          requiresAuth: false },
-  { href: '/trails',    label: 'Trails',   icon: Map,           requiresAuth: false },
-  { href: '/runs',      label: 'Runs',     icon: Calendar,      requiresAuth: false },
-  { href: '/messages',  label: 'Messages', icon: MessageCircle, requiresAuth: true  },
-  { href: '/profile',   label: 'Profile',  icon: User,          requiresAuth: true  },
+  { href: '/',           label: 'Home',     icon: Home,          requiresAuth: false },
+  { href: '/trails/',    label: 'Trails',    icon: Map,           requiresAuth: false },
+  { href: '/runs/',      label: 'Runs',      icon: Calendar,      requiresAuth: false },
+  { href: '/messages/',  label: 'Messages',  icon: MessageCircle, requiresAuth: true  },
+  { href: '/profile/',   label: 'Profile',   icon: User,          requiresAuth: true  },
 ];
 
 export default function BottomNav() {
@@ -87,10 +87,11 @@ export default function BottomNav() {
     try { await Haptics.impact({ style: ImpactStyle.Light }); } catch {}
   };
 
-  const handleNav = async (href: string, requiresAuth: boolean) => {
-    await triggerHaptic();
+  const handleNav = (href: string, requiresAuth: boolean) => {
+    // Never await native haptics — Capacitor/WebView can stall and block navigation.
+    void triggerHaptic();
     if (requiresAuth && !user) {
-      router.push('/login');
+      router.push('/login/');
       return;
     }
     router.push(href);
@@ -103,12 +104,16 @@ export default function BottomNav() {
     >
       <div className="flex flex-row justify-around items-center pt-3 px-2 pb-2">
         {NAV_ITEMS.map(({ href, label, icon: Icon, requiresAuth }) => {
+          const pathNorm = (pathname.replace(/\/$/, '') || '/') as string;
+          const hrefNorm = (href.replace(/\/$/, '') || '/') as string;
           const isActive =
-            pathname === href || (href !== '/' && pathname.startsWith(href));
-          const showUnread = href === '/messages' && hasUnread && !!user;
+            pathNorm === hrefNorm ||
+            (hrefNorm !== '/' && pathNorm.startsWith(`${hrefNorm}/`));
+          const showUnread = href === '/messages/' && hasUnread && !!user;
 
           return (
             <button
+              type="button"
               key={href}
               onClick={() => handleNav(href, requiresAuth)}
               aria-label={label}

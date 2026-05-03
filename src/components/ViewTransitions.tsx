@@ -18,24 +18,36 @@ export function ViewTransitions({ children }: ViewTransitionsProps) {
 
     // Intercept link clicks for smooth transitions
     const handleClick = (e: MouseEvent) => {
-      const target = e.target as HTMLAnchorElement;
-      
-      // Only handle internal links
+      // Next.js <Link> already prevented default + navigated — don't double-push (breaks routes).
       if (
-        target.tagName === 'A' &&
-        target.href &&
-        target.href.startsWith(window.location.origin) &&
-        !target.target // Don't handle external links or new tabs
+        e.defaultPrevented ||
+        e.button !== 0 ||
+        e.metaKey ||
+        e.ctrlKey ||
+        e.shiftKey ||
+        e.altKey
       ) {
-        e.preventDefault();
-        
-        const href = target.href;
-        
-        // Start view transition
-        document.startViewTransition(() => {
-          router.push(href);
-        });
+        return;
       }
+
+      const el = e.target instanceof Element ? e.target : null;
+      const anchor = el?.closest?.('a[href]') as HTMLAnchorElement | null;
+      if (
+        !anchor ||
+        anchor.target ||
+        anchor.hasAttribute('download') ||
+        !anchor.href.startsWith(window.location.origin)
+      ) {
+        return;
+      }
+
+      e.preventDefault();
+
+      const url = new URL(anchor.href);
+      const dest = `${url.pathname}${url.search}${url.hash}`;
+      document.startViewTransition(() => {
+        router.push(dest);
+      });
     };
 
     document.addEventListener('click', handleClick);
