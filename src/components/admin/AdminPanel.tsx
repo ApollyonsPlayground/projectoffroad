@@ -133,7 +133,7 @@ export function AdminPanel({ variant, onCloseDrawer }: Props) {
   useEffect(() => {
     if (!authLoading && user && role !== null && !allowed) {
       showToast('Admin access only', 'error');
-      router.replace('/');
+      router.replace('/feed/');
     }
   }, [authLoading, user, allowed, role, router, showToast]);
 
@@ -261,7 +261,7 @@ export function AdminPanel({ variant, onCloseDrawer }: Props) {
       >
         <div className="max-w-lg mx-auto px-4 py-3 flex items-center gap-3">
           {variant === 'page' ? (
-            <Link href="/" className="p-2 -ml-2 text-zinc-400 hover:text-white touch-manipulation">
+            <Link href="/feed/" className="p-2 -ml-2 text-zinc-400 hover:text-white touch-manipulation">
               <ArrowLeft size={22} />
             </Link>
           ) : (
@@ -291,7 +291,7 @@ export function AdminPanel({ variant, onCloseDrawer }: Props) {
                 Full page <ExternalLink size={12} />
               </Link>
             )}
-            <Link href="/" className="text-[12px] font-semibold text-zinc-400 hover:text-white">
+            <Link href="/feed/" className="text-[12px] font-semibold text-zinc-400 hover:text-white">
               Home
             </Link>
           </div>

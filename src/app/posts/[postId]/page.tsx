@@ -10,7 +10,7 @@ export default function PostDeepLinkPage() {
   const postId = params?.postId as string | undefined;
 
   useEffect(() => {
-    if (postId) router.replace('/');
+    if (postId) router.replace('/feed/');
   }, [postId, router]);
 
   return (

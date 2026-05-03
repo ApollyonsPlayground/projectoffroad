@@ -15,6 +15,9 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL?.trim() || "https://socaloffroaders.com",
+  ),
   title: "SoCalOffroaders | Community App",
   description:
     "Southern California off-road community — trails, runs, and clubs. Official companion for socaloffroaders.com.",

@@ -11,7 +11,7 @@ import { useAuth } from '@/context/AuthContext';
 const DM_UNAVAILABLE_KEY = 'socaloffroaders_dm_unavailable';
 
 const NAV_ITEMS = [
-  { href: '/',           label: 'Home',     icon: Home,          requiresAuth: false },
+  { href: '/feed/',      label: 'Home',     icon: Home,          requiresAuth: false },
   { href: '/trails/',    label: 'Trails',    icon: Map,           requiresAuth: false },
   { href: '/runs/',      label: 'Runs',      icon: Calendar,      requiresAuth: false },
   { href: '/messages/',  label: 'Messages',  icon: MessageCircle, requiresAuth: true  },

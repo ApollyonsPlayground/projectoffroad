@@ -54,5 +54,7 @@ export async function GET(request: Request) {
     return loginErr(error.message);
   }
 
-  return NextResponse.redirect(new URL(nextPath === '/' ? '/' : nextPath, url.origin));
+  // Root `/` is the public marketing page; signed-in users land in the app feed.
+  const dest = nextPath === '/' ? '/feed/' : nextPath;
+  return NextResponse.redirect(new URL(dest, url.origin));
 }

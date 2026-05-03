@@ -372,7 +372,7 @@ export default function UserProfilePage() {
       <div className="min-h-screen bg-black flex flex-col items-center justify-center px-6 gap-6">
         <h2 className="text-[22px] font-black text-white">Profile Not Found</h2>
         <p className="text-zinc-500 text-[14px]">{error ?? 'This user does not exist.'}</p>
-        <Link href="/" className="px-5 py-3 bg-orange-500 text-black font-bold rounded-xl text-[14px]">
+        <Link href="/feed/" className="px-5 py-3 bg-orange-500 text-black font-bold rounded-xl text-[14px]">
           Back to Feed
         </Link>
         <BottomNav />
@@ -418,7 +418,7 @@ export default function UserProfilePage() {
     <div className="min-h-screen bg-black pb-24">
       {/* Sticky header */}
       <div className="sticky top-0 z-40 bg-black/90 backdrop-blur-md border-b border-zinc-900 px-4 py-3 flex items-center gap-3">
-        <Link href="/" className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-zinc-900 transition-colors">
+        <Link href="/feed/" className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-zinc-900 transition-colors">
           <ArrowLeft size={19} className="text-white" />
         </Link>
         <span className="text-[17px] font-black text-white leading-none">{memberDisplayName}</span>

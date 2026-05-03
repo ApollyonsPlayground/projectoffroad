@@ -1,5 +1,13 @@
 import Link from 'next/link';
+import type { Metadata } from 'next';
 import { SITE_SUPPORT_EMAIL } from '@/lib/siteContact';
+
+export const metadata: Metadata = {
+  title: 'Privacy Policy | SoCal Offroaders',
+  description:
+    'How SoCal Offroaders collects, uses, and protects your data — account information, community activity, cookies, and your rights.',
+  alternates: { canonical: '/privacy/' },
+};
 
 export default function PrivacyPage() {
   return (
@@ -112,9 +120,15 @@ export default function PrivacyPage() {
           <p className="text-gray-300">Mailing Address: [To be added]</p>
         </div>
 
-        <div className="mt-12 pt-8 border-t border-gray-800">
-          <Link href="/" className="text-amber-500 hover:underline">
-            ← Back to Home
+        <div className="mt-12 pt-8 border-t border-gray-800 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+          <Link href="/feed/" className="text-amber-500 hover:underline font-medium">
+            ← Back to app feed
+          </Link>
+          <span className="text-zinc-600" aria-hidden>
+            ·
+          </span>
+          <Link href="/" className="text-amber-500/80 hover:underline">
+            Public site intro
           </Link>
         </div>
       </div>
