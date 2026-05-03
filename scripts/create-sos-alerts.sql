@@ -15,6 +15,9 @@ CREATE TABLE IF NOT EXISTS sos_alerts (
 -- Index for fast lookups by run
 CREATE INDEX IF NOT EXISTS idx_sos_alerts_run_id ON sos_alerts(run_id);
 
+-- Needed so Supabase Realtime DELETE payloads include run_id (filtered subscriptions)
+ALTER TABLE sos_alerts REPLICA IDENTITY FULL;
+
 -- Enable Row Level Security
 ALTER TABLE sos_alerts ENABLE ROW LEVEL SECURITY;
 
@@ -29,6 +32,12 @@ CREATE POLICY "Authenticated users can insert SOS alerts"
   ON sos_alerts FOR INSERT
   TO authenticated
   WITH CHECK (auth.uid() = user_id);
+
+-- Policy: Senders can delete (cancel) their own SOS alert for everyone on the run
+CREATE POLICY "Users can delete own SOS alerts"
+  ON sos_alerts FOR DELETE
+  TO authenticated
+  USING (auth.uid() = user_id);
 
 -- Enable Realtime for this table
 ALTER PUBLICATION supabase_realtime ADD TABLE sos_alerts;

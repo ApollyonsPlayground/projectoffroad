@@ -193,6 +193,7 @@ export default function RunDetailPage() {
 
   // SOS state
   const [sosSending, setSosSending] = useState(false);
+  const [sosCancelId, setSosCancelId] = useState<string | null>(null);
   const [sosConfirmOpen, setSosConfirmOpen] = useState(false);
   const [activeAlerts, setActiveAlerts] = useState<RunAlert[]>([]);
   const [dismissedAlerts, setDismissedAlerts] = useState<Set<string>>(new Set());
@@ -266,7 +267,10 @@ export default function RunDetailPage() {
           .from('run_participants')
           .delete()
           .match({ run_id: run.id, user_id: user.id });
-        if (error) throw error;
+        if (error) {
+          showToast(error.message || 'Could not leave run', 'error');
+          return;
+        }
         setJoined(false);
         setParticipants((prev) => prev.filter((p) => p.user_id !== user.id));
         showToast('Left the run', 'info');
@@ -274,7 +278,10 @@ export default function RunDetailPage() {
         const { error } = await supabaseClient
           .from('run_participants')
           .insert({ run_id: run.id, user_id: user.id, rsvp_status: 'going' });
-        if (error && error.code !== '23505') throw error;
+        if (error && error.code !== '23505') {
+          showToast(error.message || 'Could not join run', 'error');
+          return;
+        }
         setJoined(true);
         setParticipants((prev) => [
           ...prev,
@@ -290,8 +297,6 @@ export default function RunDetailPage() {
         ]);
         showToast(`You're in for "${run.title}"!`, 'success');
       }
-    } catch {
-      showToast('Could not update RSVP', 'error');
     } finally {
       setJoining(false);
     }
@@ -390,7 +395,7 @@ export default function RunDetailPage() {
         if (data && data.length > 0) setActiveAlerts(data as RunAlert[]);
       });
 
-    // Subscribe to new SOS alerts in realtime
+    // Subscribe to new SOS alerts + cancellations (DELETE) in realtime
     const channel = supabaseClient
       .channel(`sos-alerts-${runId}`)
       .on(
@@ -404,6 +409,26 @@ export default function RunDetailPage() {
         (payload) => {
           const alert = payload.new as RunAlert;
           setActiveAlerts((prev) => [alert, ...prev]);
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'sos_alerts',
+          filter: `run_id=eq.${runId}`,
+        },
+        (payload) => {
+          const oldRow = payload.old as { id?: string };
+          if (oldRow?.id) {
+            setActiveAlerts((prev) => prev.filter((a) => a.id !== oldRow.id));
+            setDismissedAlerts((prev) => {
+              const next = new Set(prev);
+              next.delete(oldRow.id!);
+              return next;
+            });
+          }
         }
       )
       .subscribe();
@@ -462,6 +487,26 @@ export default function RunDetailPage() {
       }
     } finally {
       setSosSending(false);
+    }
+  };
+
+  const handleCancelOwnSOS = async (alertId: string) => {
+    if (!supabaseClient || !user) return;
+    setSosCancelId(alertId);
+    try {
+      const { error } = await supabaseClient.from('sos_alerts').delete().eq('id', alertId).eq('user_id', user.id);
+      if (error) throw error;
+      setActiveAlerts((prev) => prev.filter((a) => a.id !== alertId));
+      setDismissedAlerts((prev) => {
+        const next = new Set(prev);
+        next.delete(alertId);
+        return next;
+      });
+      showToast('SOS alert cancelled for everyone on this run.', 'success');
+    } catch {
+      showToast('Could not cancel SOS. Try again.', 'error');
+    } finally {
+      setSosCancelId(null);
     }
   };
 
@@ -895,7 +940,7 @@ export default function RunDetailPage() {
         {/* ── Live SOS Alerts ───────────────────────────────────────────── */}
         <AnimatePresence>
           {activeAlerts
-            .filter((a) => !dismissedAlerts.has(a.id))
+            .filter((a) => a.user_id === user?.id || !dismissedAlerts.has(a.id))
             .map((alert) => (
               <motion.div
                 key={alert.id}
@@ -916,13 +961,20 @@ export default function RunDetailPage() {
                       </p>
                     </div>
                   </div>
-                  <button
-                    onClick={() => setDismissedAlerts((prev) => new Set([...prev, alert.id]))}
-                    className="text-zinc-500 hover:text-zinc-300 transition-colors flex-shrink-0"
-                    aria-label="Dismiss alert"
-                  >
-                    <X size={16} />
-                  </button>
+                  {alert.user_id === user?.id ? (
+                    <span className="text-[11px] font-bold text-red-300/80 uppercase tracking-wide flex-shrink-0">
+                      Your alert
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setDismissedAlerts((prev) => new Set([...prev, alert.id]))}
+                      className="text-zinc-500 hover:text-zinc-300 transition-colors flex-shrink-0"
+                      aria-label="Dismiss alert"
+                    >
+                      <X size={16} />
+                    </button>
+                  )}
                 </div>
 
                 <p className="text-[13px] text-red-200/90 leading-relaxed mb-3">
@@ -934,11 +986,25 @@ export default function RunDetailPage() {
                     href={`https://www.google.com/maps/dir/?api=1&destination=${alert.latitude},${alert.longitude}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center justify-center gap-2 w-full py-2.5 bg-red-500 hover:bg-red-600 text-white text-[13px] font-black rounded-xl transition-colors"
+                    className="flex items-center justify-center gap-2 w-full py-2.5 bg-red-500 hover:bg-red-600 text-white text-[13px] font-black rounded-xl transition-colors mb-2"
                   >
                     <Navigation size={14} />
                     Navigate to Stranded Rider
                   </a>
+                )}
+
+                {alert.user_id === user?.id && (
+                  <button
+                    type="button"
+                    disabled={sosCancelId === alert.id}
+                    onClick={() => void handleCancelOwnSOS(alert.id)}
+                    className="flex items-center justify-center gap-2 w-full py-2.5 border border-red-400/50 bg-red-950/40 hover:bg-red-950/70 text-red-200 text-[13px] font-black rounded-xl transition-colors disabled:opacity-50"
+                  >
+                    {sosCancelId === alert.id ? (
+                      <Loader2 size={14} className="animate-spin" />
+                    ) : null}
+                    Cancel SOS for everyone
+                  </button>
                 )}
               </motion.div>
             ))}

@@ -14,7 +14,7 @@ export default function PrivacyPage() {
           <p className="text-gray-300">We collect information you provide directly to us, as well as information automatically generated when you use our platform.</p>
           <ul className="list-disc pl-6 text-gray-300 space-y-2 mt-2">
             <li><strong>Account Information:</strong> Email address, display name, profile picture, and authentication credentials</li>
-            <li><strong>Profile Information:</strong> Bio, location (city/region), experience level, emergency contact information</li>
+            <li><strong>Profile Information:</strong> Bio, location (city/region), experience level, optional username/display preferences you set in the app</li>
             <li><strong>Vehicle Information:</strong> Year, make, model, modification details, vehicle photos</li>
             <li><strong>Activity Data:</strong> Runs joined, clubs membership, messages, posts, likes, comments, and other interactions</li>
             <li><strong>Technical Data:</strong> IP address, browser type, operating system, device identifiers, and access timestamps</li>
@@ -39,16 +39,16 @@ export default function PrivacyPage() {
             <li>Keep you logged in and remember your preferences</li>
             <li>Understand how you use our platform</li>
             <li>Monitor and analyze platform performance and traffic</li>
-            <li>Provide personalized content and recommendations</li>
+            <li>Keep the service functioning reliably (we do not run third‑party ad personalization in the app today)</li>
           </ul>
           <p className="text-gray-300 mt-2">You can control cookies through your browser settings. However, disabling cookies may limit certain platform features.</p>
 
           <h2 className="text-white mt-8">4. Third-Party Services</h2>
           <p className="text-gray-300">We share data with the following third-party service providers:</p>
           <ul className="list-disc pl-6 text-gray-300 space-y-2 mt-2">
-            <li><strong>Supabase:</strong> Cloud database and authentication services (data hosting)</li>
-            <li><strong>Vercel:</strong> Platform hosting and deployment</li>
-            <li><strong>Google Analytics:</strong> Usage analytics (anonymized data)</li>
+            <li><strong>Supabase:</strong> Cloud database, authentication, file storage, and (where enabled) server-side features such as image moderation pipelines</li>
+            <li><strong>Vercel:</strong> Platform hosting and deployment; may receive technical logs (IP, requests) as part of operating the site</li>
+            <li><strong>Google:</strong> If you choose &quot;Sign in with Google,&quot; Google processes identity according to its policies; we receive profile basics you approve (e.g. email, name, avatar)</li>
           </ul>
           <p className="text-gray-300 mt-2">These providers are contractually obligated to protect your data and use it only for the services they provide to us.</p>
 
@@ -89,7 +89,7 @@ export default function PrivacyPage() {
           </p>
 
           <h2 className="text-white mt-8">8. Data Security</h2>
-          <p className="text-gray-300">We implement industry-standard security measures including encryption (TLS/SSL), secure authentication, regular security audits, and access controls. However, no method of electronic storage or transmission over the internet is 100% secure. We cannot guarantee absolute security, but we are committed to protecting your data.</p>
+          <p className="text-gray-300">We implement reasonable technical measures appropriate to our size and risk, including encryption in transit (HTTPS/TLS), authentication via our providers, and access controls on production systems. No method of electronic storage or transmission over the internet is 100% secure. We cannot guarantee absolute security, but we are committed to protecting your data.</p>
           <p className="text-gray-300 mt-2">In the event of a data breach that affects your personal data, we will notify you and relevant authorities as required by applicable law.</p>
 
           <h2 className="text-white mt-8">9. Children's Privacy</h2>

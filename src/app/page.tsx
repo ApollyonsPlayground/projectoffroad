@@ -886,7 +886,7 @@ function RigPostCard({ post, index }: {
 
   useEffect(() => {
     setRepostsCount(post.reposts_count ?? 0);
-  }, [post.reposts_count]);
+  }, [canonicalPostId, post.reposts_count]);
   const [reportOpen, setReportOpen] = useState(false);
   const [reportReason, setReportReason] = useState('');
   const [isReporting, setIsReporting] = useState(false);
@@ -962,27 +962,78 @@ function RigPostCard({ post, index }: {
       const rows = rawComments ?? [];
       const myLikes = likesRes.error ? [] : (likesRes.data ?? []);
 
-      // Separate query for author roles — avoids FK-join failures.
       const distinctUserIds = [...new Set(rows.map((c: any) => c.user_id as string))];
       let roleMap: Record<string, string | null> = {};
+      type AuthorProf = {
+        name?: string | null;
+        username?: string | null;
+        hide_display_name?: boolean | null;
+        email?: string | null;
+        avatar_url?: string | null;
+      };
+      const profileById: Record<string, AuthorProf> = {};
       if (distinctUserIds.length > 0) {
         const { data: userRows } = await supabaseClient
           .from('users')
-          .select('id, role')
+          .select('id, role, name, username, hide_display_name, email, avatar_url')
           .in('id', distinctUserIds);
-        (userRows ?? []).forEach((u: any) => { roleMap[u.id] = u.role ?? null; });
+        (userRows ?? []).forEach((u: any) => {
+          roleMap[u.id] = u.role ?? null;
+          profileById[u.id] = {
+            name: u.name ?? null,
+            username: u.username ?? null,
+            hide_display_name: u.hide_display_name ?? null,
+            email: u.email ?? null,
+            avatar_url: u.avatar_url ?? null,
+          };
+        });
       }
 
+      const viewerId = user?.id ?? null;
+      const commentAuthorLabel = (uid: string, fallbackUserName?: string | null): string => {
+        const p = profileById[uid];
+        if (!p) return String(fallbackUserName ?? '').trim();
+        const base = {
+          id: uid,
+          name: p.name,
+          username: p.username,
+          hide_display_name: p.hide_display_name,
+          email:
+            viewerId && uid === viewerId ? user?.email ?? p.email ?? null : p.email ?? null,
+        };
+        return viewerId && uid === viewerId
+          ? resolveOwnProfileDisplayName(base)
+          : resolvePublicDisplayName(base);
+      };
+
       const likedIds = new Set(myLikes.map((l: any) => l.comment_id));
-      const enriched: Comment[] = rows.map((c: any) => ({
-        ...c,
-        // Live role from users table wins; denormalized column is fallback.
-        role: roleMap[c.user_id] ?? c.role ?? null,
-        // Explicitly use content column (not body) — matches DB schema.
-        content: c.content ?? '',
-        liked_by_me: likedIds.has(c.id),
-        likes_count: c.likes_count ?? 0,
-      }));
+      const enriched: Comment[] = rows.map((c: any) => {
+        const uid = String(c.user_id);
+        const p = profileById[uid];
+        const label =
+          commentAuthorLabel(uid, c.user_name).trim() ||
+          String(c.user_name ?? '').trim() ||
+          'Rider';
+        const profAv =
+          p?.avatar_url != null && String(p.avatar_url).trim()
+            ? String(p.avatar_url).trim()
+            : undefined;
+        const rowAv =
+          c.avatar_url != null && String(c.avatar_url).trim()
+            ? String(c.avatar_url).trim()
+            : undefined;
+        const avatarUrl = profAv ?? rowAv ?? null;
+
+        return {
+          ...c,
+          role: roleMap[c.user_id] ?? c.role ?? null,
+          content: c.content ?? '',
+          user_name: label,
+          avatar_url: avatarUrl,
+          liked_by_me: likedIds.has(c.id),
+          likes_count: c.likes_count ?? 0,
+        };
+      });
 
       setComments(enriched);
       // Update count to match live DB total for this canonical thread.
@@ -1040,24 +1091,34 @@ function RigPostCard({ post, index }: {
         .delete()
         .eq('user_id', user.id)
         .eq('repost_of_id', canonicalPostId);
-      if (!error) { setReposted(false); setRepostsCount((c) => c - 1); }
+      if (!error) {
+        setReposted(false);
+        setRepostsCount((c) => Math.max(0, c - 1));
+      } else {
+        showToast(error.message || 'Could not remove repost', 'error');
+      }
     } else {
       const userName = snapshotPublicIdentity(profile ?? undefined, user);
-      const snippet = post.body ?? post.content ?? post.caption ?? '';
+      // Shell row: no duplicated text in DB; feed merges body from original. Keep image for profile grids / shares.
       const { error } = await insertAdaptive(supabaseClient, 'posts', {
         user_id: user.id,
         user_name: userName,
-        caption: snippet,
-        content: snippet,
-        body: snippet,
+        caption: '',
+        content: '',
+        body: '',
         image_url: post.image_url ?? null,
-        rig_model: post.rig_model ?? null,
-        rig_name: post.rig_name ?? null,
+        rig_model: null,
+        rig_name: null,
         repost_of_id: canonicalPostId,
         role: 'user',
       });
-      if (!error) { setReposted(true); setRepostsCount((c) => c + 1); showToast('Reposted!', 'success'); }
-      else showToast('Could not repost', 'error');
+      if (!error) {
+        setReposted(true);
+        setRepostsCount((c) => c + 1);
+        showToast('Reposted!', 'success');
+      } else {
+        showToast(error.message || 'Could not repost', 'error');
+      }
     }
   };
 
@@ -1283,7 +1344,9 @@ function RigPostCard({ post, index }: {
         </Link>
 
         {/* ── Right column: content ─────────────── */}
-        <div className="flex-1 min-w-0">
+        <div
+          className={`flex-1 min-w-0${post.repost_of_id ? ' rounded-r-xl border-l-2 border-emerald-500/35 bg-zinc-950/40 pl-3 -ml-0.5' : ''}`}
+        >
           {post.repost_of_id ? (
             <div className="flex items-center gap-1.5 text-[11px] text-zinc-500 mb-1.5 -mt-0.5">
               <Repeat2 size={12} className="text-emerald-500/90 shrink-0" aria-hidden />
@@ -1945,6 +2008,7 @@ export default function HomePage() {
       const canonicalIds = [
         ...new Set(feedSource.map((p: any) => String(p.repost_of_id ?? p.id))),
       ];
+      const canonicalIdSet = new Set(canonicalIds);
       const repostCountMap: Record<string, number> = {};
       if (canonicalIds.length > 0) {
         const { data: repRows, error: repCountErr } = await supabaseClient
@@ -1955,6 +2019,15 @@ export default function HomePage() {
           for (const row of repRows as { repost_of_id?: string | null }[]) {
             const oid = row.repost_of_id;
             if (!oid) continue;
+            const k = String(oid);
+            repostCountMap[k] = (repostCountMap[k] ?? 0) + 1;
+          }
+        } else {
+          // Query failed or repost_of_id unavailable — count repost rows in this fetch only
+          // so counters don't collapse to 0 while the column/policy is broken.
+          for (const row of rawPosts) {
+            const oid = row.repost_of_id as string | null | undefined;
+            if (!oid || !canonicalIdSet.has(String(oid))) continue;
             const k = String(oid);
             repostCountMap[k] = (repostCountMap[k] ?? 0) + 1;
           }
@@ -2056,21 +2129,44 @@ export default function HomePage() {
         const original_user_name =
           p.repost_of_id && orig ? authorDisplayName(orig.user_id, orig) : null;
 
+        // Repost rows: show the canonical/original caption & media (Twitter-style RT), not a cloned duplicate snapshot.
+        const displaySrc = orig ?? p;
+        const mergedBody = String(
+          displaySrc.body ?? displaySrc.content ?? displaySrc.caption ?? ''
+        );
+        const mergedImage =
+          displaySrc.image_url != null && String(displaySrc.image_url).trim()
+            ? displaySrc.image_url
+            : p.image_url;
+        const mergedRig =
+          (displaySrc.rig_model as string | null | undefined) ||
+          (displaySrc.rig_name as string | null | undefined) ||
+          (displaySrc.rig_specs as string | null | undefined);
+        const mergedRigSpecs = (displaySrc.rig_specs as string | null | undefined) || undefined;
+
+        const rc =
+          repostCountMap[canonicalId] ??
+          metricsRow.reposts_count ??
+          metricsRow.reposts ??
+          0;
+
         return {
           ...p,
           username: authorDisplayName(p.user_id, p),
           role: roleStr,
           ...(mergedAvatar ? { avatar_url: mergedAvatar } : {}),
           verified: Boolean(p.verified ?? au?.is_verified ?? false),
-          body: p.body ?? p.content ?? p.caption ?? '',
-          caption: p.caption ?? p.content ?? p.body ?? '',
+          body: mergedBody,
+          caption: mergedBody,
+          image_url: mergedImage,
+          rig_model: mergedRig || undefined,
+          rig_specs: mergedRigSpecs,
           liked_by_me: likedIds.has(canonicalId),
           bookmarked_by_me: savedIds.has(canonicalId),
           reposted_by_me: repostedIds.has(canonicalId),
           likes_count: metricsRow.likes_count ?? metricsRow.likes ?? 0,
           comments_count: metricsRow.comments_count ?? metricsRow.comments ?? 0,
-          reposts_count:
-            repostCountMap[canonicalId] ?? metricsRow.reposts_count ?? 0,
+          reposts_count: rc,
           original_user_name,
         };
       });

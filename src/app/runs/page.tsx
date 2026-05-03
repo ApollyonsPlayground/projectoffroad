@@ -468,7 +468,10 @@ export default function RunsPage() {
           .from('run_participants')
           .delete()
           .match({ run_id: run.id, user_id: user.id });
-        if (error) throw error;
+        if (error) {
+          showToast(error.message || 'Could not leave run', 'error');
+          return;
+        }
         setJoinedRunIds((prev) => { const next = new Set(prev); next.delete(run.id); return next; });
         setParticipantCounts((prev) => ({ ...prev, [run.id]: Math.max(0, (prev[run.id] ?? 1) - 1) }));
         showToast('You have left the run', 'info');
@@ -476,13 +479,14 @@ export default function RunsPage() {
         const { error } = await supabaseClient
           .from('run_participants')
           .insert({ run_id: run.id, user_id: user.id, rsvp_status: 'going' });
-        if (error && error.code !== '23505') throw error;
+        if (error && error.code !== '23505') {
+          showToast(error.message || 'Could not join run', 'error');
+          return;
+        }
         setJoinedRunIds((prev) => new Set([...prev, run.id]));
         setParticipantCounts((prev) => ({ ...prev, [run.id]: (prev[run.id] ?? 0) + 1 }));
         showToast(`You're in for "${run.title}"!`, 'success');
       }
-    } catch {
-      showToast('Could not update RSVP', 'error');
     } finally {
       setJoiningId(null);
     }

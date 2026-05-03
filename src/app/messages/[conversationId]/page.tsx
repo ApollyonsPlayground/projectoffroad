@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, Send, User, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
+import { resolvePublicDisplayName } from '@/lib/profileDisplay';
 
 interface Message {
   id: string;
@@ -71,7 +72,7 @@ export default function ConversationPage() {
     if (otherUserId) {
       const { data: userData } = await supabaseClient
         .from('users')
-        .select('id, name, avatar_url')
+        .select('id, name, avatar_url, username, hide_display_name, email')
         .eq('id', otherUserId)
         .single();
       setOtherUser(userData as OtherUser ?? null);
@@ -240,6 +241,16 @@ export default function ConversationPage() {
     );
   }
 
+  const otherDisplayName = otherUser
+    ? resolvePublicDisplayName({
+        id: otherUser.id,
+        name: otherUser.name,
+        username: otherUser.username ?? null,
+        hide_display_name: otherUser.hide_display_name ?? null,
+        email: otherUser.email ?? null,
+      })
+    : 'Rider';
+
   return (
     <div className="flex flex-col h-[100dvh] bg-black">
       {/* Header */}
@@ -264,7 +275,7 @@ export default function ConversationPage() {
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-[15px] font-black text-white leading-none truncate">
-            {otherUser?.name ?? 'Rider'}
+            {otherDisplayName}
           </p>
         </div>
       </div>
@@ -277,7 +288,7 @@ export default function ConversationPage() {
               <User size={24} className="text-zinc-600" />
             </div>
             <p className="text-zinc-500 text-[13px]">
-              Say hi to {otherUser?.name ?? 'this rider'}
+              Say hi to {otherUser ? otherDisplayName : 'this rider'}
             </p>
           </div>
         ) : (
