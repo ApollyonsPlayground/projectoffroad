@@ -99,7 +99,7 @@ export default function BottomNav() {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 w-full z-50 bg-black/80 backdrop-blur-md border-t border-zinc-900"
+      className="fixed bottom-0 left-0 w-full z-[100] bg-black/80 backdrop-blur-md border-t border-zinc-900 touch-manipulation"
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
     >
       <div className="flex flex-row justify-around items-center pt-3 px-2 pb-2">
@@ -117,20 +117,16 @@ export default function BottomNav() {
               key={href}
               onClick={() => handleNav(href, requiresAuth)}
               aria-label={label}
-              className="flex flex-col items-center gap-1 min-w-[48px] relative"
+              className="flex flex-col items-center gap-1 min-w-[48px] min-h-[48px] justify-center relative touch-manipulation active:opacity-90"
             >
               <motion.div
                 whileTap={{ scale: 0.85 }}
                 transition={{ type: 'spring', stiffness: 500, damping: 20 }}
                 className="relative flex items-center justify-center"
               >
-                {/* Active indicator pill */}
+                {/* Active indicator — avoid shared layoutId (Framer can leave invisible hit layers on Chrome/Android). */}
                 {isActive && (
-                  <motion.div
-                    layoutId="nav-active-pill"
-                    className="absolute -inset-2 rounded-xl bg-orange-500/15"
-                    transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                  />
+                  <div className="absolute -inset-2 rounded-xl bg-orange-500/15 pointer-events-none" aria-hidden />
                 )}
                 <Icon
                   size={23}

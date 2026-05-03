@@ -27,9 +27,7 @@ import {
 import Link from 'next/link';
 import BottomNav from '@/components/BottomNav';
 import { FeedSkeleton } from '@/components/SkeletonLoader';
-import DisclaimerModal from '@/components/DisclaimerModal';
 import { FollowingStoriesStrip } from '@/components/stories/FollowingStoriesStrip';
-
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/Toast';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
@@ -765,33 +763,25 @@ function HomeStoriesRunsPager({
         <button
           type="button"
           onClick={() => goStrip('runs')}
-          className={`relative flex-1 py-2.5 text-center text-[11px] font-black uppercase tracking-wider transition-colors ${
+          className={`relative flex-1 py-2.5 text-center text-[11px] font-black uppercase tracking-wider transition-colors touch-manipulation ${
             activeStrip === 'runs' ? 'text-orange-500' : 'text-zinc-500 hover:text-zinc-300'
           }`}
         >
           Runs
           {activeStrip === 'runs' && (
-            <motion.span
-              layoutId="home-feed-strip-tab"
-              className="absolute bottom-0 left-3 right-3 h-0.5 rounded-full bg-orange-500"
-              transition={{ type: 'spring', stiffness: 500, damping: 38 }}
-            />
+            <span className="absolute bottom-0 left-3 right-3 h-0.5 rounded-full bg-orange-500" />
           )}
         </button>
         <button
           type="button"
           onClick={() => goStrip('stories')}
-          className={`relative flex-1 py-2.5 text-center text-[11px] font-black uppercase tracking-wider transition-colors ${
+          className={`relative flex-1 py-2.5 text-center text-[11px] font-black uppercase tracking-wider transition-colors touch-manipulation ${
             activeStrip === 'stories' ? 'text-orange-500' : 'text-zinc-500 hover:text-zinc-300'
           }`}
         >
           Stories
           {activeStrip === 'stories' && (
-            <motion.span
-              layoutId="home-feed-strip-tab"
-              className="absolute bottom-0 left-3 right-3 h-0.5 rounded-full bg-orange-500"
-              transition={{ type: 'spring', stiffness: 500, damping: 38 }}
-            />
+            <span className="absolute bottom-0 left-3 right-3 h-0.5 rounded-full bg-orange-500" />
           )}
         </button>
       </div>
@@ -799,13 +789,13 @@ function HomeStoriesRunsPager({
       <div
         ref={pagerRef}
         onScroll={syncTabFromScroll}
-        className="flex overflow-x-auto overflow-y-hidden snap-x snap-mandatory scrollbar-hide scroll-smooth"
+        className="flex items-start overflow-x-auto overflow-y-hidden snap-x snap-mandatory scrollbar-hide scroll-smooth touch-pan-x"
         style={{ WebkitOverflowScrolling: 'touch' }}
       >
-        <section className="snap-start snap-always shrink-0 grow-0 basis-full w-full box-border overflow-x-hidden">
+        <section className="snap-start snap-always shrink-0 grow-0 basis-full w-full min-h-0 min-w-0 box-border overflow-x-hidden">
           <StoriesBar embedded />
         </section>
-        <section className="snap-start snap-always shrink-0 grow-0 basis-full w-full box-border overflow-x-hidden">
+        <section className="snap-start snap-always shrink-0 grow-0 basis-full w-full min-h-0 min-w-0 box-border overflow-x-hidden">
           <FollowingStoriesStrip embedded supabaseClient={supabaseClient} user={user} />
         </section>
       </div>
@@ -947,7 +937,7 @@ function RigPostCard({ post, index }: {
   post: Post;
   index: number;
 }) {
-  const { user, profile, isConfigured, supabaseClient, loading: authLoading } = useAuth();
+  const { user, profile, isConfigured, supabaseClient } = useAuth();
 
   /** Likes, bookmarks, repost target, comments, and permalinks use the canonical thread. */
   const canonicalPostId = String(post.repost_of_id ?? post.id);
@@ -1017,8 +1007,6 @@ function RigPostCard({ post, index }: {
   // every time the drawer opens/closes and clearing any optimistic state.
   useEffect(() => {
     if (!supabaseClient) return;
-    // Hard guard: wait for auth to resolve so user.id is known for likes query.
-    if (authLoading) return;
 
     // CRITICAL: use the original post's ID for reposts — comments are anchored
     // to the canonical thread, not the repost copy.
@@ -1142,7 +1130,7 @@ function RigPostCard({ post, index }: {
       }
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [supabaseClient, post.id, post.repost_of_id, user, authLoading]);
+  }, [supabaseClient, post.id, post.repost_of_id, user]);
 
   const requireAuth = (action: string): boolean => {
     if (!user) {
@@ -1416,7 +1404,7 @@ function RigPostCard({ post, index }: {
   return (
     <>
       <motion.article
-        initial={{ opacity: 0, y: 12 }}
+        initial={false}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: index * 0.06, duration: 0.3 }}
         className="flex gap-3 px-4 py-4 border-b border-zinc-900 bg-black"
@@ -2039,7 +2027,7 @@ export default function HomePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
-  const { user, profile, supabaseClient, loading: authLoading } = useAuth();
+  const { user, profile, supabaseClient } = useAuth();
   const router = useRouter();
 
   // Fetch the current user's role for moderation access
@@ -2056,10 +2044,9 @@ export default function HomePage() {
   const isModeratorUser = userRole === 'owner' || userRole === 'admin';
 
   const fetchPosts = useCallback(async () => {
-    // Strict guard: do NOT execute until auth has fully settled.
-    // authLoading=true means user.id is not yet known — interaction queries
-    // (post_likes, saved_posts, repost rows) would all return empty results.
-    if (authLoading) return;
+    // Never block the feed on auth hydration — if session hangs (common on LAN / flaky mobile),
+    // waiting here left isLoading=true forever with no posts. We fetch with user ?? null;
+    // like/save/repost rows populate on the next run when user resolves.
     if (!supabaseClient) {
       setPosts(PLACEHOLDER_POSTS);
       setIsLoading(false);
@@ -2275,10 +2262,11 @@ export default function HomePage() {
     } finally {
       setIsLoading(false);
     }
-  }, [supabaseClient, user, authLoading, userRole, profile]);
+  }, [supabaseClient, user, userRole, profile]);
 
-  // Re-run whenever auth state resolves (authLoading flips false) so interactions hydrate correctly
-  useEffect(() => { fetchPosts(); }, [fetchPosts]);
+  useEffect(() => {
+    void fetchPosts();
+  }, [fetchPosts]);
 
   return (
     <div className="min-h-screen bg-black">
@@ -2302,28 +2290,20 @@ export default function HomePage() {
       <main className="max-w-md mx-auto min-h-screen bg-black pb-24">
         <HomeStoriesRunsPager supabaseClient={supabaseClient} user={user} />
 
-        {/* Feed */}
-        <AnimatePresence mode="wait">
-          {isLoading ? (
-            <motion.div
-              key="skeleton"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="px-4 pt-4"
-            >
-              <FeedSkeleton count={3} />
-            </motion.div>
-          ) : (
-            <motion.div key="feed" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-              <PullToRefreshFeed onRefresh={fetchPosts}>
-                {posts.map((post, i) => (
-                  <RigPostCard key={post.id} post={post} index={i} />
-                ))}
-              </PullToRefreshFeed>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {/* Feed — avoid Framer opacity-from-0 here (can stick invisible on some mobile Chrome builds). */}
+        {isLoading ? (
+          <div className="px-4 pt-4">
+            <FeedSkeleton count={3} />
+          </div>
+        ) : (
+          <div>
+            <PullToRefreshFeed onRefresh={fetchPosts}>
+              {posts.map((post, i) => (
+                <RigPostCard key={post.id} post={post} index={i} />
+              ))}
+            </PullToRefreshFeed>
+          </div>
+        )}
       </main>
 
       {/* ── FAB ───────────────────────────────────── */}
@@ -2340,7 +2320,6 @@ export default function HomePage() {
       {/* ── New Post Drawer ────────────────────────── */}
       <NewPostDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} onPosted={fetchPosts} />
 
-      <DisclaimerModal />
       <BottomNav />
     </div>
   );

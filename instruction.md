@@ -116,9 +116,9 @@ Then open the native project in Xcode / Android Studio. The WebView loads your h
 
 ### Physical phone over Wi‑Fi (quick test)
 
-1. **Same network:** Phone and PC on the same Wi‑Fi (or USB tether — PC gets a `172.*` address; the launch gate treats common private LAN ranges as local).
+1. **Same network:** Phone and PC on the same Wi‑Fi (or USB tether — PC may get a `172.*` address).
 
-2. **Listen on all interfaces:** from the repo root run **`npm run dev:lan`** (same as `next dev --hostname 0.0.0.0 --port 3000`). Find your PC’s LAN IP (Windows: `ipconfig`, look for **IPv4 Address**, often `192.168.*.*`).
+2. **Listen on all interfaces:** from the repo root run **`npm run dev:lan`** (same as `next dev --hostname 0.0.0.0 --port 3000`). Next may print **Network: `http://0.0.0.0:3000`** — that only means “listening everywhere”; **do not open `0.0.0.0` on your phone.** Use your real LAN IP instead (Windows: `ipconfig` → **IPv4 Address**, often `192.168.*.*`).
 
 3. **Firewall:** Allow inbound TCP **3000** on Windows if the phone cannot load the site.
 

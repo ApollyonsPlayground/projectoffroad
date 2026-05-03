@@ -79,8 +79,8 @@ body {
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  /* Prevent overscroll bounce on iOS */
-  overscroll-behavior: none;
+  /* Avoid overscroll-behavior:none on mobile Chrome — it can swallow taps / confuse refresh gestures */
+  overscroll-behavior-y: auto;
   letter-spacing: -0.01em;
 }
 
@@ -181,28 +181,6 @@ body {
 
 .animate-pulse-slow {
   animation: pulse 2s ease-in-out infinite;
-}
-
-/* View Transitions */
-@supports (view-transition-name: none) {
-  ::view-transition-old(root) {
-    animation: slideOut 0.25s ease-in forwards;
-  }
-  
-  ::view-transition-new(root) {
-    animation: slideIn 0.25s ease-out forwards;
-  }
-}
-
-@keyframes slideOut {
-  from {
-    opacity: 1;
-    transform: translateX(0);
-  }
-  to {
-    opacity: 0;
-    transform: translateX(-20px);
-  }
 }
 
 /* Custom Scrollbar */
@@ -314,9 +292,10 @@ a:hover {
   border-color: var(--orange-500);
 }
 
-/* Mobile touch targets */
+/* Apply generous tap targets only where we opt in — global min-* on all `a`/`button`
+   broke hit-testing on Chrome Android (overlapping boxes / odd flex sizing). */
 @media (max-width: 768px) {
-  button, a, [role="button"] {
+  .tap-target-44 {
     min-height: 44px;
     min-width: 44px;
   }

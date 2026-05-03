@@ -6,7 +6,7 @@ import { ViewTransitions } from "@/components/ViewTransitions";
 import { ToastProvider } from "@/components/Toast";
 import ClientGlobalSOS from "@/components/ClientGlobalSOS";
 import { AdminLauncher } from "@/components/admin/AdminLauncher";
-import { LaunchGate } from "@/components/launch/LaunchGate";
+import DisclaimerModal from "@/components/DisclaimerModal";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -30,8 +30,6 @@ export const viewport: Viewport = {
   themeColor: "#000000",
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
   viewportFit: "cover",
 };
 
@@ -46,8 +44,9 @@ export default function RootLayout({
         <AuthProvider>
           <ToastProvider>
             <ViewTransitions>
-              <LaunchGate>{children}</LaunchGate>
+              {children}
             </ViewTransitions>
+            <DisclaimerModal />
             <ClientGlobalSOS />
             <AdminLauncher />
           </ToastProvider>

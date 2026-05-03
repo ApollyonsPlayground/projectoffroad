@@ -33,19 +33,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return
     }
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null)
-      if (session?.user) {
-        fetchProfile(session.user.id)
-      } else {
+    // LAN / phone dev: first cookie read + profile can exceed 8s; avoid false "signed out".
+    const SESSION_BOOT_MS = process.env.NODE_ENV === 'development' ? 30000 : 15000
+    type GetSessionResult = Awaited<ReturnType<typeof supabase.auth.getSession>>
+    const sessionBoot = new Promise<GetSessionResult>((resolve) =>
+      setTimeout(() => resolve({ data: { session: null }, error: null }), SESSION_BOOT_MS)
+    )
+
+    Promise.race([supabase.auth.getSession(), sessionBoot])
+      .then(({ data: { session } }) => {
+        setUser(session?.user ?? null)
+        if (session?.user) {
+          void fetchProfile(session.user.id)
+        } else {
+          setLoading(false)
+        }
+      })
+      .catch((err) => {
+        console.warn('[Auth] getSession:', err)
         setLoading(false)
-      }
-    })
+      })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null)
       if (session?.user) {
-        fetchProfile(session.user.id)
+        void fetchProfile(session.user.id)
       } else {
         setProfile(null)
         setLoading(false)
@@ -56,9 +68,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   async function fetchProfile(userId: string) {
-    if (!supabase) return
-    const session = (await supabase.auth.getSession()).data?.session
-    if (session?.user) {
+    if (!supabase) {
+      setLoading(false)
+      return
+    }
+    try {
+      const session = (await supabase.auth.getSession()).data?.session
+      if (!session?.user) {
+        setProfile(null)
+        return
+      }
+
       const email =
         session.user.email?.trim() ||
         `${userId.replace(/-/g, '')}@oauth.placeholder.local`
@@ -104,15 +124,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const { error: updErr } = await supabase.from('users').update(patch).eq('id', userId)
         if (updErr) console.warn('[Auth] profile update:', updErr.message)
       }
+
+      // maybeSingle: avoids 406 when row still missing after a failed upsert
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle()
+      if (!error && data) setProfile(data)
+    } catch (e) {
+      console.warn('[Auth] fetchProfile:', e)
+    } finally {
+      setLoading(false)
     }
-    // maybeSingle: avoids 406 when row still missing after a failed upsert
-    const { data, error } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', userId)
-      .maybeSingle()
-    if (!error && data) setProfile(data)
-    setLoading(false)
   }
 
   async function signOut() {
