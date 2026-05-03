@@ -164,29 +164,54 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const origin = typeof window !== 'undefined' ? window.location.origin : ''
     const callbackPath = '/auth/callback/'
 
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: origin ? `${origin}${callbackPath}` : callbackPath,
-      },
-    })
+    const redirectTo = origin ? `${origin}${callbackPath}` : callbackPath
 
-    if (!error) return { error: null }
-
-    const raw = error.message ?? ''
-    const providerDisabled =
-      raw.toLowerCase().includes('provider is not enabled') ||
-      raw.toLowerCase().includes('unsupported provider') ||
-      (error as { code?: string }).code === 'validation_failed'
-
-    if (providerDisabled) {
+    let oauth: Awaited<ReturnType<typeof supabase.auth.signInWithOAuth>>;
+    try {
+      oauth = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo,
+          // Full top-level navigation avoids some mobile browsers blocking the
+          // library’s default redirect when it runs right after an async gap.
+          skipBrowserRedirect: true,
+        },
+      })
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e)
       return {
-        error:
-          'Google sign-in is disabled in Supabase. Dashboard → Authentication → Providers → Google: enable it, add Client ID/Secret, and in Google Cloud set redirect URI to https://YOUR_REF.supabase.co/auth/v1/callback — see instruction.md.',
+        error: `Could not reach Supabase (${msg}). Open /api/health/supabase on this site; confirm the project is active in the Supabase dashboard and Vercel env has NEXT_PUBLIC_SUPABASE_URL + anon/publishable key.`,
       }
     }
 
-    return { error: raw || null }
+    const { data, error } = oauth
+
+    if (error) {
+      const raw = error.message ?? ''
+      const providerDisabled =
+        raw.toLowerCase().includes('provider is not enabled') ||
+        raw.toLowerCase().includes('unsupported provider') ||
+        (error as { code?: string }).code === 'validation_failed'
+
+      if (providerDisabled) {
+        return {
+          error:
+            'Google sign-in is disabled in Supabase. Dashboard → Authentication → Providers → Google: enable it, add Client ID/Secret, and in Google Cloud set redirect URI to https://YOUR_REF.supabase.co/auth/v1/callback — see instruction.md.',
+        }
+      }
+
+      return { error: raw || null }
+    }
+
+    if (data?.url && typeof window !== 'undefined') {
+      window.location.assign(data.url)
+      return { error: null }
+    }
+
+    return {
+      error:
+        'Could not start Google sign-in (empty auth URL). Try Safari/Chrome directly (not an in-app browser), or disable strict tracking/ad blockers for this site.',
+    }
   }
 
   return (
