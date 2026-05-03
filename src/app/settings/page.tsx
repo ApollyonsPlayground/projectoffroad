@@ -1,22 +1,137 @@
-'use client'
+'use client';
 
-import { useState } from 'react'
-import Link from 'next/link'
-import { ArrowLeft, Bell, Shield, HelpCircle, Info, LogOut } from 'lucide-react'
+import { useCallback, useEffect, useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import {
+  ArrowLeft,
+  Ban,
+  Bell,
+  HelpCircle,
+  Info,
+  LogOut,
+  MessageSquare,
+  Shield,
+  User,
+  Loader2,
+} from 'lucide-react';
+import BottomNav from '@/components/BottomNav';
+import { useAuth } from '@/context/AuthContext';
+import { useToast } from '@/components/Toast';
+
+type DmAllow = 'everyone' | 'nobody';
 
 export default function SettingsPage() {
-  const [notifications, setNotifications] = useState({
-    runs: true,
-    clubs: true,
-    messages: false
-  })
+  const router = useRouter();
+  const { user, profile, signOut, supabaseClient, refreshProfile } = useAuth();
+  const { showToast } = useToast();
+
+  const [notifyRuns, setNotifyRuns] = useState(true);
+  const [notifyClubs, setNotifyClubs] = useState(true);
+  const [notifyMessages, setNotifyMessages] = useState(false);
+  const [dmAllow, setDmAllow] = useState<DmAllow>('everyone');
+  const [blockedRows, setBlockedRows] = useState<{ blocked_id: string; name: string }[]>([]);
+  const [loadingBlocks, setLoadingBlocks] = useState(false);
+
+  useEffect(() => {
+    if (!profile) return;
+    setNotifyRuns(profile.notify_runs !== false);
+    setNotifyClubs(profile.notify_clubs !== false);
+    setNotifyMessages(profile.notify_messages === true);
+    const dm = String(profile.dm_allow_from ?? 'everyone');
+    setDmAllow(dm === 'nobody' ? 'nobody' : 'everyone');
+  }, [profile]);
+
+  const loadBlocks = useCallback(async () => {
+    if (!supabaseClient || !user) return;
+    setLoadingBlocks(true);
+    try {
+      const { data: rows, error } = await supabaseClient
+        .from('user_blocks')
+        .select('blocked_id')
+        .eq('blocker_id', user.id);
+      if (error || !rows?.length) {
+        setBlockedRows([]);
+        return;
+      }
+      const ids = [...new Set(rows.map((r) => r.blocked_id))];
+      const { data: profiles } = await supabaseClient
+        .from('users')
+        .select('id, name')
+        .in('id', ids);
+      const names = new Map((profiles ?? []).map((u: { id: string; name: string | null }) => [u.id, u.name?.trim() || 'Member']));
+      setBlockedRows(ids.map((id) => ({ blocked_id: id, name: names.get(id) ?? 'Member' })));
+    } catch {
+      setBlockedRows([]);
+    } finally {
+      setLoadingBlocks(false);
+    }
+  }, [supabaseClient, user]);
+
+  useEffect(() => {
+    if (user && supabaseClient) void loadBlocks();
+  }, [user, supabaseClient, loadBlocks]);
+
+  const persistPrefs = async (patch: Record<string, unknown>) => {
+    if (!supabaseClient || !user) return;
+    try {
+      const { error } = await supabaseClient.from('users').update(patch).eq('id', user.id);
+      if (error) throw error;
+      await refreshProfile();
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : 'Could not save settings', 'error');
+    }
+  };
+
+  const toggleRuns = async (v: boolean) => {
+    setNotifyRuns(v);
+    await persistPrefs({ notify_runs: v });
+  };
+
+  const toggleClubs = async (v: boolean) => {
+    setNotifyClubs(v);
+    await persistPrefs({ notify_clubs: v });
+  };
+
+  const toggleMessages = async (v: boolean) => {
+    setNotifyMessages(v);
+    await persistPrefs({ notify_messages: v });
+  };
+
+  const changeDm = async (v: DmAllow) => {
+    setDmAllow(v);
+    await persistPrefs({ dm_allow_from: v });
+  };
+
+  const unblock = async (blockedId: string) => {
+    if (!supabaseClient || !user) return;
+    try {
+      const { error } = await supabaseClient
+        .from('user_blocks')
+        .delete()
+        .eq('blocker_id', user.id)
+        .eq('blocked_id', blockedId);
+      if (error) throw error;
+      showToast('Unblocked', 'success');
+      await loadBlocks();
+    } catch {
+      showToast('Could not unblock', 'error');
+    }
+  };
+
+  const handleLogout = async () => {
+    await signOut();
+    showToast('Signed out', 'success');
+    router.push('/');
+  };
+
+  const googleLinked = Boolean(user?.identities?.some((i) => i.provider === 'google'));
 
   return (
-    <div className="min-h-screen bg-[#050705]">
-      {/* Header */}
+    <div className="min-h-screen bg-[#050705] pb-24">
       <div className="sticky top-0 z-50 bg-[#050705] border-b-2 border-neutral-800 px-4 py-3">
-        <div className="flex items-center gap-4">
-          <Link href="/" className="text-neutral-400 hover:text-white">
+        <div className="flex items-center gap-4 max-w-xl mx-auto">
+          <Link href={user ? '/profile' : '/'} className="text-neutral-400 hover:text-white" aria-label="Back">
             <ArrowLeft size={24} />
           </Link>
           <h1 className="text-lg font-bold text-white uppercase tracking-wide">Settings</h1>
@@ -24,20 +139,60 @@ export default function SettingsPage() {
       </div>
 
       <div className="max-w-xl mx-auto px-4 py-6 space-y-6">
+        {/* Account */}
+        <div className="bg-neutral-900 border-2 border-neutral-800 rounded-lg p-4">
+          <div className="flex items-center gap-3 mb-4">
+            <User className="text-muted-gold" size={20} />
+            <h2 className="text-white font-bold uppercase tracking-wide">Account</h2>
+          </div>
+          {!user ? (
+            <p className="text-neutral-500 text-sm">Sign in to manage your account.</p>
+          ) : (
+            <div className="space-y-3 text-sm">
+              <div className="flex justify-between gap-3">
+                <span className="text-neutral-500">Email</span>
+                <span className="text-neutral-200 text-right truncate">{user.email ?? '—'}</span>
+              </div>
+              <div className="flex justify-between gap-3 items-center">
+                <span className="text-neutral-500">Sign-in</span>
+                <span className="text-neutral-200">
+                  {googleLinked ? 'Google' : 'Connected'}
+                </span>
+              </div>
+              <Link
+                href="/profile/edit"
+                className="flex items-center justify-between text-orange-400 hover:text-orange-300 py-2 border-t border-neutral-800 mt-2 pt-3"
+              >
+                <span>Edit profile</span>
+                <span className="text-neutral-600">→</span>
+              </Link>
+              <Link
+                href="/guidelines"
+                className="flex items-center justify-between text-neutral-400 hover:text-white py-2"
+              >
+                <span>Community guidelines</span>
+                <span className="text-neutral-600">→</span>
+              </Link>
+            </div>
+          )}
+        </div>
+
         {/* Notifications */}
         <div className="bg-neutral-900 border-2 border-neutral-800 rounded-lg p-4">
           <div className="flex items-center gap-3 mb-4">
             <Bell className="text-muted-gold" size={20} />
             <h2 className="text-white font-bold uppercase tracking-wide">Notifications</h2>
           </div>
-          
+          <p className="text-neutral-600 text-[11px] uppercase tracking-wider mb-3">
+            Saved to your account · push delivery coming later
+          </p>
           <div className="space-y-3">
             <label className="flex items-center justify-between cursor-pointer">
               <span className="text-neutral-400">New runs in my area</span>
               <input
                 type="checkbox"
-                checked={notifications.runs}
-                onChange={(e) => setNotifications({ ...notifications, runs: e.target.checked })}
+                checked={notifyRuns}
+                onChange={(e) => void toggleRuns(e.target.checked)}
                 className="w-5 h-5 accent-muted-gold"
               />
             </label>
@@ -45,8 +200,8 @@ export default function SettingsPage() {
               <span className="text-neutral-400">Club updates</span>
               <input
                 type="checkbox"
-                checked={notifications.clubs}
-                onChange={(e) => setNotifications({ ...notifications, clubs: e.target.checked })}
+                checked={notifyClubs}
+                onChange={(e) => void toggleClubs(e.target.checked)}
                 className="w-5 h-5 accent-muted-gold"
               />
             </label>
@@ -54,12 +209,67 @@ export default function SettingsPage() {
               <span className="text-neutral-400">Direct messages</span>
               <input
                 type="checkbox"
-                checked={notifications.messages}
-                onChange={(e) => setNotifications({ ...notifications, messages: e.target.checked })}
+                checked={notifyMessages}
+                onChange={(e) => void toggleMessages(e.target.checked)}
                 className="w-5 h-5 accent-muted-gold"
               />
             </label>
           </div>
+        </div>
+
+        {/* Messages / privacy */}
+        <div className="bg-neutral-900 border-2 border-neutral-800 rounded-lg p-4">
+          <div className="flex items-center gap-3 mb-4">
+            <MessageSquare className="text-muted-gold" size={20} />
+            <h2 className="text-white font-bold uppercase tracking-wide">Messages</h2>
+          </div>
+          <p className="text-neutral-500 text-sm mb-3">Who can start a DM with you?</p>
+          <select
+            value={dmAllow}
+            onChange={(e) => void changeDm(e.target.value as DmAllow)}
+            disabled={!user}
+            className="w-full bg-neutral-950 border border-neutral-700 rounded-lg px-3 py-2.5 text-neutral-200 text-sm outline-none focus:border-muted-gold"
+          >
+            <option value="everyone">Everyone signed in</option>
+            <option value="nobody">No one (disable DMs)</option>
+          </select>
+        </div>
+
+        {/* Blocked */}
+        <div className="bg-neutral-900 border-2 border-neutral-800 rounded-lg p-4">
+          <div className="flex items-center gap-3 mb-4">
+            <Ban className="text-muted-gold" size={20} />
+            <h2 className="text-white font-bold uppercase tracking-wide">Blocked accounts</h2>
+          </div>
+          {!user ? (
+            <p className="text-neutral-500 text-sm">Sign in to manage blocked accounts.</p>
+          ) : loadingBlocks ? (
+            <div className="flex justify-center py-6">
+              <Loader2 className="animate-spin text-neutral-500" />
+            </div>
+          ) : blockedRows.length === 0 ? (
+            <p className="text-neutral-600 text-sm">You haven&apos;t blocked anyone.</p>
+          ) : (
+            <ul className="space-y-2">
+              {blockedRows.map((row) => (
+                <li
+                  key={row.blocked_id}
+                  className="flex items-center justify-between gap-2 py-2 border-b border-neutral-800 last:border-0"
+                >
+                  <Link href={`/profile/${row.blocked_id}`} className="text-neutral-300 text-sm truncate hover:text-white">
+                    {row.name}
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => void unblock(row.blocked_id)}
+                    className="text-[11px] font-bold uppercase text-orange-400 hover:text-orange-300 flex-shrink-0"
+                  >
+                    Unblock
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
 
         {/* Privacy */}
@@ -68,7 +278,6 @@ export default function SettingsPage() {
             <Shield className="text-muted-gold" size={20} />
             <h2 className="text-white font-bold uppercase tracking-wide">Privacy</h2>
           </div>
-          
           <div className="space-y-3">
             <Link href="/privacy" className="flex items-center justify-between text-neutral-400 hover:text-white py-2">
               <span>Privacy Policy</span>
@@ -87,13 +296,15 @@ export default function SettingsPage() {
             <HelpCircle className="text-muted-gold" size={20} />
             <h2 className="text-white font-bold uppercase tracking-wide">Support</h2>
           </div>
-          
           <div className="space-y-3">
             <Link href="/guides" className="flex items-center justify-between text-neutral-400 hover:text-white py-2">
-              <span>Beginner's Guide</span>
+              <span>Beginner&apos;s Guide</span>
               <span className="text-neutral-600">→</span>
             </Link>
-            <a href="mailto:support@socaloffroaders.org" className="flex items-center justify-between text-neutral-400 hover:text-white py-2">
+            <a
+              href="mailto:support@socaloffroaders.org"
+              className="flex items-center justify-between text-neutral-400 hover:text-white py-2"
+            >
               <span>Contact Us</span>
               <span className="text-neutral-600">→</span>
             </a>
@@ -106,19 +317,24 @@ export default function SettingsPage() {
             <Info className="text-muted-gold" size={20} />
             <h2 className="text-white font-bold uppercase tracking-wide">About</h2>
           </div>
-          
           <div className="text-neutral-500 text-sm">
             <p>SoCalOffroaders</p>
             <p className="mt-1">Built with Next.js + Supabase</p>
           </div>
         </div>
 
-        {/* Logout */}
-        <button className="w-full flex items-center justify-center gap-2 py-3 bg-red-900/30 border-2 border-red-800 text-red-400 font-bold uppercase tracking-wider rounded-lg hover:bg-red-900/50 transition-colors">
+        <button
+          type="button"
+          onClick={() => void handleLogout()}
+          disabled={!user}
+          className="w-full flex items-center justify-center gap-2 py-3 bg-red-900/30 border-2 border-red-800 text-red-400 font-bold uppercase tracking-wider rounded-lg hover:bg-red-900/50 transition-colors disabled:opacity-40"
+        >
           <LogOut size={18} />
           Log Out
         </button>
       </div>
+
+      <BottomNav />
     </div>
-  )
+  );
 }

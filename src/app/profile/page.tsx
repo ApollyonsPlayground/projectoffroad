@@ -293,6 +293,12 @@ export default function ProfilePage() {
   const [myRuns, setMyRuns] = useState<ProfileRunRow[]>([]);
   const [runsLoading, setRunsLoading] = useState(false);
 
+  const [postsCount, setPostsCount] = useState(0);
+  const [followersCount, setFollowersCount] = useState(0);
+  const [followingCount, setFollowingCount] = useState(0);
+  const [clubsCount, setClubsCount] = useState(0);
+  const [runsJoinedCount, setRunsJoinedCount] = useState(0);
+
   // Cast profile (Record<string,unknown>) to a typed shape for safe rendering
   type DisplayProfile = typeof PLACEHOLDER_PROFILE & { avatar_url?: string | null };
   const displayProfile: DisplayProfile = (profile as DisplayProfile | null) || PLACEHOLDER_PROFILE;
@@ -414,6 +420,51 @@ export default function ProfilePage() {
   useEffect(() => {
     if (!loading) fetchData();
   }, [loading, fetchData]);
+
+  useEffect(() => {
+    if (!supabaseClient || !user) {
+      setPostsCount(0);
+      setFollowersCount(0);
+      setFollowingCount(0);
+      setClubsCount(0);
+      setRunsJoinedCount(0);
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      const uid = user.id;
+      try {
+        const [postsRes, folRes, ingRes, clubRes, runRes] = await Promise.all([
+          supabaseClient
+            .from('posts')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', uid)
+            .is('repost_of_id', null),
+          supabaseClient.from('follows').select('*', { count: 'exact', head: true }).eq('following_id', uid),
+          supabaseClient.from('follows').select('*', { count: 'exact', head: true }).eq('follower_id', uid),
+          supabaseClient.from('club_members').select('*', { count: 'exact', head: true }).eq('user_id', uid),
+          supabaseClient.from('run_participants').select('*', { count: 'exact', head: true }).eq('user_id', uid),
+        ]);
+        if (cancelled) return;
+        setPostsCount(postsRes.count ?? 0);
+        setFollowersCount(folRes.count ?? 0);
+        setFollowingCount(ingRes.count ?? 0);
+        setClubsCount(clubRes.count ?? 0);
+        setRunsJoinedCount(runRes.count ?? 0);
+      } catch {
+        if (!cancelled) {
+          setPostsCount(0);
+          setFollowersCount(0);
+          setFollowingCount(0);
+          setClubsCount(0);
+          setRunsJoinedCount(0);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [supabaseClient, user]);
 
   useEffect(() => {
     if (!isLoading) fetchTab(activeTab);
@@ -573,6 +624,12 @@ export default function ProfilePage() {
               </button>
             )}
             <Link
+              href="/profile/edit"
+              className="px-3 py-1.5 mr-1 text-[12px] font-bold text-orange-500 hover:text-orange-400 border border-orange-500/40 rounded-full touch-manipulation"
+            >
+              Edit
+            </Link>
+            <Link
               href="/settings"
               className="p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center text-zinc-500 hover:text-white transition-colors touch-manipulation"
             >
@@ -678,19 +735,22 @@ export default function ProfilePage() {
             <p className="mt-3 text-[14px] text-zinc-400 leading-relaxed">{String(displayProfile.bio)}</p>
           )}
 
-          {/* Stats row */}
+          {/* Stats row — aligned with typical social profiles */}
           <div className="flex justify-around mt-4 pt-4 border-t border-zinc-900">
             {[
-              { label: 'Posts',  value: myPosts.length },
-              { label: 'Rigs',   value: vehicles.length },
-              { label: 'Joined', value: (profile as Record<string,unknown>)?.created_at ? new Date((profile as Record<string,unknown>).created_at as string).getFullYear() : new Date().getFullYear() },
+              { label: 'Posts', value: postsCount },
+              { label: 'Followers', value: followersCount },
+              { label: 'Following', value: followingCount },
             ].map(({ label, value }) => (
-              <div key={label} className="text-center">
+              <div key={label} className="text-center min-w-[72px]">
                 <p className="text-[18px] font-bold text-white">{value}</p>
                 <p className="text-[11px] text-zinc-600 uppercase tracking-wider">{label}</p>
               </div>
             ))}
           </div>
+          <p className="text-center text-[11px] text-zinc-600 mt-3">
+            {vehicles.length} rig{vehicles.length !== 1 ? 's' : ''} in garage · {clubsCount} club{clubsCount !== 1 ? 's' : ''} · {runsJoinedCount} run{runsJoinedCount !== 1 ? 's' : ''} joined
+          </p>
         </section>
 
         {/* Rigs ─────────────────────────────────── */}
