@@ -2006,12 +2006,22 @@ export default function HomePage() {
         return undefined;
       };
 
-      const authorDisplayName = (userId: string | undefined | null, postRow: any): string => {
+      const authorDisplayName = (authorId: string | undefined | null, postRow: any): string => {
+        const idStr = authorId ? String(authorId) : '';
+        const au = idStr ? authorById[idStr] : undefined;
+        const isSelf = viewerId != null && idStr !== '' && String(viewerId) === idStr;
+        if (au) {
+          const base = {
+            id: idStr,
+            name: au.name,
+            email: au.email,
+            username: au.username,
+            hide_display_name: au.hide_display_name,
+          };
+          return isSelf ? resolveOwnProfileDisplayName(base) : resolvePublicDisplayName(base);
+        }
         const pn = postRow?.user_name ?? postRow?.username;
         if (pn != null && String(pn).trim()) return String(pn).trim();
-        const au = userId ? authorById[String(userId)] : undefined;
-        if (au?.name != null && String(au.name).trim()) return String(au.name).trim();
-        if (au?.email) return String(au.email).split('@')[0];
         return 'Rider';
       };
 

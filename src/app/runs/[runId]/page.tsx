@@ -32,6 +32,7 @@ import {
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/Toast';
+import { snapshotPublicIdentity } from '@/lib/profileDisplay';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -416,10 +417,7 @@ export default function RunDetailPage() {
     setSosSending(true);
     setSosConfirmOpen(false);
 
-    const userName =
-      (user.user_metadata?.full_name as string) ||
-      user.email?.split('@')[0] ||
-      'A rider';
+    const userName = snapshotPublicIdentity(profile ?? undefined, user);
 
     try {
       // Grab browser GPS

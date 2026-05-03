@@ -13,6 +13,15 @@ interface SearchResult {
   subtitle: string
 }
 
+interface UserSearchRow {
+  id: string
+  name: string | null
+  username: string | null
+  hide_display_name: boolean | null
+  email: string | null
+  location: string | null
+}
+
 export default function SearchPage() {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<SearchResult[]>([])
@@ -90,7 +99,7 @@ export default function SearchPage() {
         .ilike('username', like)
         .limit(5),
     ])
-    const userMap = new Map<string, (typeof byName)[0]>()
+    const userMap = new Map<string, UserSearchRow>()
     ;[...(byName ?? []), ...(byUsername ?? [])].forEach((user) => {
       if (user?.id) userMap.set(user.id, user)
     })

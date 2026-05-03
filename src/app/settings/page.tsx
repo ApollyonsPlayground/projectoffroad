@@ -127,7 +127,16 @@ export default function SettingsPage() {
 
   const toggleSyncGoogleName = async (v: boolean) => {
     setSyncGoogleName(v);
-    await persistPrefs({ sync_display_name_from_google: v });
+    const patch: Record<string, unknown> = { sync_display_name_from_google: v };
+    if (v && user?.user_metadata) {
+      const meta = user.user_metadata;
+      const gn =
+        (meta.full_name as string) ||
+        (meta.name as string) ||
+        user.email?.split('@')[0];
+      if (gn) patch.name = gn;
+    }
+    await persistPrefs(patch);
   };
 
   const unblock = async (blockedId: string) => {
