@@ -1,0 +1,21 @@
+[
+  {
+    "id": "sunset-run-2026-03-28",
+    "title": "🌅 Sunset Ridge Run",
+    "date": "2026-03-28T16:00:00",
+    "meetupPoint": {
+      "name": "Cleghorn Trailhead",
+      "coordinates": "34.3031, -117.4524",
+      "mapsUrl": "https://www.google.com/maps/search/?api=1&query=34.3031,-117.4524"
+    },
+    "trail": "cleghorn-2n47",
+    "description": "Join us for a scenic evening run up Cleghorn Ridge. We'll catch sunset at the overlook and have a group campfire at the top. Bring your own firewood and beverages.",
+    "difficulty": "Beginner",
+    "maxRigs": 15,
+    "joinedCount": 7,
+    "organizer": {
+      "name": "Noah",
+      "instagram": "@noah2131"
+    }
+  }
+]

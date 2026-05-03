@@ -1,0 +1,9 @@
+{
+  "redirects": [
+    {
+      "source": "/guides",
+      "destination": "https://github.com/ApollyonsPlayground/projectoffroad/tree/main/guides",
+      "statusCode": 301
+    }
+  ]
+}

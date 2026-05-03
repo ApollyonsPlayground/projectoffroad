@@ -1,0 +1,335 @@
+'use client';
+
+import { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
+import { ArrowLeft, Grid3X3, Bookmark, Heart, Repeat2, BadgeCheck, Loader2, MessageCircle } from 'lucide-react';
+import { useParams, useRouter } from 'next/navigation';
+import { useAuth } from '@/context/AuthContext';
+import BottomNav from '@/components/BottomNav';
+import {
+  fetchLikedPostIdsRecent,
+  fetchPostsByIds,
+  fetchSavedPostIdsRecent,
+} from '@/lib/supabase/resilientSocial';
+
+type Tab = 'posts' | 'reposts' | 'liked' | 'favorites';
+
+interface PostRow {
+  id: string;
+  image_url?: string;
+  body?: string;
+  created_at: string;
+  repost_of_id?: string | null;
+}
+
+function normalizePostRow(p: Record<string, unknown>): PostRow {
+  return {
+    id: String(p.id),
+    image_url: (p.image_url as string) ?? undefined,
+    body: String(p.body ?? p.content ?? p.caption ?? ''),
+    created_at: String(p.created_at ?? ''),
+    repost_of_id: (p.repost_of_id as string | null | undefined) ?? null,
+  };
+}
+
+function timeAgo(iso: string | null | undefined) {
+  if (!iso) return '';
+  const secs = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+  if (secs < 60) return 'just now';
+  if (secs < 3600) return `${Math.floor(secs / 60)}m`;
+  if (secs < 86400) return `${Math.floor(secs / 3600)}h`;
+  return `${Math.floor(secs / 86400)}d`;
+}
+
+function PostGrid({ posts }: { posts: PostRow[] }) {
+  if (posts.length === 0) return null;
+  return (
+    <div className="grid grid-cols-3 gap-0.5">
+      {posts.map((p) => (
+        <div key={p.id} className="aspect-square bg-zinc-900 overflow-hidden relative">
+          {p.image_url ? (
+            <img src={p.image_url} alt="" className="w-full h-full object-cover" loading="lazy" />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center p-2">
+              <p className="text-zinc-500 text-[10px] text-center leading-tight line-clamp-4">{p.body}</p>
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export default function UserProfilePage() {
+  const params = useParams();
+  const userId = params?.userId as string;
+  const { supabaseClient, user } = useAuth();
+  const router = useRouter();
+  const [messagingLoading, setMessagingLoading] = useState(false);
+
+  const [profile, setProfile] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const [activeTab, setActiveTab] = useState<Tab>('posts');
+  const [myPosts, setMyPosts] = useState<PostRow[]>([]);
+  const [reposts, setReposts] = useState<PostRow[]>([]);
+  const [liked, setLiked] = useState<PostRow[]>([]);
+  const [favorites, setFavorites] = useState<PostRow[]>([]);
+  const [tabLoading, setTabLoading] = useState(false);
+
+  // Fetch profile
+  useEffect(() => {
+    if (!userId) { setError('Invalid user ID'); setIsLoading(false); return; }
+    if (!supabaseClient) { setError('Not connected'); setIsLoading(false); return; }
+    supabaseClient
+      .from('users')
+      .select('*')
+      .eq('id', userId)
+      .single()
+      .then(({ data, error: err }) => {
+        if (err || !data) setError('User not found');
+        else setProfile(data);
+        setIsLoading(false);
+      });
+  }, [userId, supabaseClient]);
+
+  const fetchTab = useCallback(async (tab: Tab) => {
+    if (!supabaseClient || !userId) return;
+    setTabLoading(true);
+    try {
+      if (tab === 'posts') {
+        const { data, error } = await supabaseClient
+          .from('posts')
+          .select('*')
+          .eq('user_id', userId)
+          .order('created_at', { ascending: false })
+          .limit(60);
+        if (error) setMyPosts([]);
+        else {
+          const rows = ((data ?? []) as Record<string, unknown>[]).filter((p) => !p.repost_of_id).slice(0, 30);
+          setMyPosts(rows.map(normalizePostRow));
+        }
+      } else if (tab === 'reposts') {
+        const { data, error } = await supabaseClient
+          .from('posts')
+          .select('*')
+          .eq('user_id', userId)
+          .order('created_at', { ascending: false })
+          .limit(60);
+        if (error) setReposts([]);
+        else {
+          const rows = ((data ?? []) as Record<string, unknown>[]).filter((p) => !!p.repost_of_id).slice(0, 30);
+          setReposts(rows.map(normalizePostRow));
+        }
+      } else if (tab === 'liked') {
+        const ids = await fetchLikedPostIdsRecent(supabaseClient, userId, 30);
+        const posts = await fetchPostsByIds(supabaseClient, ids);
+        const order = new Map(ids.map((id, i) => [id, i]));
+        posts.sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
+        setLiked(posts.map((p) => normalizePostRow(p as Record<string, unknown>)));
+      } else if (tab === 'favorites') {
+        const ids = await fetchSavedPostIdsRecent(supabaseClient, userId, 30);
+        const posts = await fetchPostsByIds(supabaseClient, ids);
+        const order = new Map(ids.map((id, i) => [id, i]));
+        posts.sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
+        setFavorites(posts.map((p) => normalizePostRow(p as Record<string, unknown>)));
+      }
+    } finally {
+      setTabLoading(false);
+    }
+  }, [supabaseClient, userId]);
+
+  const handleMessage = useCallback(async () => {
+    if (!user || !supabaseClient || !userId) return;
+    setMessagingLoading(true);
+    try {
+      // Find existing conversation between these two users
+      const { data: myParticipations } = await supabaseClient
+        .from('conversation_participants')
+        .select('conversation_id')
+        .eq('user_id', user.id);
+
+      const myConvIds = (myParticipations ?? []).map((r: any) => r.conversation_id);
+
+      let existingConvId: string | null = null;
+
+      if (myConvIds.length > 0) {
+        const { data: otherParticipations } = await supabaseClient
+          .from('conversation_participants')
+          .select('conversation_id')
+          .eq('user_id', userId)
+          .in('conversation_id', myConvIds);
+
+        existingConvId = otherParticipations?.[0]?.conversation_id ?? null;
+      }
+
+      if (existingConvId) {
+        router.push(`/messages/${existingConvId}`);
+        return;
+      }
+
+      // Create a new conversation
+      const { data: newConv, error: convErr } = await supabaseClient
+        .from('conversations')
+        .insert({ last_message_content: null, last_message_at: new Date().toISOString() })
+        .select()
+        .single();
+
+      if (convErr || !newConv) throw convErr ?? new Error('Failed to create conversation');
+
+      // Add both participants
+      await supabaseClient.from('conversation_participants').insert([
+        { conversation_id: newConv.id, user_id: user.id, is_read: true },
+        { conversation_id: newConv.id, user_id: userId, is_read: true },
+      ]);
+
+      router.push(`/messages/${newConv.id}`);
+    } catch {
+      // Silently fail — user stays on profile page
+    } finally {
+      setMessagingLoading(false);
+    }
+  }, [user, supabaseClient, userId, router]);
+
+  useEffect(() => {
+    if (!isLoading && !error) fetchTab(activeTab);
+  }, [activeTab, isLoading, error, fetchTab]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <Loader2 size={24} className="animate-spin text-zinc-600" />
+        <BottomNav />
+      </div>
+    );
+  }
+
+  if (error || !profile) {
+    return (
+      <div className="min-h-screen bg-black flex flex-col items-center justify-center px-6 gap-6">
+        <h2 className="text-[22px] font-black text-white">Profile Not Found</h2>
+        <p className="text-zinc-500 text-[14px]">{error ?? 'This user does not exist.'}</p>
+        <Link href="/" className="px-5 py-3 bg-orange-500 text-black font-bold rounded-xl text-[14px]">
+          Back to Feed
+        </Link>
+        <BottomNav />
+      </div>
+    );
+  }
+
+  const TABS: { id: Tab; label: string; icon: any }[] = [
+    { id: 'posts',     label: 'Posts',     icon: Grid3X3 },
+    { id: 'reposts',   label: 'Reposts',   icon: Repeat2 },
+    { id: 'liked',     label: 'Liked',     icon: Heart },
+    { id: 'favorites', label: 'Favorites', icon: Bookmark },
+  ];
+
+  const dataMap: Record<Tab, PostRow[]> = { posts: myPosts, reposts, liked, favorites };
+  const currentData = dataMap[activeTab];
+
+  const emptyMessages: Record<Tab, string> = {
+    posts:     'No posts yet.',
+    reposts:   'No reposts yet.',
+    liked:     'No liked posts yet.',
+    favorites: 'No saved posts yet.',
+  };
+
+  const memberDisplayName =
+    String(profile?.name ?? '').trim() ||
+    String(profile?.email ?? '').split('@')[0] ||
+    'Rider';
+
+  return (
+    <div className="min-h-screen bg-black pb-24">
+      {/* Sticky header */}
+      <div className="sticky top-0 z-40 bg-black/90 backdrop-blur-md border-b border-zinc-900 px-4 py-3 flex items-center gap-3">
+        <Link href="/" className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-zinc-900 transition-colors">
+          <ArrowLeft size={19} className="text-white" />
+        </Link>
+        <span className="text-[17px] font-black text-white leading-none">{memberDisplayName}</span>
+      </div>
+
+      {/* Profile header */}
+      <div className="max-w-md mx-auto px-4 pt-6 pb-4 flex flex-col items-center text-center gap-3">
+        <div className="relative">
+          <div className="w-20 h-20 rounded-full overflow-hidden bg-zinc-800 border-2 border-zinc-700">
+            {profile.avatar_url ? (
+              <img src={profile.avatar_url} alt={memberDisplayName} className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-zinc-500 font-black text-2xl">
+                {(memberDisplayName ?? 'U')[0].toUpperCase()}
+              </div>
+            )}
+          </div>
+          {profile.role === 'owner' && (
+            <span className="absolute -bottom-1 -right-1 w-[22px] h-[22px] rounded-full bg-[#FF8C00] flex items-center justify-center">
+              <span className="text-[8px] font-black text-black leading-none">SO</span>
+            </span>
+          )}
+        </div>
+
+        <div className="flex items-center gap-1.5">
+          <h1 className="text-[20px] font-black text-white leading-none">{memberDisplayName}</h1>
+          {profile.is_verified && <BadgeCheck size={17} className="text-orange-500 flex-shrink-0" />}
+        </div>
+
+        {profile.bio && (
+          <p className="text-zinc-400 text-[13px] leading-relaxed max-w-[260px]">{profile.bio}</p>
+        )}
+
+        {/* Message button — only shown when viewing another user's profile */}
+        {user && user.id !== userId && (
+          <button
+            onClick={handleMessage}
+            disabled={messagingLoading}
+            className="flex items-center gap-2 px-5 py-2.5 bg-orange-500 hover:bg-orange-600 disabled:bg-zinc-800 disabled:text-zinc-500 text-black text-[13px] font-black rounded-xl transition-colors mt-1"
+          >
+            {messagingLoading
+              ? <Loader2 size={15} className="animate-spin" />
+              : <MessageCircle size={15} strokeWidth={2.5} />
+            }
+            {messagingLoading ? 'Opening...' : 'Message'}
+          </button>
+        )}
+      </div>
+
+      {/* Tabs */}
+      <div className="max-w-md mx-auto border-b border-zinc-800">
+        <div className="flex">
+          {TABS.map(({ id, label, icon: Icon }) => (
+            <button
+              key={id}
+              onClick={() => setActiveTab(id)}
+              className={`flex-1 flex items-center justify-center gap-1 py-3 text-[12px] font-semibold transition-colors border-b-2 ${
+                activeTab === id
+                  ? 'border-orange-500 text-white'
+                  : 'border-transparent text-zinc-500 hover:text-zinc-300'
+              }`}
+            >
+              <Icon size={13} />
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Tab content */}
+      <div className="max-w-md mx-auto pt-1">
+        {tabLoading ? (
+          <div className="flex justify-center pt-10">
+            <Loader2 size={22} className="animate-spin text-zinc-600" />
+          </div>
+        ) : currentData.length === 0 ? (
+          <div className="text-center pt-12">
+            <p className="text-zinc-600 text-[14px]">{emptyMessages[activeTab]}</p>
+          </div>
+        ) : (
+          <PostGrid posts={currentData} />
+        )}
+      </div>
+
+      <BottomNav />
+    </div>
+  );
+}

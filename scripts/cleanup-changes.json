@@ -1,0 +1,66 @@
+{
+  "azusaCanyonRemoved": true,
+  "imagesFixed": [
+    {
+      "trail": "Holcomb Creek",
+      "id": "holcomb-creek",
+      "oldImage": "https://images.unsplash.com/photo-1542370285-b8ebd...",
+      "newImage": "https://images.unsplash.com/photo-1447752875215-b2..."
+    },
+    {
+      "trail": "Gold Mountain (3N69)",
+      "id": "gold-mountain",
+      "oldImage": "https://images.unsplash.com/photo-1508853160052-56...",
+      "newImage": "https://images.unsplash.com/photo-1464822759023-fe..."
+    },
+    {
+      "trail": "Dishpan Springs",
+      "id": "dishpan-springs",
+      "oldImage": "https://images.unsplash.com/photo-1526725227315-d9...",
+      "newImage": "https://images.unsplash.com/photo-1432405972618-c6..."
+    },
+    {
+      "trail": "Berdoo Canyon",
+      "id": "berdoo-canyon",
+      "oldImage": "https://images.unsplash.com/photo-1550505096-7b447...",
+      "newImage": "https://images.unsplash.com/photo-1494522855154-92..."
+    },
+    {
+      "trail": "Thimble Trail",
+      "id": "thimble-trail",
+      "oldImage": "https://images.unsplash.com/photo-1511884642898-4c...",
+      "newImage": "https://images.unsplash.com/photo-1433086966358-54..."
+    },
+    {
+      "trail": "John Bull Trail",
+      "id": "john-bull",
+      "oldImage": "https://images.unsplash.com/photo-1542370285-b8ebd...",
+      "newImage": "https://images.unsplash.com/photo-1516214104703-d8..."
+    },
+    {
+      "trail": "Outer Limits",
+      "id": "outer-limits",
+      "oldImage": "https://images.unsplash.com/photo-1508853160052-56...",
+      "newImage": "https://images.unsplash.com/photo-1459411552884-84..."
+    },
+    {
+      "trail": "Big Johnson",
+      "id": "big-johnson",
+      "oldImage": "https://images.unsplash.com/photo-1526725227315-d9...",
+      "newImage": "https://images.unsplash.com/photo-1500534314209-a2..."
+    },
+    {
+      "trail": "Truckhaven Trail",
+      "id": "truckhaven",
+      "oldImage": "https://images.unsplash.com/photo-1550505096-7b447...",
+      "newImage": "https://images.unsplash.com/photo-1547981609-4b6bf..."
+    },
+    {
+      "trail": "Burns Canyon",
+      "id": "burns-canyon",
+      "oldImage": "https://images.unsplash.com/photo-1508853160052-56...",
+      "newImage": "https://images.unsplash.com/photo-1473448912268-20..."
+    }
+  ],
+  "onxRemoved": []
+}

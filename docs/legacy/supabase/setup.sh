@@ -1,0 +1,25 @@
+#!/bin/bash
+# Supabase Database Setup Script
+# Run this after creating your Supabase project
+
+echo "🚀 Setting up SoCal Off-Roaders Database..."
+echo ""
+echo "📋 Instructions:"
+echo "1. Go to https://app.supabase.com"
+echo "2. Select your project"
+echo "3. Go to SQL Editor (left sidebar)"
+echo "4. Click 'New Query'"
+echo "5. Copy and paste the contents of supabase/schema.sql"
+echo "6. Click 'Run'"
+echo ""
+echo "✅ After running the schema, your tables will be created:"
+echo "   - trails (22 trails)"
+echo "   - runs (verified events)"
+echo "   - submissions (user submissions)"
+echo ""
+echo "🔑 Environment Variables already configured in .env.local"
+echo ""
+echo "📁 Next steps:"
+echo "   - Test the submission form"
+echo "   - Verify data appears in Supabase Table Editor"
+echo "   - Set up Row Level Security policies (already in schema)"
