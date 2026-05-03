@@ -24,7 +24,8 @@ function isLocalDevHost(hostname: string): boolean {
     h === '127.0.0.1' ||
     h.endsWith('.local') ||
     /^192\.168\.\d+\.\d+$/.test(h) ||
-    /^10\.\d+\.\d+\.\d+$/.test(h)
+    /^10\.\d+\.\d+\.\d+$/.test(h) ||
+    /^172\.(1[6-9]|2\d|3[0-1])\.\d+\.\d+$/.test(h)
   );
 }
 

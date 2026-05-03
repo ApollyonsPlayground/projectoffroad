@@ -114,6 +114,29 @@ Then open the native project in Xcode / Android Studio. The WebView loads your h
 
 `npm run cap:sync` runs `npx cap sync`.
 
+### Physical phone over Wi‑Fi (quick test)
+
+1. **Same network:** Phone and PC on the same Wi‑Fi (or USB tether — PC gets a `172.*` address; the launch gate treats common private LAN ranges as local).
+
+2. **Listen on all interfaces:** from the repo root run **`npm run dev:lan`** (same as `next dev --hostname 0.0.0.0 --port 3000`). Find your PC’s LAN IP (Windows: `ipconfig`, look for **IPv4 Address**, often `192.168.*.*`).
+
+3. **Firewall:** Allow inbound TCP **3000** on Windows if the phone cannot load the site.
+
+4. **Browser on phone:** Open **`http://YOUR_PC_IP:3000/`** (HTTP is fine for dev).
+
+5. **Google sign-in from the phone:** In Supabase **Authentication → URL Configuration → Redirect URLs**, add **`http://YOUR_PC_IP:3000/auth/callback/`** (same path your app uses; trailing slash matches your Next **`trailingSlash`** setting).
+
+**Capacitor Android pointing at your PC:** set your LAN URL then sync so the WebView loads dev instead of localhost (localhost inside the phone is the phone itself):
+
+```powershell
+$env:CAPACITOR_SERVER_URL='http://YOUR_PC_IP:3000/'
+npm run cap:sync
+```
+
+Then open the Android project in Android Studio and run on the device. Change **`YOUR_PC_IP`** whenever DHCP assigns a new address.
+
+**Easiest HTTPS path:** deploy a **Vercel preview** URL and set **`CAPACITOR_SERVER_URL`** to that URL — fewer firewall/OAuth redirect quirks.
+
 ## 6. Saved trails (community)
 
 Saving a trail from the list or detail page requires:
