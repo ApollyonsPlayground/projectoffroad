@@ -1,4 +1,9 @@
 {
+  "build": {
+    "env": {
+      "NEXT_PUBLIC_LAUNCH_GATE_ENABLED": "true"
+    }
+  },
   "redirects": [
     {
       "source": "/guides",
