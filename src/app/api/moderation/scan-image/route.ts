@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { scanImageBuffer } from '@/lib/moderation/sightengine';
 
 export const runtime = 'nodejs';
 
@@ -8,12 +7,23 @@ export const runtime = 'nodejs';
 const MAX_BYTES = 12 * 1024 * 1024;
 
 /**
+ * Edge function slug under `${SUPABASE_URL}/functions/v1/{slug}`.
+ * Override if you deployed a different name (e.g. super-endpoint).
+ */
+function scanEdgeSlug(): string {
+  const raw = process.env.SUPABASE_IMAGE_SCAN_EDGE_FN?.trim();
+  if (raw) return raw.replace(/^\/+|\/+$/g, '');
+  return 'scan-upload';
+}
+
+/**
  * POST multipart/form-data with field "file" — requires logged-in user.
+ * Proxies to Supabase Edge Function `scan-upload` so Sightengine keys stay on Supabase only.
  * Returns { ok, skipped?, reason?, moderation_scores? }
  */
 export async function POST(request: NextRequest) {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
   if (!url || !anonKey) {
     return NextResponse.json({ error: 'Server misconfigured' }, { status: 500 });
   }
@@ -42,22 +52,22 @@ export async function POST(request: NextRequest) {
   }
 
   const mime = file.type || 'image/jpeg';
-  const result = await scanImageBuffer(buf, mime);
+  const forward = new FormData();
+  forward.append('file', new Blob([buf], { type: mime }), 'upload');
 
-  if (!result.ok && !result.skipped) {
-    return NextResponse.json(
-      {
-        ok: false,
-        reason: result.reason ?? 'blocked',
-        moderation_scores: result.rawScores ?? null,
-      },
-      { status: 422 }
-    );
-  }
+  const base = url.replace(/\/+$/, '');
+  const edgeUrl = `${base}/functions/v1/${scanEdgeSlug()}`;
 
-  return NextResponse.json({
-    ok: true,
-    skipped: result.skipped,
-    moderation_scores: result.rawScores ?? null,
+  const edgeRes = await fetch(edgeUrl, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      apikey: anonKey,
+    },
+    body: forward,
   });
+
+  const payload = await edgeRes.json().catch(() => ({}));
+
+  return NextResponse.json(payload, { status: edgeRes.status });
 }

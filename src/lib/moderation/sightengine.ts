@@ -1,5 +1,6 @@
 /**
- * Sightengine nudity detection (optional — set SIGHTENGINE_API_USER + SIGHTENGINE_API_SECRET).
+ * Direct Sightengine upload (Node). Production posts use Supabase Edge `scan-upload` instead;
+ * this helper remains useful for scripts/tests.
  * https://sightengine.com/docs/nsfw-detection
  */
 
