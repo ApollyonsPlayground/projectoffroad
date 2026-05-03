@@ -371,6 +371,7 @@ interface Post {
   body?: string;
   caption: string;
   rig_model?: string;
+  rig_name?: string | null;
   rig_specs?: string;
   likes_count: number;
   comments_count: number;
@@ -549,7 +550,8 @@ function StoryAvatar({
 
   const handleClick = async () => {
     try { await Haptics.impact({ style: ImpactStyle.Light }); } catch {}
-    if (runId) {
+    // Only deep-link to a run detail when it’s live — upcoming stays on /runs.
+    if (live && runId) {
       router.push(`/runs/${runId}`);
       return;
     }
@@ -846,6 +848,9 @@ function RigPostCard({ post, index }: {
 }) {
   const { user, profile, isConfigured, supabaseClient, loading: authLoading } = useAuth();
 
+  /** Likes, bookmarks, repost target, comments, and permalinks use the canonical thread. */
+  const canonicalPostId = String(post.repost_of_id ?? post.id);
+
   const headerRole = (() => {
     const r = String(post.role ?? 'user').toLowerCase();
     if (user?.id && post.user_id === user.id && profile?.role != null && String(profile.role).trim()) {
@@ -1004,10 +1009,10 @@ function RigPostCard({ post, index }: {
     if (user && isConfigured && supabaseClient) {
       try {
         if (nowLiked) {
-          const { error } = await insertPostLike(supabaseClient, user.id, post.id);
+          const { error } = await insertPostLike(supabaseClient, user.id, canonicalPostId);
           if (error && error.code !== '23505') throw error;
         } else {
-          const { error } = await deletePostLike(supabaseClient, user.id, post.id);
+          const { error } = await deletePostLike(supabaseClient, user.id, canonicalPostId);
           if (error) throw error;
         }
       } catch {
@@ -1030,7 +1035,7 @@ function RigPostCard({ post, index }: {
         .from('posts')
         .delete()
         .eq('user_id', user.id)
-        .eq('repost_of_id', post.id);
+        .eq('repost_of_id', canonicalPostId);
       if (!error) { setReposted(false); setRepostsCount((c) => c - 1); }
     } else {
       const userName = (user.user_metadata?.full_name as string) || user.email?.split('@')[0] || 'Rider';
@@ -1043,8 +1048,8 @@ function RigPostCard({ post, index }: {
         body: snippet,
         image_url: post.image_url ?? null,
         rig_model: post.rig_model ?? null,
-        rig_name: post.rig_model ?? null,
-        repost_of_id: post.id,
+        rig_name: post.rig_name ?? null,
+        repost_of_id: canonicalPostId,
         role: 'user',
       });
       if (!error) { setReposted(true); setRepostsCount((c) => c + 1); showToast('Reposted!', 'success'); }
@@ -1057,7 +1062,7 @@ function RigPostCard({ post, index }: {
     if (!supabaseClient || !user || postFlagged) return;
     const { error } = await supabaseClient
       .from('post_flags')
-      .insert({ post_id: post.id, user_id: user.id, reason: 'flagged' });
+      .insert({ post_id: canonicalPostId, user_id: user.id, reason: 'flagged' });
     if (!error) { setPostFlagged(true); showToast('Post flagged for review', 'info'); }
   };
 
@@ -1120,10 +1125,10 @@ function RigPostCard({ post, index }: {
     if (supabaseClient && user) {
       try {
         if (nowSaved) {
-          const { error } = await insertSavedPost(supabaseClient, user.id, post.id);
+          const { error } = await insertSavedPost(supabaseClient, user.id, canonicalPostId);
           if (error && error.code !== '23505') throw error;
         } else {
-          const { error } = await deleteSavedPost(supabaseClient, user.id, post.id);
+          const { error } = await deleteSavedPost(supabaseClient, user.id, canonicalPostId);
           if (error) throw error;
         }
       } catch {
@@ -1138,8 +1143,7 @@ function RigPostCard({ post, index }: {
     if (!requireAuth('comment')) return;
     setSubmittingComment(true);
     // Always anchor the comment to the original post so comments are shared
-    // across all reposts of the same content.
-    const canonicalPostId = post.repost_of_id ?? post.id;
+    // across all reposts of the same content (canonicalPostId).
     const userName = (user.user_metadata?.full_name as string) || user.email?.split('@')[0] || 'Rider';
     const avatarUrl = (user.user_metadata?.avatar_url as string) || null;
     const optimistic: Comment = {
@@ -1180,7 +1184,10 @@ function RigPostCard({ post, index }: {
 
   const handleShare = async () => {
     await haptic(ImpactStyle.Light);
-    const url = typeof window !== 'undefined' ? `${window.location.origin}/posts/${post.id}` : '';
+    const url =
+      typeof window !== 'undefined'
+        ? `${window.location.origin}/posts/${canonicalPostId}`
+        : '';
     if (typeof navigator !== 'undefined' && navigator.share) {
       try {
         await navigator.share({ title: `${post.username}'s Rig`, text: post.caption, url });
@@ -1200,7 +1207,7 @@ function RigPostCard({ post, index }: {
     try {
       if (supabaseClient) {
         const { error } = await supabaseClient.from('reports').insert({
-          post_id: post.id,
+          post_id: canonicalPostId,
           reporter_id: user.id,
           reason: reportReason,
         });
@@ -1273,6 +1280,22 @@ function RigPostCard({ post, index }: {
 
         {/* ── Right column: content ─────────────── */}
         <div className="flex-1 min-w-0">
+          {post.repost_of_id ? (
+            <div className="flex items-center gap-1.5 text-[11px] text-zinc-500 mb-1.5 -mt-0.5">
+              <Repeat2 size={12} className="text-emerald-500/90 shrink-0" aria-hidden />
+              <span className="leading-snug">
+                <span className="font-semibold text-zinc-400">{post.username ?? 'Member'}</span>
+                {' '}reposted
+                {post.original_user_name ? (
+                  <>
+                    {' '}
+                    · Original by{' '}
+                    <span className="text-zinc-300 font-medium">{post.original_user_name}</span>
+                  </>
+                ) : null}
+              </span>
+            </div>
+          ) : null}
 
           {/* Header row: name + verified + vehicle + time + menu */}
           <div className="flex items-start justify-between gap-2 mb-1">
@@ -1320,7 +1343,13 @@ function RigPostCard({ post, index }: {
                     className="absolute right-0 top-7 z-50 min-w-[160px] bg-zinc-900 border border-zinc-800 rounded-xl shadow-xl shadow-black/60 overflow-hidden"
                   >
                     <button
-                      onClick={() => { navigator.clipboard?.writeText(`${window.location.origin}/posts/${post.id}`); showToast('Link copied', 'success'); setMenuOpen(false); }}
+                      onClick={() => {
+                        navigator.clipboard?.writeText(
+                          `${window.location.origin}/posts/${canonicalPostId}`
+                        );
+                        showToast('Link copied', 'success');
+                        setMenuOpen(false);
+                      }}
                       className="flex items-center gap-2.5 w-full px-4 py-3 text-[13px] text-zinc-300 hover:bg-zinc-800 transition-colors text-left"
                     >
                       <Share2 size={14} className="text-zinc-500" /> Copy Link
@@ -1873,8 +1902,7 @@ export default function HomePage() {
       return;
     }
     try {
-      // Pull extra rows so the feed stays full when many recent rows are repost copies
-      // (repost rows are filtered out client-side).
+      // Pull extra rows — timeline includes repost copies (with banner + canonicalthread ids).
       const postsResult = await supabaseClient
         .from('posts')
         .select('*')
@@ -1896,9 +1924,11 @@ export default function HomePage() {
         return false;
       });
 
-      // Home feed shows canonical posts only — reposts stay as separate rows in DB
-      // (for profile "Reposts" + counting) but do not duplicate the card here.
-      const feedSource = rawPosts.filter((p: any) => !p.repost_of_id);
+      const feedSource = rawPosts;
+
+      const postById = new Map<string, any>(
+        rawPosts.map((p: any) => [String(p.id), p])
+      );
 
       const [likesRows, savedRows, repostOriginalIdList] = user
         ? await Promise.all([
@@ -1908,7 +1938,9 @@ export default function HomePage() {
           ])
         : [[], [], []];
 
-      const canonicalIds = [...new Set(feedSource.map((p: any) => String(p.id)))];
+      const canonicalIds = [
+        ...new Set(feedSource.map((p: any) => String(p.repost_of_id ?? p.id))),
+      ];
       const repostCountMap: Record<string, number> = {};
       if (canonicalIds.length > 0) {
         const { data: repRows, error: repCountErr } = await supabaseClient
@@ -1928,6 +1960,10 @@ export default function HomePage() {
       const authorIds = new Set<string>();
       feedSource.forEach((p: any) => {
         if (p.user_id) authorIds.add(String(p.user_id));
+        if (p.repost_of_id) {
+          const orig = postById.get(String(p.repost_of_id));
+          if (orig?.user_id) authorIds.add(String(orig.user_id));
+        }
       });
 
       type AuthorRow = {
@@ -1986,6 +2022,10 @@ export default function HomePage() {
           : '';
 
       const normalised = feedSource.map((p: any) => {
+        const canonicalId = String(p.repost_of_id ?? p.id);
+        const orig = p.repost_of_id ? postById.get(String(p.repost_of_id)) : null;
+        const metricsRow = orig ?? p;
+
         const au = p.user_id ? authorById[String(p.user_id)] : undefined;
         const mergedAvatar = authorAvatarUrl(p, au);
         const viewerOwn =
@@ -1994,22 +2034,26 @@ export default function HomePage() {
           viewerOwn && profileRole
             ? profileRole
             : authorRole(p.user_id, p);
+
+        const original_user_name =
+          p.repost_of_id && orig ? authorDisplayName(orig.user_id, orig) : null;
+
         return {
           ...p,
           username: authorDisplayName(p.user_id, p),
           role: roleStr,
           ...(mergedAvatar ? { avatar_url: mergedAvatar } : {}),
           verified: Boolean(p.verified ?? au?.is_verified ?? false),
-          // Unify content fields across schemas.
           body: p.body ?? p.content ?? p.caption ?? '',
           caption: p.caption ?? p.content ?? p.body ?? '',
-          liked_by_me: likedIds.has(p.id),
-          bookmarked_by_me: savedIds.has(p.id),
-          reposted_by_me: repostedIds.has(p.id),
-          likes_count: p.likes_count ?? p.likes ?? 0,
-          comments_count: p.comments_count ?? p.comments ?? 0,
-          reposts_count: repostCountMap[String(p.id)] ?? p.reposts_count ?? 0,
-          original_user_name: null,
+          liked_by_me: likedIds.has(canonicalId),
+          bookmarked_by_me: savedIds.has(canonicalId),
+          reposted_by_me: repostedIds.has(canonicalId),
+          likes_count: metricsRow.likes_count ?? metricsRow.likes ?? 0,
+          comments_count: metricsRow.comments_count ?? metricsRow.comments ?? 0,
+          reposts_count:
+            repostCountMap[canonicalId] ?? metricsRow.reposts_count ?? 0,
+          original_user_name,
         };
       });
       setPosts(
