@@ -4,6 +4,9 @@ import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import { ViewTransitions } from "@/components/ViewTransitions";
 import { ToastProvider } from "@/components/Toast";
+import ClientGlobalSOS from "@/components/ClientGlobalSOS";
+import { AdminLauncher } from "@/components/admin/AdminLauncher";
+import { LaunchGate } from "@/components/launch/LaunchGate";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -12,13 +15,14 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "SoCal Off-Roaders | Community App",
-  description: "Southern California's premier off-road community - Find trails, join runs, connect with clubs",
+  title: "SoCalOffroaders | Community App",
+  description:
+    "Southern California off-road community — trails, runs, and clubs. Official companion for socaloffroaders.org.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "SoCal Off-Roaders",
+    title: "SoCalOffroaders",
   },
 };
 
@@ -37,13 +41,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`bg-black ${inter.variable}`}>
+    <html lang="en" data-scroll-behavior="smooth" className={`bg-black ${inter.variable}`}>
       <body className="antialiased bg-black text-foreground min-h-screen font-sans">
         <AuthProvider>
           <ToastProvider>
             <ViewTransitions>
-              {children}
+              <LaunchGate>{children}</LaunchGate>
             </ViewTransitions>
+            <ClientGlobalSOS />
+            <AdminLauncher />
           </ToastProvider>
         </AuthProvider>
       </body>

@@ -3,11 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { createClient } from '@supabase/supabase-js'
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-const supabase = createClient(supabaseUrl, supabaseAnonKey)
+import { supabase } from '@/lib/db/supabase'
 
 interface SearchResult {
   type: 'run' | 'club' | 'user'
@@ -38,6 +34,11 @@ export default function SearchPage() {
 
     setLoading(true)
     const results: SearchResult[] = []
+
+    if (!supabase) {
+      setLoading(false)
+      return
+    }
 
     // Search runs
     const { data: runs } = await supabase

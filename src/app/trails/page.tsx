@@ -3,25 +3,36 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  AlertTriangle, 
-  Map, 
-  ExternalLink, 
-  Filter, 
-  Search, 
-  Mountain, 
+import {
+  AlertTriangle,
+  Map,
+  ExternalLink,
+  Filter,
+  Search,
+  Mountain,
   ChevronRight,
   Clock,
   Ruler,
   MapPin,
   List,
+  BadgeCheck,
 } from 'lucide-react';
 import Link from 'next/link';
 import BottomNav from '@/components/BottomNav';
 import { useToast } from '@/components/Toast';
 import { TrailListSkeleton } from '@/components/SkeletonLoader';
 import { useAuth } from '@/context/AuthContext';
-import trailsData from '@/data/trails.json';
+import {
+  mapDbTrailRow,
+  sortTrailsByName,
+  difficultyTierMatchesFilter,
+  type ExplorerTrail,
+  type DifficultyTier,
+  type DifficultyFilter,
+} from '@/lib/trails/mapDbTrail';
+import { applyCatalogTrailLinks } from '@/lib/trails/staticTrailLinks';
+import { readTrailsCache, writeTrailsCache } from '@/lib/trails/offlineCache';
+import { useSavedTrailIds } from '@/lib/hooks/useSavedTrailIds';
 
 // Leaflet requires browser APIs — load with no SSR
 const TrailMap = dynamic(() => import('@/components/TrailMap'), {
@@ -36,48 +47,25 @@ const TrailMap = dynamic(() => import('@/components/TrailMap'), {
   ),
 });
 
-type Difficulty = 'All' | 'Beginner' | 'Intermediate' | 'Moderate' | 'Advanced' | 'Extreme';
+type Trail = ExplorerTrail;
 
-interface Trail {
-  id: string;
-  name: string;
-  location: string;
-  difficulty: string;
-  difficultyLevel?: string;
-  distance: string;
-  time: string;
-  terrain: string;
-  description: string;
-  image?: string;
-  mapsUrl?: string;
-  onxUrl?: string;
-  rigRequirements?: string;
-  tags?: string[];
+const difficulties: DifficultyFilter[] = ['All', 'Easy', 'Moderate', 'Hard'];
+
+function getDifficultyBadgeClass(tier: DifficultyTier): string {
+  if (tier === 'Easy') return 'badge-beginner';
+  if (tier === 'Moderate') return 'bg-yellow-500/15 text-yellow-500 border border-yellow-500/30';
+  return 'badge-extreme';
 }
 
-const difficulties: Difficulty[] = ['All', 'Beginner', 'Moderate', 'Advanced', 'Extreme'];
-
-function getDifficultyBadgeClass(difficulty: string): string {
-  const level = difficulty.toLowerCase();
-  if (level === 'beginner' || level === 'easy') return 'badge-beginner';
-  if (level === 'moderate' || level === 'intermediate') return 'bg-yellow-500/15 text-yellow-500 border border-yellow-500/30';
-  if (level === 'advanced' || level === 'challenging') return 'badge-advanced';
-  if (level === 'extreme' || level === 'expert') return 'badge-extreme';
-  return 'bg-zinc-700/50 text-zinc-400 border border-zinc-600';
-}
-
-function TrailCard({ trail, index, onSave }: {
+function TrailCard({ trail, index, isSaved, onToggleSave }: {
   trail: Trail;
   index: number;
-  onSave: (trail: Trail) => void;
+  isSaved: boolean;
+  onToggleSave: (trail: Trail) => void | Promise<void>;
 }) {
-  const [saved, setSaved] = useState(false);
-
   const handleSave = (e: React.MouseEvent) => {
     e.stopPropagation();
-    const next = !saved;
-    setSaved(next);
-    onSave(trail);
+    void onToggleSave(trail);
   };
 
   return (
@@ -87,8 +75,8 @@ function TrailCard({ trail, index, onSave }: {
       transition={{ delay: index * 0.05 }}
       className="bg-zinc-900 border border-zinc-800 overflow-hidden hover:border-orange-500/50 transition-colors"
     >
-      {/* Trail Image */}
-      {trail.image && (
+      {/* Trail Image or title header when no photo */}
+      {trail.image ? (
         <div className="relative h-40 bg-zinc-800">
           <img
             src={trail.image}
@@ -96,19 +84,43 @@ function TrailCard({ trail, index, onSave }: {
             className="w-full h-full object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-zinc-900/90 to-transparent" />
-          
-          {/* Difficulty Badge Overlay */}
-          <div className="absolute top-3 right-3">
-            <span className={`px-2.5 py-1 text-xs font-bold uppercase tracking-wider ${getDifficultyBadgeClass(trail.difficulty)}`}>
-              {trail.difficulty}
+
+          <div className="absolute top-3 left-3 right-3 flex items-start justify-between gap-2">
+            <div className="flex flex-wrap gap-2 min-w-0">
+              {trail.isVerified && (
+                <span className="inline-flex items-center gap-1 px-2 py-1 text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 shrink-0">
+                  <BadgeCheck size={12} className="shrink-0" />
+                  Verified
+                </span>
+              )}
+            </div>
+            <span className={`shrink-0 px-2.5 py-1 text-xs font-bold uppercase tracking-wider ${getDifficultyBadgeClass(trail.difficultyLabel)}`}>
+              {trail.difficultyLabel}
             </span>
           </div>
-          
-          {/* Trail Name Overlay */}
+
           <div className="absolute bottom-3 left-3 right-3">
             <h3 className="text-lg font-bold text-white leading-tight">{trail.name}</h3>
             <p className="text-sm text-zinc-400">{trail.location}</p>
           </div>
+        </div>
+      ) : (
+        <div className="relative h-32 bg-zinc-800 border-b border-zinc-800 px-4 py-3 flex flex-col justify-end">
+          <div className="absolute top-3 left-3 right-3 flex items-start justify-between gap-2">
+            <div className="flex flex-wrap gap-2 min-w-0">
+              {trail.isVerified && (
+                <span className="inline-flex items-center gap-1 px-2 py-1 text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 shrink-0">
+                  <BadgeCheck size={12} className="shrink-0" />
+                  Verified
+                </span>
+              )}
+            </div>
+            <span className={`shrink-0 px-2.5 py-1 text-xs font-bold uppercase tracking-wider ${getDifficultyBadgeClass(trail.difficultyLabel)}`}>
+              {trail.difficultyLabel}
+            </span>
+          </div>
+          <h3 className="text-lg font-bold text-white leading-tight pr-16">{trail.name}</h3>
+          <p className="text-sm text-zinc-400">{trail.location}</p>
         </div>
       )}
 
@@ -154,26 +166,36 @@ function TrailCard({ trail, index, onSave }: {
             <Map size={15} />
             Maps
           </a>
-          <a
-            href={trail.onxUrl || '#'}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center justify-center gap-1.5 px-3 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-sm font-medium transition-colors"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <ExternalLink size={15} />
-            onX
-          </a>
+          {trail.onxUrl ? (
+            <a
+              href={trail.onxUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-1.5 px-3 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-sm font-medium transition-colors"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <ExternalLink size={15} />
+              onX
+            </a>
+          ) : (
+            <span
+              className="flex items-center justify-center gap-1.5 px-3 py-2.5 bg-zinc-800/50 text-zinc-600 text-sm font-medium cursor-not-allowed"
+              title="No onX link for this trail"
+            >
+              <ExternalLink size={15} />
+              onX
+            </span>
+          )}
           <button
             onClick={handleSave}
             className={`flex items-center justify-center px-3 py-2.5 transition-colors ${
-              saved
+              isSaved
                 ? 'bg-orange-500/15 text-orange-400 border border-orange-500/40'
                 : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-400'
             }`}
-            aria-label={saved ? 'Unsave trail' : 'Save trail'}
+            aria-label={isSaved ? 'Unsave trail' : 'Save trail'}
           >
-            <MapPin size={15} className={saved ? 'fill-orange-400' : ''} />
+            <MapPin size={15} className={isSaved ? 'fill-orange-400' : ''} />
           </button>
           <Link
             href={`/trails/${trail.id}`}
@@ -191,55 +213,105 @@ function TrailCard({ trail, index, onSave }: {
 
 export default function TrailsPage() {
   const { showToast } = useToast();
-  const { supabaseClient } = useAuth();
+  const { supabaseClient, isConfigured, user } = useAuth();
+  const { savedIds, toggleSave } = useSavedTrailIds(supabaseClient, user?.id);
   const [isLoading, setIsLoading] = useState(true);
   const [dbTrails, setDbTrails] = useState<Trail[]>([]);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+  const [fromCache, setFromCache] = useState(false);
 
-  const handleSaveTrail = useCallback((trail: Trail) => {
-    showToast(`"${trail.name}" saved to your trail list`, 'success');
-  }, [showToast]);
+  const handleToggleSaveTrail = useCallback(
+    async (trail: Trail) => {
+      if (!user) {
+        showToast('Sign in to save trails to your profile', 'info');
+        return;
+      }
+      const { saved, error } = await toggleSave(trail.id);
+      if (error === 'not_authenticated') {
+        showToast('Sign in to save trails', 'info');
+        return;
+      }
+      if (error) {
+        showToast(`Could not update saved trails: ${error}`, 'error');
+        return;
+      }
+      showToast(
+        saved ? `"${trail.name}" saved to your list` : `"${trail.name}" removed from saved`,
+        saved ? 'success' : 'info'
+      );
+    },
+    [user, toggleSave, showToast]
+  );
+
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty>('All');
+  const [selectedDifficulty, setSelectedDifficulty] = useState<DifficultyFilter>('All');
   const [showFilters, setShowFilters] = useState(false);
   const [view, setView] = useState<'list' | 'map'>('list');
 
-  const localTrails = trailsData as Trail[];
-
-  // ── Fetch trails from Supabase (no auto-upsert — DB should be pre-populated) ─
+  // ── Fetch trails from Supabase only (no static JSON fallback) ─
   useEffect(() => {
-    if (!supabaseClient) {
-      // No client — use local JSON immediately
-      setDbTrails(localTrails);
-      setIsLoading(false);
-      return;
-    }
-    supabaseClient
-      .from('trails')
-      .select('id, name, location, difficulty, description, photo_url, latitude, longitude')
-      .order('name', { ascending: true })
-      .then(({ data }) => {
-        if (data && data.length > 0) {
-          setDbTrails(
-            data.map((t: any) => ({
-              ...t,
-              image: t.photo_url,
-              difficultyLevel: t.difficulty,
-              coordinates: t.latitude && t.longitude ? `${t.latitude}, ${t.longitude}` : undefined,
-            }))
-          );
-        } else {
-          // Fallback to local JSON if Supabase is empty
-          setDbTrails(localTrails);
-        }
+    let cancelled = false;
+
+    async function loadTrails() {
+      if (!isConfigured || !supabaseClient) {
+        setFetchError(
+          'Supabase is not configured. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in .env.local, then restart the dev server.'
+        );
+        setDbTrails([]);
+        setFromCache(false);
         setIsLoading(false);
-      });
-  }, [supabaseClient, localTrails]);
+        return;
+      }
+
+      const tryOfflineCache = () => {
+        if (typeof navigator !== 'undefined' && navigator.onLine) return false;
+        const cached = readTrailsCache();
+        if (cached && cached.length > 0) {
+          setDbTrails(cached.map(applyCatalogTrailLinks));
+          setFetchError(null);
+          setFromCache(true);
+          setIsLoading(false);
+          return true;
+        }
+        return false;
+      };
+
+      setIsLoading(true);
+      setFetchError(null);
+      setFromCache(false);
+
+      if (tryOfflineCache()) return;
+
+      const { data, error } = await supabaseClient.from('trails').select('*');
+
+      if (cancelled) return;
+
+      if (error) {
+        console.error('[Trail Explorer]', error);
+        if (tryOfflineCache()) return;
+        setFetchError(error.message);
+        setDbTrails([]);
+        setIsLoading(false);
+        return;
+      }
+
+      const rows = (data ?? []) as Record<string, unknown>[];
+      const mapped = sortTrailsByName(rows.map((r) => applyCatalogTrailLinks(mapDbTrailRow(r))));
+      setDbTrails(mapped);
+      writeTrailsCache(mapped);
+      setFromCache(false);
+      setIsLoading(false);
+    }
+
+    void loadTrails();
+    return () => {
+      cancelled = true;
+    };
+  }, [supabaseClient, isConfigured]);
 
   // ── Filter trails based on search and difficulty ─────────────────────────────
   const filteredTrails = useMemo(() => {
-    // Use dbTrails as the source (already includes local fallback if DB is empty)
     return dbTrails.filter((trail) => {
-      // Search filter
       const q = searchQuery.toLowerCase();
       const matchesSearch =
         q === '' ||
@@ -247,10 +319,8 @@ export default function TrailsPage() {
         trail.location.toLowerCase().includes(q) ||
         (trail.description ?? '').toLowerCase().includes(q);
 
-      // Difficulty filter — 'All' shows everything
-      const diff = (trail.difficulty || trail.difficultyLevel || '').toLowerCase();
-      const matchesDifficulty =
-        selectedDifficulty === 'All' || diff === selectedDifficulty.toLowerCase();
+      const diff = trail.difficulty || trail.difficultyLevel || '';
+      const matchesDifficulty = difficultyTierMatchesFilter(diff, selectedDifficulty);
 
       return matchesSearch && matchesDifficulty;
     });
@@ -354,8 +424,29 @@ export default function TrailsPage() {
         </div>
       </div>
 
+      {fromCache && (
+        <div className="px-4 py-2 bg-zinc-800/80 border-b border-zinc-700">
+          <p className="text-[11px] text-zinc-400 max-w-7xl mx-auto text-center">
+            Offline — showing your last cached trail list from this device.
+          </p>
+        </div>
+      )}
+
+      {fetchError && (
+        <div className="px-4 py-3 bg-red-500/10 border-b border-red-500/25">
+          <div className="flex items-start gap-2 text-red-400 max-w-7xl mx-auto">
+            <AlertTriangle size={16} className="shrink-0 mt-0.5" />
+            <p className="text-xs font-medium leading-relaxed">{fetchError}</p>
+          </div>
+        </div>
+      )}
+
       {/* Main content — List or Map */}
-      <main className={view === 'map' ? 'px-3 pt-3 pb-24' : 'max-w-md mx-auto px-4 pt-4 pb-24'}>
+      <main
+        className={
+          view === 'map' ? 'px-3 pt-3 pb-24' : 'max-w-7xl mx-auto w-full px-4 pt-4 pb-24'
+        }
+      >
         <AnimatePresence mode="wait">
           {view === 'map' ? (
             <motion.div
@@ -376,7 +467,7 @@ export default function TrailsPage() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
             >
-              <TrailListSkeleton count={5} />
+              <TrailListSkeleton count={6} />
             </motion.div>
           ) : filteredTrails.length === 0 ? (
             <motion.div
@@ -401,9 +492,17 @@ export default function TrailsPage() {
               <p className="text-sm text-zinc-500">
                 {filteredTrails.length} trail{filteredTrails.length !== 1 ? 's' : ''} found
               </p>
-              {filteredTrails.map((trail, index) => (
-                <TrailCard key={trail.id} trail={trail} index={index} onSave={handleSaveTrail} />
-              ))}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filteredTrails.map((trail, index) => (
+                  <TrailCard
+                    key={trail.id}
+                    trail={trail}
+                    index={index}
+                    isSaved={savedIds.has(trail.id)}
+                    onToggleSave={handleToggleSaveTrail}
+                  />
+                ))}
+              </div>
             </motion.div>
           )}
         </AnimatePresence>

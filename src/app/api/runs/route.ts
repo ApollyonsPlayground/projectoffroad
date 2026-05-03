@@ -12,24 +12,38 @@ export async function GET(request: NextRequest) {
     const clubId = searchParams.get('club_id')
     const limit = parseInt(searchParams.get('limit') || '20')
 
-    let query = supabase
-      .from('runs')
-      .select(`
-        *,
-        club:clubs(id, name, logo)
-      `)
-      .eq('status', status)
-      .order('date', { ascending: true })
-      .limit(limit)
+    const selectAttempts = [
+      `*, club:clubs(id, name, logo)`,
+      `*, club:clubs(name)`,
+      '*',
+    ]
 
-    if (clubId) {
-      query = query.eq('club_id', clubId)
+    let data: unknown = null
+    let lastError: { message: string } | null = null
+
+    for (const sel of selectAttempts) {
+      let q = supabase
+        .from('runs')
+        .select(sel)
+        .eq('status', status)
+        .order('date', { ascending: true })
+        .limit(limit)
+
+      if (clubId) {
+        q = q.eq('club_id', clubId)
+      }
+
+      const res = await q
+      if (!res.error) {
+        data = res.data
+        lastError = null
+        break
+      }
+      lastError = res.error
     }
 
-    const { data, error } = await query
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 400 })
+    if (lastError) {
+      return NextResponse.json({ error: lastError.message }, { status: 400 })
     }
 
     return NextResponse.json(data)
@@ -43,7 +57,19 @@ export async function POST(request: NextRequest) {
   try {
     const supabase = createClient(supabaseUrl, supabaseAnonKey)
     const body = await request.json()
-    const { club_id, trail_id, title, description, date, meetup_location, difficulty, max_participants, vehicle_requirements } = body
+    const {
+      club_id,
+      trail_id,
+      title,
+      description,
+      date,
+      meetup_location,
+      meetup_latitude,
+      meetup_longitude,
+      difficulty,
+      max_participants,
+      vehicle_requirements,
+    } = body
 
     const { data, error } = await supabase
       .from('runs')
@@ -54,6 +80,8 @@ export async function POST(request: NextRequest) {
         description,
         date,
         meetup_location,
+        meetup_latitude,
+        meetup_longitude,
         difficulty,
         max_participants,
         vehicle_requirements,

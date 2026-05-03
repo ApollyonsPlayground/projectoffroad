@@ -2,11 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useAuth } from '@/context/AuthContext'
-import { createClient } from '@supabase/supabase-js'
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-const supabase = createClient(supabaseUrl, supabaseAnonKey)
+import { supabase } from '@/lib/db/supabase'
 
 interface Achievement {
   id: string
@@ -37,6 +33,7 @@ export default function AchievementsPage() {
   }, [user])
 
   async function fetchUserAchievements() {
+    if (!supabase) return
     const { data } = await supabase
       .from('user_achievements')
       .select('achievement_id, earned_at')

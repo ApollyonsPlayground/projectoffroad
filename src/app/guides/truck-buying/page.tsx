@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { AlertTriangle, ArrowLeft, CheckCircle, XCircle, Car, Truck, Gauge } from 'lucide-react';
 
 export const metadata: Metadata = {
-  title: "Truck Buying Guide | SoCal Off-Roaders",
+  title: "Truck Buying Guide | SoCalOffroaders",
   description: "A practical guide to choosing the right truck or SUV for off-roading in Southern California.",
 };
 

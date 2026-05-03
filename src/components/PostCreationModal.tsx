@@ -5,7 +5,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Image as ImageIcon, Loader2, MapPin, Truck } from 'lucide-react';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import { supabase, isSupabaseConfigured } from '@/lib/db/supabase';
-import { createClient } from '@supabase/supabase-js';
 
 interface PostCreationModalProps {
   isOpen: boolean;
@@ -13,16 +12,7 @@ interface PostCreationModalProps {
   onPostSuccess?: () => void;
 }
 
-// Server-side client for uploads (uses service key)
-const getSupabaseAdmin = () => {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !key) return null;
-  return createClient(url, key, { auth: { persistSession: false } });
-};
-
 export default function PostCreationModal({ isOpen, onClose, onPostSuccess }: PostCreationModalProps) {
-  const supabaseAdmin = getSupabaseAdmin();
   const [imageUrl, setImageUrl] = useState('');
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [caption, setCaption] = useState('');
@@ -75,13 +65,13 @@ export default function PostCreationModal({ isOpen, onClose, onPostSuccess }: Po
       let finalImageUrl = imageUrl || imagePreview;
 
       // Upload image to rig-photos bucket if we have a file
-      if (imagePreview && supabaseAdmin) {
+      if (imagePreview && supabase) {
         const file = fileInputRef.current?.files?.[0];
         if (file) {
           const fileExt = file.name.split('.').pop();
           const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
           
-          const { data: uploadData, error: uploadError } = await supabaseAdmin
+          const { data: uploadData, error: uploadError } = await supabase
             .storage
             .from('rig-photos')
             .upload(fileName, file, {
@@ -94,7 +84,7 @@ export default function PostCreationModal({ isOpen, onClose, onPostSuccess }: Po
             // Fall back to URL
           } else {
             // Get public URL
-            const { data: urlData } = supabaseAdmin
+            const { data: urlData } = supabase
               .storage
               .from('rig-photos')
               .getPublicUrl(fileName);

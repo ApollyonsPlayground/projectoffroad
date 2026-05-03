@@ -107,10 +107,10 @@ export function TrailCardSkeleton() {
   );
 }
 
-// Trail list skeleton
-export function TrailListSkeleton({ count = 5 }: { count?: number }) {
+// Trail list skeleton (matches responsive grid on /trails)
+export function TrailListSkeleton({ count = 6 }: { count?: number }) {
   return (
-    <div className="space-y-3">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       {Array.from({ length: count }).map((_, i) => (
         <motion.div
           key={i}

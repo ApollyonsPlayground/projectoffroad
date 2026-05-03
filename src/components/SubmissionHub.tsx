@@ -66,7 +66,7 @@ export default function SubmissionHub() {
                 allowFullScreen={false}
                 aria-hidden="false"
                 tabIndex={0}
-                title="SoCal Offroaders Event Calendar"
+                title="SoCalOffroaders Event Calendar"
               />
             </div>
             

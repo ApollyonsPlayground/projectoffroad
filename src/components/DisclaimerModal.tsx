@@ -76,7 +76,7 @@ export default function DisclaimerModal() {
                 </div>
                 <div>
                   <p className="text-[10px] font-black uppercase tracking-[0.2em] text-orange-200">
-                    Project Offroad
+                    SoCalOffroaders
                   </p>
                   <h2
                     id="disclaimer-title"
@@ -116,7 +116,7 @@ export default function DisclaimerModal() {
               <p className="text-zinc-400 text-xs leading-relaxed">
                 By continuing you{' '}
                 <span className="text-zinc-200 font-semibold">assume all risk</span> and hold
-                Project Offroad harmless from any liability. Always verify closures with
+                SoCalOffroaders harmless from any liability. Always verify closures with
                 USFS/BLM before travel.
               </p>
             </div>

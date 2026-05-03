@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -17,10 +17,17 @@ import {
   AlertTriangle,
   Play,
   User,
+  Building2,
   BadgeCheck,
   Flag,
   Siren,
   X,
+  Send,
+  MessageCircle,
+  Ban,
+  Trash2,
+  ChevronRight,
+  ExternalLink,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
@@ -28,12 +35,22 @@ import { useToast } from '@/components/Toast';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
+interface RunTrailEmbed {
+  name: string;
+  difficulty: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  coordinates?: string | null;
+}
+
 interface RunDetail {
   id: string;
   title: string;
   description: string | null;
   date: string;
   meetup_location: string | null;
+  meetup_latitude?: number | null;
+  meetup_longitude?: number | null;
   difficulty: string;
   max_participants: number | null;
   vehicle_requirements: string | null;
@@ -41,9 +58,17 @@ interface RunDetail {
   host_id: string | null;
   club_id: string | null;
   trail_id: string | null;
+  run_source: 'club_official' | 'user_submitted' | null;
+  user_acknowledged_disclaimer_at: string | null;
   created_at: string;
   club: { name: string; logo: string | null } | null;
-  trail: { name: string; difficulty: string | null } | null;
+  trail: RunTrailEmbed | null;
+}
+
+interface HostProfile {
+  id: string;
+  name: string | null;
+  avatar_url: string | null;
 }
 
 interface Participant {
@@ -65,6 +90,14 @@ interface RunAlert {
   longitude: number | null;
   message: string | null;
   created_at: string;
+}
+
+interface RunChatMessage {
+  id: string;
+  user_id: string;
+  content: string;
+  created_at: string;
+  users?: { name: string | null; avatar_url: string | null } | null;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -100,6 +133,41 @@ function getStatusBadge(status: string) {
   return 'bg-orange-500/15 text-orange-400 border border-orange-500/30';
 }
 
+function coordsFromTrailEmbed(trail: RunTrailEmbed | null): { lat: number; lng: number } | null {
+  if (!trail) return null;
+  const latRaw = trail.latitude ?? null;
+  const lngRaw = trail.longitude ?? null;
+  if (latRaw != null && lngRaw != null) {
+    const lat = Number(latRaw);
+    const lng = Number(lngRaw);
+    if (!Number.isNaN(lat) && !Number.isNaN(lng)) return { lat, lng };
+  }
+  const coordStr = trail.coordinates;
+  if (typeof coordStr === 'string' && coordStr.trim()) {
+    const parts = coordStr.split(',').map((s) => parseFloat(s.trim()));
+    if (parts.length === 2 && !Number.isNaN(parts[0]) && !Number.isNaN(parts[1])) {
+      return { lat: parts[0], lng: parts[1] };
+    }
+  }
+  return null;
+}
+
+function googleDirectionsUrl(lat: number, lng: number): string {
+  return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+}
+
+function runTrailDirectionsUrl(run: RunDetail): string | null {
+  const c = coordsFromTrailEmbed(run.trail);
+  return c ? googleDirectionsUrl(c.lat, c.lng) : null;
+}
+
+function runStagingDirectionsUrl(run: RunDetail): string | null {
+  const lat = run.meetup_latitude != null ? Number(run.meetup_latitude) : NaN;
+  const lng = run.meetup_longitude != null ? Number(run.meetup_longitude) : NaN;
+  if (!Number.isNaN(lat) && !Number.isNaN(lng)) return googleDirectionsUrl(lat, lng);
+  return null;
+}
+
 // ─── Detail Page ──────────────────────────────────────────────────────────────
 
 export default function RunDetailPage() {
@@ -114,6 +182,13 @@ export default function RunDetailPage() {
   const [joined, setJoined] = useState(false);
   const [joining, setJoining] = useState(false);
   const [activating, setActivating] = useState(false);
+  const [hostBusy, setHostBusy] = useState<'complete' | 'cancel' | 'delete' | null>(null);
+  const [hostProfile, setHostProfile] = useState<HostProfile | null>(null);
+
+  const [chatMessages, setChatMessages] = useState<RunChatMessage[]>([]);
+  const [chatInput, setChatInput] = useState('');
+  const [chatSending, setChatSending] = useState(false);
+  const chatEndRef = useRef<HTMLDivElement>(null);
 
   // SOS state
   const [sosSending, setSosSending] = useState(false);
@@ -124,24 +199,44 @@ export default function RunDetailPage() {
   const fetchDetail = useCallback(async () => {
     if (!supabaseClient || !runId) return;
     setIsLoading(true);
+    setHostProfile(null);
     try {
-      const [runRes, participantsRes] = await Promise.all([
-        supabaseClient
-          .from('runs')
-          .select(
-            'id, title, description, date, meetup_location, difficulty, max_participants, vehicle_requirements, status, host_id, club_id, trail_id, created_at, club:clubs(name, logo), trail:trails(name, difficulty)'
-          )
-          .eq('id', runId)
-          .single(),
-        supabaseClient
-          .from('run_participants')
-          .select('id, user_id, rsvp_status, users(name, avatar_url)')
-          .eq('run_id', runId),
-      ]);
+      const runSelectAttempts = [
+        '*',
+        'id, title, description, date, meetup_location, meetup_latitude, meetup_longitude, difficulty, max_participants, vehicle_requirements, status, host_id, club_id, trail_id, run_source, user_acknowledged_disclaimer_at, created_at',
+        'id, title, description, date, meetup_location, difficulty, max_participants, vehicle_requirements, status, host_id, club_id, trail_id, run_source, created_at, club:clubs(name), trail:trails(name, difficulty)',
+        'id, title, description, date, meetup_location, meetup_latitude, meetup_longitude, difficulty, max_participants, vehicle_requirements, status, host_id, club_id, trail_id, run_source, user_acknowledged_disclaimer_at, created_at, club:clubs(name, logo), trail:trails(name, difficulty, latitude, longitude, coordinates)',
+      ];
 
-      if (runRes.error) throw runRes.error;
-      setRun(runRes.data as unknown as RunDetail);
-      const parts = (participantsRes.data ?? []) as Participant[];
+      let runPayload: unknown = null;
+      let lastRunError: { message?: string } | null = null;
+      for (const sel of runSelectAttempts) {
+        const { data, error } = await supabaseClient.from('runs').select(sel).eq('id', runId).single();
+        if (!error) {
+          runPayload = data;
+          break;
+        }
+        lastRunError = error;
+      }
+
+      const participantsRes = await supabaseClient
+        .from('run_participants')
+        .select('id, user_id, rsvp_status, users(name, avatar_url)')
+        .eq('run_id', runId);
+
+      if (runPayload == null) throw lastRunError ?? new Error('Run not found');
+      const loaded = runPayload as RunDetail;
+      setRun(loaded);
+      const hid = loaded.host_id;
+      if (hid) {
+        const { data: hp } = await supabaseClient
+          .from('users')
+          .select('id, name, avatar_url')
+          .eq('id', hid)
+          .maybeSingle();
+        setHostProfile(hp as HostProfile | null);
+      }
+      const parts = (participantsRes.data ?? []) as unknown as Participant[];
       setParticipants(parts);
       if (user) {
         setJoined(parts.some((p) => p.user_id === user.id));
@@ -159,6 +254,10 @@ export default function RunDetailPage() {
   const handleRsvp = async () => {
     if (!user) { showToast('Sign in to join a run', 'info'); return; }
     if (!supabaseClient || !run) return;
+    if (user.id === run.host_id) {
+      showToast('You\'re hosting this run — no need to join', 'info');
+      return;
+    }
     setJoining(true);
     try {
       if (joined) {
@@ -173,7 +272,7 @@ export default function RunDetailPage() {
       } else {
         const { error } = await supabaseClient
           .from('run_participants')
-          .insert({ run_id: run.id, user_id: user.id, rsvp_status: 'confirmed' });
+          .insert({ run_id: run.id, user_id: user.id, rsvp_status: 'going' });
         if (error && error.code !== '23505') throw error;
         setJoined(true);
         setParticipants((prev) => [
@@ -181,7 +280,7 @@ export default function RunDetailPage() {
           {
             id: crypto.randomUUID(),
             user_id: user.id,
-            rsvp_status: 'confirmed',
+            rsvp_status: 'going',
             users: {
               name: (user.user_metadata?.full_name as string) || user.email?.split('@')[0] || 'You',
               avatar_url: (user.user_metadata?.avatar_url as string) || null,
@@ -213,6 +312,65 @@ export default function RunDetailPage() {
       showToast('Could not activate run', 'error');
     } finally {
       setActivating(false);
+    }
+  };
+
+  const handleCompleteRun = async () => {
+    if (!supabaseClient || !run || !user) return;
+    setHostBusy('complete');
+    try {
+      const { error } = await supabaseClient
+        .from('runs')
+        .update({ status: 'completed' })
+        .eq('id', run.id);
+      if (error) throw error;
+      setRun((prev) => (prev ? { ...prev, status: 'completed' } : prev));
+      showToast('Run marked complete. Thanks for leading!', 'success');
+    } catch {
+      showToast('Could not complete run', 'error');
+    } finally {
+      setHostBusy(null);
+    }
+  };
+
+  const handleCancelRun = async () => {
+    if (!supabaseClient || !run || !user) return;
+    if (!window.confirm('Cancel this run? It will show as cancelled for all riders.')) return;
+    setHostBusy('cancel');
+    try {
+      const { error } = await supabaseClient
+        .from('runs')
+        .update({ status: 'cancelled' })
+        .eq('id', run.id);
+      if (error) throw error;
+      setRun((prev) => (prev ? { ...prev, status: 'cancelled' } : prev));
+      showToast('Run cancelled', 'info');
+    } catch {
+      showToast('Could not cancel run', 'error');
+    } finally {
+      setHostBusy(null);
+    }
+  };
+
+  const handleDeleteRun = async () => {
+    if (!supabaseClient || !run || !user) return;
+    if (
+      !window.confirm(
+        'Permanently delete this run from the platform? RSVPs and group chat for this event will be removed. This cannot be undone.'
+      )
+    ) {
+      return;
+    }
+    setHostBusy('delete');
+    try {
+      const { error } = await supabaseClient.from('runs').delete().eq('id', run.id);
+      if (error) throw error;
+      showToast('Run deleted', 'success');
+      router.push('/runs');
+    } catch {
+      showToast('Could not delete run', 'error');
+    } finally {
+      setHostBusy(null);
     }
   };
 
@@ -309,7 +467,116 @@ export default function RunDetailPage() {
     }
   };
 
-  const isHost = user && run && user.id === run.host_id;
+  const isHost = Boolean(user && run && user.id === run.host_id);
+  const canUseRunChat = Boolean(
+    user &&
+      run &&
+      (joined || user.id === run.host_id) &&
+      run.status !== 'completed' &&
+      run.status !== 'cancelled'
+  );
+  const showSOSButton = Boolean(canUseRunChat && run?.status === 'active');
+
+  const enrichChatRow = useCallback(
+    (row: RunChatMessage): RunChatMessage => {
+      if (row.users?.name) return row;
+      const fromPart = participants.find((p) => p.user_id === row.user_id)?.users;
+      if (fromPart) return { ...row, users: fromPart };
+      if (user && row.user_id === user.id) {
+        return {
+          ...row,
+          users: {
+            name:
+              (user.user_metadata?.full_name as string) ||
+              user.email?.split('@')[0] ||
+              'You',
+            avatar_url: (user.user_metadata?.avatar_url as string) || null,
+          },
+        };
+      }
+      return { ...row, users: { name: 'Rider', avatar_url: null } };
+    },
+    [participants, user]
+  );
+
+  useEffect(() => {
+    if (!supabaseClient || !runId || !run || !user || !canUseRunChat) return;
+
+    let cancelled = false;
+    void (async () => {
+      const attempts = [
+        'id, content, created_at, user_id, users(name, avatar_url)',
+        'id, content, created_at, user_id',
+      ];
+      for (const sel of attempts) {
+        const { data, error } = await supabaseClient
+          .from('messages')
+          .select(sel)
+          .eq('run_id', runId)
+          .order('created_at', { ascending: true })
+          .limit(120);
+        if (!error && data != null && !cancelled) {
+          setChatMessages((data as RunChatMessage[]).map((m) => enrichChatRow(m)));
+          break;
+        }
+      }
+    })();
+
+    const channel = supabaseClient
+      .channel(`run-chat-${runId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages',
+          filter: `run_id=eq.${runId}`,
+        },
+        (payload) => {
+          const row = payload.new as RunChatMessage;
+          setChatMessages((prev) => {
+            if (prev.some((m) => m.id === row.id)) return prev;
+            return [...prev, enrichChatRow(row)];
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      cancelled = true;
+      supabaseClient.removeChannel(channel);
+    };
+  }, [supabaseClient, runId, run?.id, run?.status, run?.host_id, user?.id, canUseRunChat, enrichChatRow]);
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [chatMessages.length]);
+
+  const handleSendChat = async () => {
+    if (!supabaseClient || !run || !user || !canUseRunChat) return;
+    const text = chatInput.trim();
+    if (!text) return;
+    setChatSending(true);
+    try {
+      const { data, error } = await supabaseClient
+        .from('messages')
+        .insert({ run_id: run.id, user_id: user.id, content: text })
+        .select('id, content, created_at, user_id')
+        .single();
+      if (error) throw error;
+      setChatInput('');
+      const row = enrichChatRow(data as RunChatMessage);
+      setChatMessages((prev) => {
+        if (prev.some((m) => m.id === row.id)) return prev;
+        return [...prev, row];
+      });
+    } catch {
+      showToast('Could not send message', 'error');
+    } finally {
+      setChatSending(false);
+    }
+  };
+
   const isFull = run?.max_participants != null && participants.length >= run.max_participants;
 
   // ── Loading skeleton ─────────────────────────────────────────────────────
@@ -336,6 +603,10 @@ export default function RunDetailPage() {
     );
   }
 
+  const trailDirectionsUrl = runTrailDirectionsUrl(run);
+  const stagingDirectionsUrl = runStagingDirectionsUrl(run);
+  const hasDirections = !!(trailDirectionsUrl || stagingDirectionsUrl);
+
   return (
     <div className="min-h-screen bg-black pb-10">
       {/* ── Back header ─────────────────────────────────────────────────── */}
@@ -356,6 +627,27 @@ export default function RunDetailPage() {
       </header>
 
       <main className="max-w-md mx-auto px-4 pt-5 space-y-5">
+        {run.run_source === 'user_submitted' && (
+          <div className="rounded-2xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-[13px] text-amber-100/95 leading-relaxed">
+            <div className="flex items-start gap-2.5">
+              <AlertTriangle size={18} className="text-amber-400 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-bold text-amber-200 mb-1">Community run</p>
+                <p>
+                  This meetup is <strong>not</strong> organized or verified by SoCalOffroaders or a verified
+                  club. Trail conditions change; you are responsible for your safety, vehicle, and obeying
+                  land-use and motor-vehicle laws.
+                </p>
+                <Link
+                  href="/terms"
+                  className="inline-block mt-2 text-[12px] font-semibold text-amber-300 underline"
+                >
+                  Terms of service
+                </Link>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* ── Hero card ─────────────────────────────────────────────────── */}
         <motion.div
@@ -374,9 +666,23 @@ export default function RunDetailPage() {
                 </div>
               )}
               {run.club ? (
-                <p className="text-[13px] font-bold text-orange-500 truncate">{run.club.name}</p>
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <p className="text-[13px] font-bold text-orange-500 truncate">{run.club.name}</p>
+                  {run.run_source === 'club_official' && (
+                    <span className="px-1.5 py-0.5 text-[9px] font-black uppercase rounded flex-shrink-0 text-emerald-400 bg-emerald-500/15 border border-emerald-500/30">
+                      Club
+                    </span>
+                  )}
+                </div>
+              ) : run.run_source === 'club_official' ? (
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <p className="text-[13px] font-bold text-emerald-400 truncate">Staff verified</p>
+                  <span className="px-1.5 py-0.5 text-[9px] font-black uppercase rounded flex-shrink-0 text-emerald-400 bg-emerald-500/15 border border-emerald-500/30">
+                    Club
+                  </span>
+                </div>
               ) : (
-                <p className="text-[13px] text-zinc-500">Personal run</p>
+                <p className="text-[13px] text-zinc-500">Community / personal</p>
               )}
             </div>
             <span className={`flex-shrink-0 px-2.5 py-1 text-[11px] font-bold uppercase rounded-lg ${getDifficultyColor(run.difficulty)}`}>
@@ -392,6 +698,64 @@ export default function RunDetailPage() {
               <p className="text-[14px] text-zinc-400 leading-relaxed">{run.description}</p>
             )}
 
+            {/* Host / club transparency */}
+            <div className="rounded-xl border border-zinc-800 bg-zinc-950/40 px-3 py-3 space-y-2">
+              <p className="text-[10px] font-black uppercase tracking-wider text-zinc-500">Hosting & accountability</p>
+              {run.club_id && run.club ? (
+                <Link
+                  href={`/clubs/${run.club_id}`}
+                  className="flex items-center gap-2.5 min-w-0 group"
+                >
+                  {run.club.logo ? (
+                    <img src={run.club.logo} alt="" className="w-9 h-9 rounded-full object-cover flex-shrink-0 border border-zinc-700" />
+                  ) : (
+                    <div className="w-9 h-9 rounded-full bg-orange-500/15 flex items-center justify-center flex-shrink-0 border border-orange-500/30">
+                      <Building2 size={16} className="text-orange-400" />
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[11px] text-zinc-500 uppercase font-bold">Club listing</p>
+                    <p className="text-[14px] font-bold text-white truncate group-hover:text-orange-400 transition-colors">
+                      {run.club.name}
+                    </p>
+                  </div>
+                  <ChevronRight size={18} className="text-zinc-600 group-hover:text-orange-400 flex-shrink-0" />
+                </Link>
+              ) : run.run_source === 'club_official' ? (
+                <p className="text-[13px] text-emerald-400/95 font-semibold">Official listing · Staff verified (no club page)</p>
+              ) : null}
+              {hostProfile && run.host_id ? (
+                <Link
+                  href={`/profile/${run.host_id}`}
+                  className="flex items-center gap-2.5 min-w-0 group pt-1 border-t border-zinc-800/80"
+                >
+                  <div className="w-9 h-9 rounded-full bg-zinc-800 overflow-hidden flex-shrink-0 border border-zinc-700">
+                    {hostProfile.avatar_url ? (
+                      <img src={hostProfile.avatar_url} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <User size={16} className="text-zinc-500" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[11px] text-zinc-500 uppercase font-bold">Organizer profile</p>
+                    <p className="text-[14px] font-bold text-white truncate group-hover:text-orange-400 transition-colors">
+                      {hostProfile.name ?? 'Host'}
+                    </p>
+                  </div>
+                  <ChevronRight size={18} className="text-zinc-600 group-hover:text-orange-400 flex-shrink-0" />
+                </Link>
+              ) : run.host_id ? (
+                <Link
+                  href={`/profile/${run.host_id}`}
+                  className="text-[13px] text-orange-500 font-semibold hover:text-orange-400 inline-flex items-center gap-1 pt-1 border-t border-zinc-800/80"
+                >
+                  View organizer profile <ExternalLink size={14} />
+                </Link>
+              ) : null}
+            </div>
+
             {/* Detail rows */}
             <div className="space-y-2.5">
               <div className="flex items-start gap-2.5 text-[14px]">
@@ -399,12 +763,33 @@ export default function RunDetailPage() {
                 <span className="text-zinc-300">{formatRunDate(run.date)}</span>
               </div>
 
-              {run.meetup_location && (
+              {(run.meetup_latitude != null && run.meetup_longitude != null) || run.meetup_location ? (
                 <div className="flex items-start gap-2.5 text-[14px]">
                   <MapPin size={15} className="text-orange-500 flex-shrink-0 mt-0.5" />
-                  <span className="text-zinc-300">{run.meetup_location}</span>
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-bold uppercase text-zinc-500 mb-0.5">Staging area (recorded)</p>
+                    {run.meetup_latitude != null && run.meetup_longitude != null ? (
+                      <>
+                        <p className="text-zinc-300 font-mono text-[13px]">
+                          {Number(run.meetup_latitude).toFixed(5)}, {Number(run.meetup_longitude).toFixed(5)}
+                        </p>
+                        {stagingDirectionsUrl && (
+                          <a
+                            href={stagingDirectionsUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 mt-1 text-[12px] font-semibold text-orange-500 hover:text-orange-400"
+                          >
+                            Open staging pin in Maps <ExternalLink size={12} />
+                          </a>
+                        )}
+                      </>
+                    ) : (
+                      <span className="text-zinc-300">{run.meetup_location}</span>
+                    )}
+                  </div>
                 </div>
-              )}
+              ) : null}
 
               <div className="flex items-center gap-2.5 text-[14px]">
                 <Users size={15} className="text-orange-500 flex-shrink-0" />
@@ -415,15 +800,19 @@ export default function RunDetailPage() {
                 </span>
               </div>
 
-              {run.trail && (
+              {run.trail && run.trail_id && (
                 <div className="flex items-center gap-2.5 text-[14px]">
                   <Mountain size={15} className="text-orange-500 flex-shrink-0" />
-                  <span className="text-zinc-300">
-                    {run.trail.name}
+                  <Link
+                    href={`/trails/${run.trail_id}`}
+                    className="text-zinc-300 hover:text-orange-400 transition-colors min-w-0"
+                  >
+                    <span className="font-semibold">{run.trail.name}</span>
                     {run.trail.difficulty && (
                       <span className="text-zinc-500"> · {run.trail.difficulty}</span>
                     )}
-                  </span>
+                    <span className="sr-only"> — trail details</span>
+                  </Link>
                 </div>
               )}
 
@@ -437,47 +826,71 @@ export default function RunDetailPage() {
           </div>
         </motion.div>
 
-        {/* ── Action buttons ────────────────────────────────────────────── */}
+        {/* ── Directions + RSVP ───────────────────────────────────────── */}
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.05 }}
-          className="grid grid-cols-2 gap-3"
+          className="space-y-3"
         >
-          {/* Get Directions */}
-          {run.meetup_location && (
-            <a
-              href={`https://maps.google.com/?q=${encodeURIComponent(run.meetup_location)}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 py-3 bg-zinc-900 border border-zinc-800 hover:border-orange-500/40 text-zinc-300 hover:text-white text-[14px] font-semibold rounded-xl transition-colors"
-            >
-              <Navigation size={15} className="text-orange-500" />
-              Get Directions
-            </a>
+          {hasDirections && (
+            <div className="grid grid-cols-1 gap-2">
+              {trailDirectionsUrl && (
+                <a
+                  href={trailDirectionsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 py-3 bg-zinc-900 border border-zinc-800 hover:border-orange-500/40 text-zinc-100 hover:text-white text-[14px] font-bold rounded-xl transition-colors"
+                >
+                  <Mountain size={15} className="text-orange-500" />
+                  Directions to trail
+                  <ExternalLink size={14} className="text-zinc-500" />
+                </a>
+              )}
+              {stagingDirectionsUrl && (
+                <a
+                  href={stagingDirectionsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 py-3 bg-zinc-900/80 border border-zinc-700 hover:border-orange-500/35 text-zinc-300 hover:text-white text-[13px] font-semibold rounded-xl transition-colors"
+                >
+                  <MapPin size={15} className="text-orange-500" />
+                  Directions to staging pin
+                  <ExternalLink size={13} className="text-zinc-500" />
+                </a>
+              )}
+            </div>
           )}
 
-          {/* RSVP / Join */}
           {run.status !== 'completed' && (
-            <button
-              onClick={handleRsvp}
-              disabled={(isFull && !joined) || joining}
-              className={`flex items-center justify-center gap-2 py-3 text-[14px] font-bold rounded-xl transition-colors ${
-                joined
-                  ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
-                  : isFull
-                  ? 'bg-zinc-700 text-zinc-500 cursor-not-allowed'
-                  : 'bg-orange-500 hover:bg-orange-600 text-black'
-              } ${!run.meetup_location ? 'col-span-2' : ''}`}
-            >
-              {joining ? (
-                <Loader2 size={16} className="animate-spin" />
-              ) : joined ? (
-                <><CheckCircle2 size={16} /> Joined</>
+            <div className="grid grid-cols-1 gap-3">
+              {isHost ? (
+                <div className="flex items-center justify-center gap-2 py-3 text-[14px] font-bold rounded-xl border border-orange-500/35 bg-orange-500/10 text-orange-300">
+                  <Shield size={16} className="text-orange-400 flex-shrink-0" />
+                  {"You're the host"}
+                </div>
               ) : (
-                <><Zap size={16} /> Join Run</>
+                <button
+                  onClick={handleRsvp}
+                  disabled={(isFull && !joined) || joining}
+                  className={`flex items-center justify-center gap-2 py-3 text-[14px] font-bold rounded-xl transition-colors ${
+                    joined
+                      ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                      : isFull
+                      ? 'bg-zinc-700 text-zinc-500 cursor-not-allowed'
+                      : 'bg-orange-500 hover:bg-orange-600 text-black'
+                  }`}
+                >
+                  {joining ? (
+                    <Loader2 size={16} className="animate-spin" />
+                  ) : joined ? (
+                    <><CheckCircle2 size={16} /> Joined</>
+                  ) : (
+                    <><Zap size={16} /> Join Run</>
+                  )}
+                </button>
               )}
-            </button>
+            </div>
           )}
         </motion.div>
 
@@ -533,8 +946,93 @@ export default function RunDetailPage() {
             ))}
         </AnimatePresence>
 
-        {/* ── SOS Button (participants + active runs) ────────────────────── */}
-        {(joined || isHost) && (
+        {/* ── Group chat (host + riders who joined) ───────────────────────── */}
+        {canUseRunChat && (
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.08 }}
+            className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden flex flex-col max-h-[min(380px,52dvh)]"
+          >
+            <div className="flex items-center gap-2 px-4 py-3 border-b border-zinc-800/80 bg-zinc-900/80">
+              <MessageCircle size={16} className="text-orange-500 flex-shrink-0" />
+              <div className="min-w-0">
+                <p className="text-[13px] font-bold text-white leading-none">Group chat</p>
+                <p className="text-[11px] text-zinc-500 mt-1">Live updates for this run</p>
+              </div>
+            </div>
+            <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2.5 min-h-[100px]">
+              {chatMessages.length === 0 ? (
+                <p className="text-center text-zinc-600 text-[13px] py-8 px-2">
+                  No messages yet — coordinate meetup time or trail notes here.
+                </p>
+              ) : (
+                chatMessages.map((m) => {
+                  const mine = user?.id === m.user_id;
+                  return (
+                    <div key={m.id} className={`flex gap-2 ${mine ? 'flex-row-reverse' : ''}`}>
+                      <div className="w-8 h-8 rounded-full bg-zinc-800 flex-shrink-0 overflow-hidden">
+                        {m.users?.avatar_url ? (
+                          <img src={m.users.avatar_url} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-[10px] font-bold text-zinc-500">
+                            {(m.users?.name ?? 'R')[0].toUpperCase()}
+                          </div>
+                        )}
+                      </div>
+                      <div className={`min-w-0 max-w-[82%] ${mine ? 'text-right' : ''}`}>
+                        <p className="text-[11px] text-zinc-500 mb-0.5">
+                          {m.users?.name ?? 'Rider'}
+                          <span className="text-zinc-600 mx-1">·</span>
+                          {new Date(m.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                        </p>
+                        <p
+                          className={`text-[13px] leading-snug rounded-xl px-3 py-2 inline-block text-left ${
+                            mine
+                              ? 'bg-orange-500/20 text-orange-100 border border-orange-500/25'
+                              : 'bg-zinc-800 text-zinc-200 border border-zinc-700/80'
+                          }`}
+                        >
+                          {m.content}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+              <div ref={chatEndRef} />
+            </div>
+            <div className="flex gap-2 p-3 border-t border-zinc-800 bg-black/20">
+              <input
+                type="text"
+                value={chatInput}
+                onChange={(e) => setChatInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    void handleSendChat();
+                  }
+                }}
+                placeholder="Message the group…"
+                className="flex-1 min-w-0 bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-[14px] text-white placeholder:text-zinc-600 focus:outline-none focus:border-orange-500/50"
+                maxLength={2000}
+                aria-label="Group message"
+              />
+              <button
+                type="button"
+                onClick={() => void handleSendChat()}
+                disabled={chatSending || !chatInput.trim()}
+                className="flex-shrink-0 w-11 h-11 flex items-center justify-center rounded-xl bg-orange-500 hover:bg-orange-600 text-black disabled:bg-zinc-800 disabled:text-zinc-600 transition-colors"
+                aria-label="Send message"
+              >
+                {chatSending ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
+              </button>
+            </div>
+          </motion.div>
+        )}
+
+        {/* ── SOS (only while run is active — on-trail emergencies) ───────── */}
+        {showSOSButton && (
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
@@ -606,31 +1104,92 @@ export default function RunDetailPage() {
 
         {/* ── Manage Run (host only) ────────────────────────────────────── */}
         <AnimatePresence>
-          {isHost && run.status === 'upcoming' && (
+          {isHost && run.status !== 'cancelled' && (
             <motion.div
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
-              className="bg-zinc-900 border border-zinc-700 rounded-2xl p-4"
+              className="bg-zinc-900 border border-zinc-700 rounded-2xl p-4 space-y-3"
             >
-              <div className="flex items-center gap-2 mb-3">
+              <div className="flex items-center gap-2">
                 <BadgeCheck size={15} className="text-orange-500" />
-                <p className="text-[13px] font-bold text-zinc-300">Host Controls</p>
+                <p className="text-[13px] font-bold text-zinc-300">Host controls</p>
               </div>
-              <p className="text-[13px] text-zinc-500 mb-3">
-                Mark this run as active when you are ready to depart. Participants will be notified.
-              </p>
+
+              {run.status === 'completed' && (
+                <p className="text-[13px] text-zinc-500">
+                  This run is marked complete. You can remove the listing from the app when you no longer need it.
+                </p>
+              )}
+
+              {run.status === 'upcoming' && (
+                <>
+                  <p className="text-[13px] text-zinc-500">
+                    Activate when you are ready to depart. Riders can use SOS only while the run is active.
+                  </p>
+                  <button
+                    onClick={handleActivate}
+                    disabled={activating || !!hostBusy}
+                    className="w-full flex items-center justify-center gap-2 py-2.5 bg-emerald-500 hover:bg-emerald-600 disabled:bg-zinc-700 text-black disabled:text-zinc-500 text-[14px] font-black rounded-xl transition-colors"
+                  >
+                    {activating ? (
+                      <Loader2 size={15} className="animate-spin" />
+                    ) : (
+                      <Play size={15} />
+                    )}
+                    {activating ? 'Activating…' : 'Activate run'}
+                  </button>
+                </>
+              )}
+
+              {run.status === 'active' && (
+                <>
+                  <p className="text-[13px] text-zinc-500">
+                    When everyone is back safe, mark complete. It closes chat and SOS for this event.
+                  </p>
+                  <button
+                    onClick={handleCompleteRun}
+                    disabled={!!hostBusy}
+                    className="w-full flex items-center justify-center gap-2 py-2.5 bg-emerald-500/90 hover:bg-emerald-500 disabled:bg-zinc-700 text-black disabled:text-zinc-500 text-[14px] font-black rounded-xl transition-colors"
+                  >
+                    {hostBusy === 'complete' ? (
+                      <Loader2 size={15} className="animate-spin" />
+                    ) : (
+                      <CheckCircle2 size={15} />
+                    )}
+                    {hostBusy === 'complete' ? 'Saving…' : 'Mark run complete'}
+                  </button>
+                </>
+              )}
+
+              {(run.status === 'upcoming' || run.status === 'active') && (
+                <button
+                  type="button"
+                  onClick={handleCancelRun}
+                  disabled={!!hostBusy}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 bg-transparent border border-red-500/35 hover:bg-red-500/10 text-red-400 text-[13px] font-bold rounded-xl transition-colors disabled:opacity-50"
+                >
+                  {hostBusy === 'cancel' ? (
+                    <Loader2 size={15} className="animate-spin" />
+                  ) : (
+                    <Ban size={15} />
+                  )}
+                  Cancel run (keep listing as cancelled)
+                </button>
+              )}
+
               <button
-                onClick={handleActivate}
-                disabled={activating}
-                className="w-full flex items-center justify-center gap-2 py-2.5 bg-emerald-500 hover:bg-emerald-600 disabled:bg-zinc-700 text-black disabled:text-zinc-500 text-[14px] font-black rounded-xl transition-colors"
+                type="button"
+                onClick={handleDeleteRun}
+                disabled={!!hostBusy}
+                className="w-full flex items-center justify-center gap-2 py-2.5 bg-red-950/40 border border-red-600/40 hover:bg-red-950/70 text-red-300 text-[13px] font-black rounded-xl transition-colors disabled:opacity-50"
               >
-                {activating ? (
+                {hostBusy === 'delete' ? (
                   <Loader2 size={15} className="animate-spin" />
                 ) : (
-                  <Play size={15} />
+                  <Trash2 size={15} />
                 )}
-                {activating ? 'Activating…' : 'Activate Run'}
+                Delete run permanently
               </button>
             </motion.div>
           )}
@@ -691,11 +1250,13 @@ export default function RunDetailPage() {
                     </p>
                   </div>
                   <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${
-                    p.rsvp_status === 'confirmed'
+                    p.rsvp_status === 'going'
                       ? 'bg-emerald-500/15 text-emerald-400'
                       : 'bg-zinc-700 text-zinc-400'
                   }`}>
-                    {p.rsvp_status}
+                    {p.rsvp_status === 'going'
+                      ? 'Going'
+                      : p.rsvp_status.charAt(0).toUpperCase() + p.rsvp_status.slice(1)}
                   </span>
                 </motion.div>
               ))}

@@ -11,12 +11,12 @@ export default function TermsPage() {
 
           <h2 className="text-white mt-8">1. Acceptance of Terms</h2>
           <p className="text-gray-300">
-            By accessing and using Project Offroad ("the Platform"), you accept and agree to be bound by these Terms of Service and our Community Guidelines. If you do not agree to these terms, please do not use our platform.
+            By accessing and using SoCalOffroaders ("the Platform"), you accept and agree to be bound by these Terms of Service and our Community Guidelines. If you do not agree to these terms, please do not use our platform.
           </p>
 
           <h2 className="text-white mt-8">2. Platform Nature</h2>
           <p className="text-gray-300">
-            Project Offroad is a <strong>social platform only</strong>. We provide a marketplace for connecting offroad enthusiasts, clubs, and events. We do NOT organize, sponsor, lead, or participate in any offroad runs, trips, or events. All events are organized exclusively by third-party club organizers and individual users who operate independently.
+            SoCalOffroaders is a <strong>social platform only</strong>. We provide a marketplace for connecting offroad enthusiasts, clubs, and events. We do NOT organize, sponsor, lead, or participate in any offroad runs, trips, or events. All events are organized exclusively by third-party club organizers and individual users who operate independently.
           </p>
 
           <h2 className="text-white mt-8">3. Assumption of Risk</h2>
@@ -36,19 +36,19 @@ export default function TermsPage() {
             <strong>You understand and agree that:</strong>
           </p>
           <ul className="list-disc pl-6 text-gray-300 space-y-2 mt-2">
-            <li>Project Offroad is NOT liable for any injuries, deaths, damages, or losses occurring during runs, events, or any platform-related activities</li>
+            <li>SoCalOffroaders is NOT liable for any injuries, deaths, damages, or losses occurring during runs, events, or any platform-related activities</li>
             <li>All participants participate at their own sole risk and responsibility</li>
             <li>Clubs and event organizers are independent parties; we are not responsible for their events, safety practices, or insurance coverage</li>
             <li>You should independently verify club credentials, insurance, and safety measures before participating</li>
             <li>We do not endorse or guarantee the accuracy of any user-posted content, trail information, or event details</li>
           </ul>
           <p className="text-gray-300 mt-4">
-            <strong>Limitation of Liability:</strong> To the maximum extent permitted by law, Project Offroad shall not be liable for any indirect, incidental, special, consequential, or punitive damages, regardless of the cause of action or whether we have been advised of the possibility of such damages.
+            <strong>Limitation of Liability:</strong> To the maximum extent permitted by law, SoCalOffroaders shall not be liable for any indirect, incidental, special, consequential, or punitive damages, regardless of the cause of action or whether we have been advised of the possibility of such damages.
           </p>
 
           <h2 className="text-white mt-8">5. Indemnification</h2>
           <p className="text-gray-300">
-            You agree to indemnify, defend, and hold harmless Project Offroad, its officers, directors, employees, and agents from and against any and all claims, liabilities, damages, losses, costs, and expenses (including reasonable attorneys' fees) arising out of or related to:
+            You agree to indemnify, defend, and hold harmless SoCalOffroaders, its officers, directors, employees, and agents from and against any and all claims, liabilities, damages, losses, costs, and expenses (including reasonable attorneys' fees) arising out of or related to:
           </p>
           <ul className="list-disc pl-6 text-gray-300 space-y-2 mt-2">
             <li>Your use of the platform</li>
@@ -131,7 +131,7 @@ export default function TermsPage() {
 
           <h2 className="text-white mt-8">17. Entire Agreement</h2>
           <p className="text-gray-300">
-            These Terms, together with our Privacy Policy and Community Guidelines, constitute the entire agreement between you and Project Offroad and supersede all prior understandings.
+            These Terms, together with our Privacy Policy and Community Guidelines, constitute the entire agreement between you and SoCalOffroaders and supersede all prior understandings.
           </p>
 
           <h2 className="text-white mt-8">18. Contact Information</h2>

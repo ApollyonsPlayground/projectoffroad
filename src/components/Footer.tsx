@@ -6,7 +6,7 @@ export default function Footer() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col md:flex-row justify-between items-center">
           <div className="mb-4 md:mb-0">
-            <span className="text-lg font-bold text-amber-500">SoCal Offroaders</span>
+            <span className="text-lg font-bold text-amber-500">SoCalOffroaders</span>
             <p className="text-gray-500 text-sm mt-1">Southern California Offroad Community</p>
           </div>
           
@@ -24,7 +24,7 @@ export default function Footer() {
         </div>
         
         <div className="mt-4 pt-4 border-t border-gray-800 text-center text-gray-500 text-xs">
-          © 2026 SoCal Offroaders. All rights reserved.
+          © 2026 SoCalOffroaders. All rights reserved.
         </div>
       </div>
     </footer>

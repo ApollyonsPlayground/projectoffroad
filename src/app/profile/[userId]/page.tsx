@@ -6,6 +6,11 @@ import { ArrowLeft, Grid3X3, Bookmark, Heart, Repeat2, BadgeCheck, Loader2, Mess
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import BottomNav from '@/components/BottomNav';
+import {
+  fetchLikedPostIdsRecent,
+  fetchPostsByIds,
+  fetchSavedPostIdsRecent,
+} from '@/lib/supabase/resilientSocial';
 
 type Tab = 'posts' | 'reposts' | 'liked' | 'favorites';
 
@@ -15,6 +20,16 @@ interface PostRow {
   body?: string;
   created_at: string;
   repost_of_id?: string | null;
+}
+
+function normalizePostRow(p: Record<string, unknown>): PostRow {
+  return {
+    id: String(p.id),
+    image_url: (p.image_url as string) ?? undefined,
+    body: String(p.body ?? p.content ?? p.caption ?? ''),
+    created_at: String(p.created_at ?? ''),
+    repost_of_id: (p.repost_of_id as string | null | undefined) ?? null,
+  };
 }
 
 function timeAgo(iso: string | null | undefined) {
@@ -84,41 +99,41 @@ export default function UserProfilePage() {
     setTabLoading(true);
     try {
       if (tab === 'posts') {
-        const { data } = await supabaseClient
+        const { data, error } = await supabaseClient
           .from('posts')
-          .select('id, image_url, body, created_at, repost_of_id, user_name, role')
+          .select('*')
           .eq('user_id', userId)
-          .is('repost_of_id', null)
           .order('created_at', { ascending: false })
-          .limit(30);
-        setMyPosts((data as PostRow[]) ?? []);
+          .limit(60);
+        if (error) setMyPosts([]);
+        else {
+          const rows = ((data ?? []) as Record<string, unknown>[]).filter((p) => !p.repost_of_id).slice(0, 30);
+          setMyPosts(rows.map(normalizePostRow));
+        }
       } else if (tab === 'reposts') {
-        const { data } = await supabaseClient
+        const { data, error } = await supabaseClient
           .from('posts')
-          .select('id, image_url, body, created_at, repost_of_id, user_name, role')
+          .select('*')
           .eq('user_id', userId)
-          .not('repost_of_id', 'is', null)
           .order('created_at', { ascending: false })
-          .limit(30);
-        setReposts((data as PostRow[]) ?? []);
+          .limit(60);
+        if (error) setReposts([]);
+        else {
+          const rows = ((data ?? []) as Record<string, unknown>[]).filter((p) => !!p.repost_of_id).slice(0, 30);
+          setReposts(rows.map(normalizePostRow));
+        }
       } else if (tab === 'liked') {
-        const { data } = await supabaseClient
-          .from('post_likes')
-          .select('posts(id, image_url, body, created_at, repost_of_id)')
-          .eq('user_id', userId)
-          .order('created_at', { ascending: false })
-          .limit(30);
-        const flat = (data ?? []).map((r: any) => r.posts).filter(Boolean) as PostRow[];
-        setLiked(flat);
+        const ids = await fetchLikedPostIdsRecent(supabaseClient, userId, 30);
+        const posts = await fetchPostsByIds(supabaseClient, ids);
+        const order = new Map(ids.map((id, i) => [id, i]));
+        posts.sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
+        setLiked(posts.map((p) => normalizePostRow(p as Record<string, unknown>)));
       } else if (tab === 'favorites') {
-        const { data } = await supabaseClient
-          .from('saved_posts')
-          .select('posts(id, image_url, body, created_at, repost_of_id)')
-          .eq('user_id', userId)
-          .order('created_at', { ascending: false })
-          .limit(30);
-        const flat = (data ?? []).map((r: any) => r.posts).filter(Boolean) as PostRow[];
-        setFavorites(flat);
+        const ids = await fetchSavedPostIdsRecent(supabaseClient, userId, 30);
+        const posts = await fetchPostsByIds(supabaseClient, ids);
+        const order = new Map(ids.map((id, i) => [id, i]));
+        posts.sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
+        setFavorites(posts.map((p) => normalizePostRow(p as Record<string, unknown>)));
       }
     } finally {
       setTabLoading(false);
@@ -220,6 +235,11 @@ export default function UserProfilePage() {
     favorites: 'No saved posts yet.',
   };
 
+  const memberDisplayName =
+    String(profile?.name ?? '').trim() ||
+    String(profile?.email ?? '').split('@')[0] ||
+    'Rider';
+
   return (
     <div className="min-h-screen bg-black pb-24">
       {/* Sticky header */}
@@ -227,7 +247,7 @@ export default function UserProfilePage() {
         <Link href="/" className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-zinc-900 transition-colors">
           <ArrowLeft size={19} className="text-white" />
         </Link>
-        <span className="text-[17px] font-black text-white leading-none">{profile.name ?? 'Profile'}</span>
+        <span className="text-[17px] font-black text-white leading-none">{memberDisplayName}</span>
       </div>
 
       {/* Profile header */}
@@ -235,22 +255,22 @@ export default function UserProfilePage() {
         <div className="relative">
           <div className="w-20 h-20 rounded-full overflow-hidden bg-zinc-800 border-2 border-zinc-700">
             {profile.avatar_url ? (
-              <img src={profile.avatar_url} alt={profile.name ?? 'Avatar'} className="w-full h-full object-cover" />
+              <img src={profile.avatar_url} alt={memberDisplayName} className="w-full h-full object-cover" />
             ) : (
               <div className="w-full h-full flex items-center justify-center text-zinc-500 font-black text-2xl">
-                {(profile.name ?? 'U')[0].toUpperCase()}
+                {(memberDisplayName ?? 'U')[0].toUpperCase()}
               </div>
             )}
           </div>
           {profile.role === 'owner' && (
             <span className="absolute -bottom-1 -right-1 w-[22px] h-[22px] rounded-full bg-[#FF8C00] flex items-center justify-center">
-              <span className="text-[8px] font-black text-black leading-none">PO</span>
+              <span className="text-[8px] font-black text-black leading-none">SO</span>
             </span>
           )}
         </div>
 
         <div className="flex items-center gap-1.5">
-          <h1 className="text-[20px] font-black text-white leading-none">{profile.name ?? 'Anonymous'}</h1>
+          <h1 className="text-[20px] font-black text-white leading-none">{memberDisplayName}</h1>
           {profile.is_verified && <BadgeCheck size={17} className="text-orange-500 flex-shrink-0" />}
         </div>
 

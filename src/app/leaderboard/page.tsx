@@ -1,11 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { createClient } from '@supabase/supabase-js'
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-const supabase = createClient(supabaseUrl, supabaseAnonKey)
+import { supabase } from '@/lib/db/supabase'
 
 interface LeaderboardEntry {
   rank: number
@@ -24,6 +20,10 @@ export default function LeaderboardPage() {
   }, [])
 
   async function fetchLeaderboard() {
+    if (!supabase) {
+      setLoading(false)
+      return
+    }
     // Get all users and count their run participations
     const { data: users } = await supabase
       .from('users')

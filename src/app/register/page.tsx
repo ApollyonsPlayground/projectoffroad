@@ -30,11 +30,11 @@ export default function RegisterPage() {
         {/* Logo + wordmark */}
         <div className="flex flex-col items-center gap-4">
           <div className="w-16 h-16 rounded-2xl bg-orange-500 flex items-center justify-center shadow-xl shadow-orange-500/40">
-            <span className="text-black font-black text-[18px] tracking-tight">PO</span>
+            <span className="text-black font-black text-[18px] tracking-tight">SO</span>
           </div>
           <div className="flex flex-col items-center gap-1.5">
             <span className="font-black text-white text-[28px] tracking-tight leading-none">
-              Project<span className="text-orange-500">Offroad</span>
+              SoCal<span className="text-orange-500">Offroaders</span>
             </span>
             <p className="text-zinc-500 text-[13px] text-center leading-snug max-w-[220px]">
               Official Google Authentication Required for Trail Access.

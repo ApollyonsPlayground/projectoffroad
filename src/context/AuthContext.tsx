@@ -1,21 +1,10 @@
 'use client'
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
-import { createClient, User, SupabaseClient } from '@supabase/supabase-js'
+import type { User, SupabaseClient } from '@supabase/supabase-js'
+import { createBrowserSupabaseClient } from '@/utils/supabase/client'
 
-// Guard: never call createClient with undefined — this was crashing the entire app
-function makeSupabaseClient(): SupabaseClient | null {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  if (!url || !key) return null
-  try {
-    return createClient(url, key)
-  } catch {
-    return null
-  }
-}
-
-const supabase = makeSupabaseClient()
+const supabase = createBrowserSupabaseClient()
 
 // profile is Record<string,unknown> but always contains at least { role?: string }
 interface AuthContextType {
@@ -71,24 +60,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Upsert: ensure user record exists with data from Google session
     const session = (await supabase.auth.getSession()).data?.session
     if (session?.user) {
+      const email =
+        session.user.email?.trim() ||
+        `${userId.replace(/-/g, '')}@oauth.placeholder.local`
+
+      // Omit `role` on upsert so existing owner/admin rows are not reset to 'user'.
       const { error: upsertError } = await supabase.from('users').upsert(
         {
           id: userId,
-          name: (session.user.user_metadata?.full_name as string) || session.user.email?.split('@')[0] || 'Rider',
-          email: session.user.email ?? '',
+          email,
+          name:
+            (session.user.user_metadata?.full_name as string) ||
+            (session.user.user_metadata?.name as string) ||
+            session.user.email?.split('@')[0] ||
+            'Rider',
           avatar_url: (session.user.user_metadata?.avatar_url as string) || null,
-          role: 'user',
         },
         { onConflict: 'id' }
       )
-      if (upsertError) console.error('[v0] upsert error:', upsertError)
+      if (upsertError) console.warn('[Auth] profile upsert:', upsertError.message)
     }
-    // Fetch profile after upsert
+    // maybeSingle: avoids 406 when row still missing after a failed upsert
     const { data, error } = await supabase
       .from('users')
       .select('*')
       .eq('id', userId)
-      .single()
+      .maybeSingle()
     if (!error && data) setProfile(data)
     setLoading(false)
   }
@@ -106,19 +103,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .from('users')
       .select('*')
       .eq('id', user.id)
-      .single()
+      .maybeSingle()
     if (!error && data) setProfile(data)
   }
 
   async function signInWithGoogle() {
     if (!supabase) return { error: 'Supabase is not configured.' }
+
+    // Always use the current browser origin — avoids broken flows when
+    // NEXT_PUBLIC_SITE_URL points at prod while testing on localhost.
+    const origin = typeof window !== 'undefined' ? window.location.origin : ''
+    const callbackPath = '/auth/callback/'
+
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: typeof window !== 'undefined' ? `${window.location.origin}/` : '/',
+        redirectTo: origin ? `${origin}${callbackPath}` : callbackPath,
       },
     })
-    return { error: error?.message ?? null }
+
+    if (!error) return { error: null }
+
+    const raw = error.message ?? ''
+    const providerDisabled =
+      raw.toLowerCase().includes('provider is not enabled') ||
+      raw.toLowerCase().includes('unsupported provider') ||
+      (error as { code?: string }).code === 'validation_failed'
+
+    if (providerDisabled) {
+      return {
+        error:
+          'Google sign-in is disabled in Supabase. Dashboard → Authentication → Providers → Google: enable it, add Client ID/Secret, and in Google Cloud set redirect URI to https://YOUR_REF.supabase.co/auth/v1/callback — see instruction.md.',
+      }
+    }
+
+    return { error: raw || null }
   }
 
   return (

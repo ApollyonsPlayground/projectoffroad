@@ -244,6 +244,7 @@ export default function MessagesPage() {
           </AnimatePresence>
         )}
       </div>
+      <BottomNav />
     </div>
   );
 }

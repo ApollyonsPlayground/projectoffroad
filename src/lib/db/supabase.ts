@@ -1,20 +1,11 @@
-// Supabase client for SoCal Offroaders App
-// Uses Next.js server actions and client-side fetching
+// Supabase browser client (cookie session via @supabase/ssr + root middleware)
 
-import { createClient } from '@supabase/supabase-js'
+import { createBrowserSupabaseClient } from '@/utils/supabase/client'
+import { getSupabaseUrl, getSupabaseAnonKey } from '@/utils/supabase/env'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+export const supabase = createBrowserSupabaseClient()
 
-// Handle missing env vars gracefully
-const isConfigured = supabaseUrl && supabaseAnonKey
-
-export const supabase = isConfigured 
-  ? createClient(supabaseUrl, supabaseAnonKey)
-  : null
-
-// Helper to check if Supabase is configured
-export const isSupabaseConfigured = () => isConfigured
+export const isSupabaseConfigured = () => !!(getSupabaseUrl() && getSupabaseAnonKey())
 
 // Types
 export interface User {

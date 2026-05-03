@@ -881,10 +881,10 @@
   dependencies:
     tslib "^2.4.0"
 
-"@esbuild/linux-x64@0.27.0":
+"@esbuild/win32-x64@0.27.0":
   version "0.27.0"
-  resolved "https://registry.npmjs.org/@esbuild/linux-x64/-/linux-x64-0.27.0.tgz"
-  integrity sha512-1hBWx4OUJE2cab++aVZ7pObD6s+DK4mPGpemtnAORBvb5l/g5xFGk0vc0PjSkrDs0XaXj9yyob3d14XqvnQ4gw==
+  resolved "https://registry.npmjs.org/@esbuild/win32-x64/-/win32-x64-0.27.0.tgz"
+  integrity sha512-aIitBcjQeyOhMTImhLZmtxfdOcuNRpwlPNmlFKPcHQYPhEssw75Cl1TSXJXpMkzaua9FUetx/4OQKq7eJul5Cg==
 
 "@eslint-community/eslint-utils@^4.8.0", "@eslint-community/eslint-utils@^4.9.1":
   version "4.9.1"
@@ -995,29 +995,10 @@
   resolved "https://registry.npmjs.org/@img/colour/-/colour-1.1.0.tgz"
   integrity sha512-Td76q7j57o/tLVdgS746cYARfSyxk8iEfRxewL9h4OMzYhbW4TAcppl0mT4eyqXddh6L/jwoM75mo7ixa/pCeQ==
 
-"@img/sharp-libvips-linux-x64@1.2.4":
-  version "1.2.4"
-  resolved "https://registry.npmjs.org/@img/sharp-libvips-linux-x64/-/sharp-libvips-linux-x64-1.2.4.tgz"
-  integrity sha512-tJxiiLsmHc9Ax1bz3oaOYBURTXGIRDODBqhveVHonrHJ9/+k89qbLl0bcJns+e4t4rvaNBxaEZsFtSfAdquPrw==
-
-"@img/sharp-libvips-linuxmusl-x64@1.2.4":
-  version "1.2.4"
-  resolved "https://registry.npmjs.org/@img/sharp-libvips-linuxmusl-x64/-/sharp-libvips-linuxmusl-x64-1.2.4.tgz"
-  integrity sha512-+LpyBk7L44ZIXwz/VYfglaX/okxezESc6UxDSoyo2Ks6Jxc4Y7sGjpgU9s4PMgqgjj1gZCylTieNamqA1MF7Dg==
-
-"@img/sharp-linux-x64@0.34.5":
+"@img/sharp-win32-x64@0.34.5":
   version "0.34.5"
-  resolved "https://registry.npmjs.org/@img/sharp-linux-x64/-/sharp-linux-x64-0.34.5.tgz"
-  integrity sha512-MEzd8HPKxVxVenwAa+JRPwEC7QFjoPWuS5NZnBt6B3pu7EG2Ge0id1oLHZpPJdn3OQK+BQDiw9zStiHBTJQQQQ==
-  optionalDependencies:
-    "@img/sharp-libvips-linux-x64" "1.2.4"
-
-"@img/sharp-linuxmusl-x64@0.34.5":
-  version "0.34.5"
-  resolved "https://registry.npmjs.org/@img/sharp-linuxmusl-x64/-/sharp-linuxmusl-x64-0.34.5.tgz"
-  integrity sha512-Jg8wNT1MUzIvhBFxViqrEhWDGzqymo3sV7z7ZsaWbZNDLXRJZoRGrjulp60YYtV4wfY8VIKcWidjojlLcWrd8Q==
-  optionalDependencies:
-    "@img/sharp-libvips-linuxmusl-x64" "1.2.4"
+  resolved "https://registry.npmjs.org/@img/sharp-win32-x64/-/sharp-win32-x64-0.34.5.tgz"
+  integrity sha512-+29YMsqY2/9eFEiW93eqWnuLcWcufowXewwSNIT6UwZdUUCrM3oFjMWH/Z6/TMmb4hlFenmfAVbpWeup2jryCw==
 
 "@ionic/cli-framework-output@^2.2.8":
   version "2.2.8"
@@ -1189,15 +1170,10 @@
   dependencies:
     fast-glob "3.3.1"
 
-"@next/swc-linux-x64-gnu@16.2.1":
+"@next/swc-win32-x64-msvc@16.2.1":
   version "16.2.1"
-  resolved "https://registry.npmjs.org/@next/swc-linux-x64-gnu/-/swc-linux-x64-gnu-16.2.1.tgz"
-  integrity sha512-HQm7SrHRELJ30T1TSmT706IWovFFSRGxfgUkyWJZF/RKBMdbdRWJuFrcpDdE5vy9UXjFOx6L3mRdqH04Mmx0hg==
-
-"@next/swc-linux-x64-musl@16.2.1":
-  version "16.2.1"
-  resolved "https://registry.npmjs.org/@next/swc-linux-x64-musl/-/swc-linux-x64-musl-16.2.1.tgz"
-  integrity sha512-aV2iUaC/5HGEpbBkE+4B8aHIudoOy5DYekAKOMSHoIYQ66y/wIVeaRx8MS2ZMdxe/HIXlMho4ubdZs/J8441Tg==
+  resolved "https://registry.npmjs.org/@next/swc-win32-x64-msvc/-/swc-win32-x64-msvc-16.2.1.tgz"
+  integrity sha512-qvU+3a39Hay+ieIztkGSbF7+mccbbg1Tk25hc4JDylf8IHjYmY/Zm64Qq1602yPyQqvie+vf5T/uPwNxDNIoeg==
 
 "@nodelib/fs.scandir@2.1.5":
   version "2.1.5"
@@ -1230,10 +1206,10 @@
   resolved "https://registry.npmjs.org/@oxc-project/types/-/types-0.110.0.tgz"
   integrity sha512-6Ct21OIlrEnFEJk5LT4e63pk3btsI6/TusD/GStLi7wYlGJNOl1GI9qvXAnRAxQU9zqA2Oz+UwhfTOU2rPZVow==
 
-"@oxc-transform/binding-linux-x64-gnu@0.111.0":
+"@oxc-transform/binding-win32-x64-msvc@0.111.0":
   version "0.111.0"
-  resolved "https://registry.npmjs.org/@oxc-transform/binding-linux-x64-gnu/-/binding-linux-x64-gnu-0.111.0.tgz"
-  integrity sha512-T0Kmvk+OdlUdABdXlDIf3MQReMzFfC75NEI9x8jxy5pKooACEFg0k0V8gyR3gq4DzbDCfucqFQDWNvSgIopAbQ==
+  resolved "https://registry.npmjs.org/@oxc-transform/binding-win32-x64-msvc/-/binding-win32-x64-msvc-0.111.0.tgz"
+  integrity sha512-QddKW4kBH0Wof6Y65eYCNHM4iOGmCTWLLcNYY1FGswhzmTYOUVXajNROR+iCXAOFnOF0ldtsR79SyqgyHH1Bgg==
 
 "@react-leaflet/core@^3.0.0":
   version "3.0.0"
@@ -1245,10 +1221,10 @@
   resolved "https://registry.npmjs.org/@renovatebot/pep440/-/pep440-4.2.1.tgz"
   integrity sha512-2FK1hF93Fuf1laSdfiEmJvSJPVIDHEUTz68D3Fi9s0IZrrpaEcj6pTFBTbYvsgC5du4ogrtf5re7yMMvrKNgkw==
 
-"@rolldown/binding-linux-x64-gnu@1.0.0-rc.1":
+"@rolldown/binding-win32-x64-msvc@1.0.0-rc.1":
   version "1.0.0-rc.1"
-  resolved "https://registry.npmjs.org/@rolldown/binding-linux-x64-gnu/-/binding-linux-x64-gnu-1.0.0-rc.1.tgz"
-  integrity sha512-uVctNgZHiGnJx5Fij7wHLhgw4uyZBVi6mykeWKOqE7bVy9Hcxn0fM/IuqdMwk6hXlaf9fFShDTFz2+YejP+x0A==
+  resolved "https://registry.npmjs.org/@rolldown/binding-win32-x64-msvc/-/binding-win32-x64-msvc-1.0.0-rc.1.tgz"
+  integrity sha512-Ydsxxx++FNOuov3wCBPaYjZrEvKOOGq3k+BF4BPridhg2pENfitSRD2TEuQ8i33bp5VptuNdC9IzxRKU031z5A==
 
 "@rolldown/pluginutils@1.0.0-rc.1":
   version "1.0.0-rc.1"
@@ -1617,15 +1593,10 @@
     "@typescript-eslint/types" "8.58.2"
     eslint-visitor-keys "^5.0.0"
 
-"@unrs/resolver-binding-linux-x64-gnu@1.11.1":
+"@unrs/resolver-binding-win32-x64-msvc@1.11.1":
   version "1.11.1"
-  resolved "https://registry.npmjs.org/@unrs/resolver-binding-linux-x64-gnu/-/resolver-binding-linux-x64-gnu-1.11.1.tgz"
-  integrity sha512-C3ZAHugKgovV5YvAMsxhq0gtXuwESUKc5MhEtjBpLoHPLYM+iuwSj3lflFwK3DPm68660rZ7G8BMcwSro7hD5w==
-
-"@unrs/resolver-binding-linux-x64-musl@1.11.1":
-  version "1.11.1"
-  resolved "https://registry.npmjs.org/@unrs/resolver-binding-linux-x64-musl/-/resolver-binding-linux-x64-musl-1.11.1.tgz"
-  integrity sha512-rV0YSoyhK2nZ4vEswT/QwqzqQXw5I6CjoaYMOX0TqBlWhojUf8P94mvI7nuJTeaCkkds3QE4+zS8Ko+GdXuZtA==
+  resolved "https://registry.npmjs.org/@unrs/resolver-binding-win32-x64-msvc/-/resolver-binding-win32-x64-msvc-1.11.1.tgz"
+  integrity sha512-lrW200hZdbfRtztbygyaq/6jP6AKE8qQN2KvPcJ+x7wiD038YtnYtZ82IMNJ69GJibV7bwL3y9FgK+5w/pYt6g==
 
 "@vercel/backends@0.2.0":
   version "0.2.0"

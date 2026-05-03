@@ -12,7 +12,8 @@
 import { useEffect } from 'react';
 import { MapContainer, TileLayer, CircleMarker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
-import Link from 'next/link';
+import type { DifficultyTier } from '@/lib/trails/mapDbTrail';
+import { rawDifficultyToTier } from '@/lib/trails/mapDbTrail';
 
 interface TrailForMap {
   id: string;
@@ -20,6 +21,7 @@ interface TrailForMap {
   location: string;
   difficulty: string;
   difficultyLevel?: string;
+  difficultyLabel?: DifficultyTier;
   coordinates?: string;
   mapsUrl?: string;
 }
@@ -43,25 +45,15 @@ function parseCoords(trail: TrailForMap): [number, number] | null {
   return null;
 }
 
-/** Returns a hex color matching the difficulty card badge colors. */
-function getDifficultyColor(difficulty: string): string {
-  const d = (difficulty ?? '').toLowerCase();
-  if (d === 'beginner' || d === 'easy') return '#22c55e';        // green-500
-  if (d === 'moderate') return '#eab308';                         // yellow-500
-  if (d === 'intermediate') return '#f97316';                     // orange-500
-  if (d === 'advanced' || d === 'challenging') return '#f97316';  // orange-500
-  if (d === 'extreme' || d === 'expert') return '#ef4444';        // red-500
-  return '#71717a';                                               // zinc-500
+function tierForTrail(trail: TrailForMap): DifficultyTier {
+  return trail.difficultyLabel ?? rawDifficultyToTier(trail.difficulty || trail.difficultyLevel || '');
 }
 
-function getDifficultyLabel(difficulty: string): string {
-  const d = (difficulty ?? '').toLowerCase();
-  if (d === 'beginner' || d === 'easy') return 'Beginner';
-  if (d === 'moderate') return 'Moderate';
-  if (d === 'intermediate') return 'Intermediate';
-  if (d === 'advanced' || d === 'challenging') return 'Advanced';
-  if (d === 'extreme' || d === 'expert') return 'Extreme';
-  return difficulty;
+/** Marker colors: Easy / Moderate / Hard */
+function getTierColor(tier: DifficultyTier): string {
+  if (tier === 'Easy') return '#22c55e';
+  if (tier === 'Moderate') return '#eab308';
+  return '#ef4444';
 }
 
 export default function TrailMap({ trails }: TrailMapProps) {
@@ -89,7 +81,8 @@ export default function TrailMap({ trails }: TrailMapProps) {
         />
 
         {plotted.map(({ trail, coords }) => {
-          const color = getDifficultyColor(trail.difficulty || trail.difficultyLevel || '');
+          const tier = tierForTrail(trail);
+          const color = getTierColor(tier);
           return (
             <CircleMarker
               key={trail.id}
@@ -139,7 +132,7 @@ export default function TrailMap({ trails }: TrailMapProps) {
                     textTransform: 'uppercase',
                     marginBottom: '8px',
                   }}>
-                    {getDifficultyLabel(trail.difficulty || trail.difficultyLevel || '')}
+                    {tier}
                   </span>
                   <br />
                   <a
@@ -180,10 +173,9 @@ export default function TrailMap({ trails }: TrailMapProps) {
         }}
       >
         {[
-          { label: 'Beginner', color: '#22c55e' },
+          { label: 'Easy', color: '#22c55e' },
           { label: 'Moderate', color: '#eab308' },
-          { label: 'Advanced', color: '#f97316' },
-          { label: 'Extreme', color: '#ef4444' },
+          { label: 'Hard', color: '#ef4444' },
         ].map(({ label, color }) => (
           <div key={label} style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
             <span style={{

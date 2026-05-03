@@ -2,11 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useAuth } from '@/context/AuthContext'
-import { createClient } from '@supabase/supabase-js'
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-const supabase = createClient(supabaseUrl, supabaseAnonKey)
+import { supabase } from '@/lib/db/supabase'
 
 interface Run {
   id: string
@@ -32,6 +28,10 @@ export default function DashboardPage() {
   }, [user, loading])
 
   async function fetchRuns() {
+    if (!supabase) {
+      setFetching(false)
+      return
+    }
     const { data } = await supabase
       .from('runs')
       .select('*, club:clubs(name)')

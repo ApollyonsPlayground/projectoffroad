@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
   ArrowLeft,
   MapPin,
@@ -18,54 +18,36 @@ import {
   Share2,
   Users,
   ChevronRight,
+  BadgeCheck,
 } from 'lucide-react';
 import Link from 'next/link';
 import BottomNav from '@/components/BottomNav';
 import { useToast } from '@/components/Toast';
-import trailsData from '@/data/trails.json';
+import { useAuth } from '@/context/AuthContext';
+import { mapDbTrailRow, type ExplorerTrail, type DifficultyTier } from '@/lib/trails/mapDbTrail';
+import { applyCatalogTrailLinks } from '@/lib/trails/staticTrailLinks';
+import { useSavedTrailIds } from '@/lib/hooks/useSavedTrailIds';
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-interface Trail {
-  id: string;
-  name: string;
-  location: string;
-  coordinates?: string;
-  difficulty: string;
-  difficultyLevel?: string;
-  status?: string;
-  distance: string;
-  time: string;
-  terrain: string;
-  rigRequirements?: string;
-  tags?: string[];
-  description: string;
-  image?: string;
-  mapsUrl?: string;
-  onxUrl?: string;
-}
+type Trail = ExplorerTrail;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function difficultyColor(d: string) {
-  const l = d.toLowerCase();
-  if (l === 'beginner' || l === 'easy') return 'bg-green-500/15 text-green-400 border-green-500/30';
-  if (l === 'moderate' || l === 'intermediate') return 'bg-yellow-500/15 text-yellow-500 border-yellow-500/30';
-  if (l === 'advanced' || l === 'challenging') return 'bg-orange-500/15 text-orange-400 border-orange-500/30';
-  if (l === 'extreme' || l === 'expert') return 'bg-red-500/15 text-red-400 border-red-500/30';
-  return 'bg-zinc-700/50 text-zinc-400 border-zinc-600';
+function difficultyColorTier(tier: DifficultyTier) {
+  if (tier === 'Easy') return 'bg-green-500/15 text-green-400 border-green-500/30';
+  if (tier === 'Moderate') return 'bg-yellow-500/15 text-yellow-500 border-yellow-500/30';
+  return 'bg-red-500/15 text-red-400 border-red-500/30';
 }
 
-function DifficultyDot({ level }: { level: string }) {
-  const dots = ['Beginner', 'Moderate', 'Advanced', 'Extreme'];
-  const colors = ['bg-green-500', 'bg-yellow-500', 'bg-orange-500', 'bg-red-500'];
-  const idx = dots.findIndex((d) => d.toLowerCase() === level.toLowerCase());
+function DifficultyDot({ tier }: { tier: DifficultyTier }) {
+  const dots: DifficultyTier[] = ['Easy', 'Moderate', 'Hard'];
+  const colors = ['bg-green-500', 'bg-yellow-500', 'bg-red-500'];
+  const idx = dots.indexOf(tier);
   return (
-    <div className="flex items-center gap-1" aria-label={`Difficulty: ${level}`}>
+    <div className="flex items-center gap-1" aria-label={`Difficulty: ${tier}`}>
       {dots.map((_, i) => (
         <span
           key={i}
-          className={`w-2.5 h-2.5 rounded-full ${i <= idx ? colors[idx] ?? 'bg-zinc-500' : 'bg-zinc-800'}`}
+          className={`w-2.5 h-2.5 rounded-full ${i <= idx && idx >= 0 ? colors[idx] : 'bg-zinc-800'}`}
         />
       ))}
     </div>
@@ -78,23 +60,84 @@ export default function TrailDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { showToast } = useToast();
+  const { supabaseClient, isConfigured, user } = useAuth();
+  const { savedIds, toggleSave } = useSavedTrailIds(supabaseClient, user?.id);
 
   const [trail, setTrail] = useState<Trail | null>(null);
-  const [saved, setSaved] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
-    const found = (trailsData as Trail[]).find((t) => t.id === id);
-    setTrail(found ?? null);
-  }, [id]);
+    if (!id || typeof id !== 'string') return;
 
-  const handleSave = useCallback(() => {
-    setSaved((s) => {
-      const next = !s;
-      showToast(next ? 'Trail saved to your list' : 'Trail removed from saved', next ? 'success' : 'info');
-      return next;
-    });
-  }, [showToast]);
+    let cancelled = false;
+
+    async function loadTrail() {
+      setLoading(true);
+      setLoadError(null);
+
+      if (!isConfigured || !supabaseClient) {
+        setTrail(null);
+        setLoadError(
+          'Supabase is not configured. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to .env.local.'
+        );
+        setLoading(false);
+        return;
+      }
+
+      const { data, error } = await supabaseClient.from('trails').select('*').eq('id', id).maybeSingle();
+
+      if (cancelled) return;
+
+      if (error) {
+        console.error('[trail detail]', error);
+        setTrail(null);
+        setLoadError(error.message);
+        setLoading(false);
+        return;
+      }
+
+      if (!data) {
+        setTrail(null);
+        setLoadError(null);
+        setLoading(false);
+        return;
+      }
+
+      setTrail(applyCatalogTrailLinks(mapDbTrailRow(data as Record<string, unknown>)));
+      setLoading(false);
+    }
+
+    void loadTrail();
+    return () => {
+      cancelled = true;
+    };
+  }, [id, supabaseClient, isConfigured]);
+
+  const trailId = typeof id === 'string' ? id : '';
+  const isSaved = trailId ? savedIds.has(trailId) : false;
+
+  const handleSave = useCallback(async () => {
+    if (!trailId) return;
+    if (!user) {
+      showToast('Sign in to save trails to your profile', 'info');
+      return;
+    }
+    const { saved, error } = await toggleSave(trailId);
+    if (error === 'not_authenticated') {
+      showToast('Sign in to save trails', 'info');
+      return;
+    }
+    if (error) {
+      showToast(`Could not update: ${error}`, 'error');
+      return;
+    }
+    showToast(
+      saved ? 'Trail saved to your list' : 'Trail removed from saved',
+      saved ? 'success' : 'info'
+    );
+  }, [trailId, user, toggleSave, showToast]);
 
   const handleShare = useCallback(async () => {
     const url = window.location.href;
@@ -110,6 +153,29 @@ export default function TrailDetailPage() {
     }
   }, [trail, showToast]);
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-black flex flex-col items-center justify-center gap-4 px-4">
+        <div className="w-9 h-9 rounded-full border-2 border-orange-500/30 border-t-orange-500 animate-spin" />
+        <p className="text-zinc-500 text-[14px]">Loading trail…</p>
+        <BottomNav />
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="min-h-screen bg-black flex flex-col items-center justify-center gap-4 px-4">
+        <AlertTriangle size={36} className="text-red-500/80" />
+        <p className="text-zinc-400 text-[15px] text-center max-w-sm">{loadError}</p>
+        <Link href="/trails" className="text-[14px] text-orange-500 hover:text-orange-400">
+          Back to trails
+        </Link>
+        <BottomNav />
+      </div>
+    );
+  }
+
   if (!trail) {
     return (
       <div className="min-h-screen bg-black flex flex-col items-center justify-center gap-4 px-4">
@@ -123,7 +189,7 @@ export default function TrailDetailPage() {
     );
   }
 
-  const diffClass = difficultyColor(trail.difficulty);
+  const diffClass = difficultyColorTier(trail.difficultyLabel);
 
   return (
     <div className="min-h-screen bg-black">
@@ -143,9 +209,9 @@ export default function TrailDetailPage() {
               whileTap={{ scale: 0.88 }}
               onClick={handleSave}
               className="p-2 text-zinc-400 hover:text-orange-400 transition-colors"
-              aria-label={saved ? 'Remove from saved' : 'Save trail'}
+              aria-label={isSaved ? 'Remove from saved' : 'Save trail'}
             >
-              {saved ? <BookmarkCheck size={20} className="text-orange-500" /> : <BookmarkPlus size={20} />}
+              {isSaved ? <BookmarkCheck size={20} className="text-orange-500" /> : <BookmarkPlus size={20} />}
             </motion.button>
             <motion.button
               whileTap={{ scale: 0.88 }}
@@ -170,13 +236,21 @@ export default function TrailDetailPage() {
               onError={() => setImageError(true)}
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
-            {trail.status && (
-              <span className={`absolute top-3 right-3 px-2.5 py-1 text-[11px] font-bold uppercase rounded-full border ${
-                trail.status === 'Open' ? 'bg-green-500/15 text-green-400 border-green-500/30' : 'bg-red-500/15 text-red-400 border-red-500/30'
-              }`}>
-                {trail.status}
-              </span>
-            )}
+            <div className="absolute top-3 left-3 right-3 flex flex-wrap items-start justify-end gap-2">
+              {trail.isVerified && (
+                <span className="inline-flex items-center gap-1 px-2 py-1 text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 rounded-full">
+                  <BadgeCheck size={12} />
+                  Verified
+                </span>
+              )}
+              {trail.status && (
+                <span className={`px-2.5 py-1 text-[11px] font-bold uppercase rounded-full border ${
+                  trail.status === 'Open' ? 'bg-green-500/15 text-green-400 border-green-500/30' : 'bg-red-500/15 text-red-400 border-red-500/30'
+                }`}>
+                  {trail.status}
+                </span>
+              )}
+            </div>
           </div>
         ) : (
           <div className="h-36 bg-zinc-950 border-b border-zinc-900 flex items-center justify-center">
@@ -195,11 +269,11 @@ export default function TrailDetailPage() {
               </div>
             </div>
             <span className={`mt-1 px-2.5 py-1 text-[11px] font-bold uppercase border rounded-full flex-shrink-0 ${diffClass}`}>
-              {trail.difficulty}
+              {trail.difficultyLabel}
             </span>
           </div>
           <div className="mt-3">
-            <DifficultyDot level={trail.difficulty} />
+            <DifficultyDot tier={trail.difficultyLabel} />
           </div>
         </div>
 
@@ -208,7 +282,14 @@ export default function TrailDetailPage() {
           {[
             { icon: Ruler, label: 'Distance', value: trail.distance },
             { icon: Clock, label: 'Est. Time', value: trail.time },
-            { icon: MapPin, label: 'Terrain', value: trail.terrain.charAt(0).toUpperCase() + trail.terrain.slice(1) },
+            {
+              icon: MapPin,
+              label: 'Terrain',
+              value: (() => {
+                const t = trail.terrain || 'off-road';
+                return t.charAt(0).toUpperCase() + t.slice(1);
+              })(),
+            },
           ].map(({ icon: Icon, label, value }) => (
             <div key={label} className="flex flex-col items-center gap-1 py-3.5 px-2">
               <Icon size={17} className="text-orange-500" />
@@ -290,7 +371,7 @@ export default function TrailDetailPage() {
             onClick={handleSave}
             className="flex items-center justify-center gap-2 w-full py-3.5 bg-zinc-950 border border-zinc-800 hover:border-orange-500/30 text-zinc-300 font-semibold text-[14px] rounded-xl transition-colors"
           >
-            {saved
+            {isSaved
               ? <><BookmarkCheck size={16} className="text-orange-500" /> Saved to your list</>
               : <><BookmarkPlus size={16} /> Save this Trail</>
             }

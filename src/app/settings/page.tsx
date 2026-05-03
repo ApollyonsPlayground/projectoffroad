@@ -108,7 +108,7 @@ export default function SettingsPage() {
           </div>
           
           <div className="text-neutral-500 text-sm">
-            <p>SoCal Off-Roaders v4</p>
+            <p>SoCalOffroaders</p>
             <p className="mt-1">Built with Next.js + Supabase</p>
           </div>
         </div>

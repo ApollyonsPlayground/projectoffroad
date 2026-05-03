@@ -33,6 +33,17 @@ import DisclaimerModal from '@/components/DisclaimerModal';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/Toast';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
+import { insertAdaptive, isLikelyUuid } from '@/lib/supabase/insertAdaptive';
+import {
+  deletePostLike,
+  deleteSavedPost,
+  fetchLikedPostIdRows,
+  fetchSavedPostIdRows,
+  fetchUserRepostedOriginalIds,
+  insertPostLike,
+  insertSavedPost,
+} from '@/lib/supabase/resilientSocial';
+import { mapDbTrailRow } from '@/lib/trails/mapDbTrail';
 
 // ─── NewPostDrawer ─────────────────────────────────────────────────────────────
 
@@ -90,10 +101,47 @@ function NewPostDrawer({ open, onClose, onPosted }: {
     }
 
     setIsSubmitting(true);
-    let imageUrl: string | null = null;
+      let imageUrl: string | null = null;
+      let moderationStatus = 'approved';
 
     try {
-      // Step 1: upload image if present
+      const { data: sessionData } = await supabaseClient.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+
+      // Step 1: optional nudity scan before hosting image (Sightengine via /api/moderation/scan-image)
+      if (imageFile && accessToken) {
+        setUploadProgress('uploading');
+        const fd = new FormData();
+        fd.append('file', imageFile);
+        const scanRes = await fetch('/api/moderation/scan-image', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${accessToken}` },
+          body: fd,
+        });
+        const scanJson = await scanRes.json().catch(() => ({}));
+        if (scanRes.status === 422) {
+          showToast(
+            scanJson.reason === 'nudity_detected'
+              ? 'That image was blocked by the safety filter.'
+              : 'Image did not pass safety check.',
+            'error'
+          );
+          setIsSubmitting(false);
+          setUploadProgress('idle');
+          return;
+        }
+        if (!scanRes.ok) {
+          showToast(scanJson.error ?? 'Image check failed', 'error');
+          setIsSubmitting(false);
+          setUploadProgress('idle');
+          return;
+        }
+        if (scanJson.skipped) {
+          moderationStatus = 'pending_no_engine';
+        }
+      }
+
+      // Step 2: upload image if present
       if (imageFile && supabaseClient) {
         setUploadProgress('uploading');
         const ext = imageFile.name.split('.').pop();
@@ -106,22 +154,58 @@ function NewPostDrawer({ open, onClose, onPosted }: {
         imageUrl = urlData.publicUrl;
       }
 
-      // Step 2: use user metadata directly (no DB lookup needed)
+      // Step 3: use user metadata directly (no DB lookup needed)
       const userName = (user.user_metadata?.full_name as string) || (user.user_metadata?.name as string) || user.email?.split('@')[0] || 'Rider';
       const userRole = 'user'; // Default role; will be set to 'owner' via Supabase if applicable
 
-      // Step 3: insert post row — using supabaseClient from AuthContext (has auth session)
-      const { error: insertError } = await supabaseClient!
-        .from('posts')
-        .insert({
-          body: body.trim(),
-          rig_model: rig.trim() || null,
+      setUploadProgress('inserting');
+
+      // Step 4: insert post — wide payload; strip unknown columns per DB (schema drift).
+      const text = body.trim();
+      const rigVal = rig.trim() || null;
+      let insertPayload: Record<string, unknown> = {
+        user_id: user.id,
+        user_name: userName,
+        caption: text,
+        content: text,
+        body: text,
+        image_url: imageUrl,
+        rig_model: rigVal,
+        rig_name: rigVal,
+        role: userRole,
+      };
+      if (moderationStatus !== 'approved') {
+        insertPayload.moderation_status = moderationStatus;
+      }
+
+      let { error: insertError } = await insertAdaptive(supabaseClient!, 'posts', insertPayload);
+      if (
+        insertError &&
+        String(insertError.message).toLowerCase().includes('moderation') &&
+        'moderation_status' in insertPayload
+      ) {
+        const { moderation_status: _m, ...rest } = insertPayload;
+        insertPayload = rest;
+        ({ error: insertError } = await insertAdaptive(supabaseClient!, 'posts', insertPayload));
+      }
+      if (
+        insertError &&
+        imageUrl == null &&
+        /image_url|not-null|null value/i.test(insertError.message)
+      ) {
+        ({ error: insertError } = await insertAdaptive(supabaseClient!, 'posts', {
           user_id: user.id,
           user_name: userName,
+          caption: text,
+          content: text,
+          body: text,
+          image_url: 'https://dummyimage.com/1x1/111111/111111.png',
+          rig_model: rigVal,
+          rig_name: rigVal,
           role: userRole,
-          image_url: imageUrl,
-        });
-      
+        }));
+      }
+
       if (insertError) throw new Error(insertError.message);
 
       showToast('Post uploaded!', 'success');
@@ -442,18 +526,34 @@ function ImageLightbox({ src, alt, onClose }: { src: string; alt: string; onClos
 
 // ─── Story Avatar ─────────────────────────────────────────────────────────────
 
-function StoryAvatar({ src, alt, live, label, href, runId }: {
-  src: string; alt: string; live?: boolean; label: string; href: string; runId?: string;
+function StoryAvatar({
+  src,
+  alt,
+  live,
+  label,
+  subtitle,
+  href,
+  runId,
+}: {
+  src: string;
+  alt: string;
+  live?: boolean;
+  /** Usually run title */
+  label: string;
+  /** Usually trail name — shown under label when present */
+  subtitle?: string;
+  href: string;
+  runId?: string;
 }) {
   const router = useRouter();
 
   const handleClick = async () => {
     try { await Haptics.impact({ style: ImpactStyle.Light }); } catch {}
-    if (live && runId) {
+    if (runId) {
       router.push(`/runs/${runId}`);
-    } else {
-      router.push(href);
+      return;
     }
+    router.push(href);
   };
 
   return (
@@ -477,7 +577,12 @@ function StoryAvatar({ src, alt, live, label, href, runId }: {
           </span>
         )}
       </motion.div>
-      <span className="text-[10px] text-zinc-500 truncate w-[58px] text-center font-medium">{label}</span>
+      <span className="text-[9px] text-zinc-500 text-center font-medium leading-tight max-w-[76px] w-[76px]">
+        <span className="block line-clamp-2 break-words text-zinc-400">{label}</span>
+        {subtitle ? (
+          <span className="block line-clamp-2 break-words text-zinc-500 mt-0.5">{subtitle}</span>
+        ) : null}
+      </span>
     </button>
   );
 }
@@ -487,7 +592,10 @@ function StoryAvatar({ src, alt, live, label, href, runId }: {
 interface LiveRun {
   id: string;
   title: string;
+  trail_name: string | null;
   trail_photo: string | null;
+  /** Only true when `status === 'active'` — pulsing ring + LIVE chip match real on-trail runs. */
+  isLive: boolean;
 }
 
 function StoriesBar() {
@@ -496,21 +604,75 @@ function StoriesBar() {
 
   useEffect(() => {
     if (!supabaseClient) return;
-    supabaseClient
-      .from('runs')
-      .select('id, title, trails(photo_url)')
-      .eq('status', 'active')
-      .order('date', { ascending: true })
-      .limit(8)
-      .then(({ data }) => {
-        setLiveRuns(
-          (data ?? []).map((r: any) => ({
-            id: r.id,
-            title: r.title ?? 'Live Run',
-            trail_photo: r.trails?.photo_url ?? null,
-          }))
-        );
-      });
+    let cancelled = false;
+    void (async () => {
+      type Row = { id: string; title?: string; trail_id?: string | null; status?: string };
+
+      const loadRuns = async (): Promise<Row[]> => {
+        const [activeRes, upcomingRes] = await Promise.all([
+          supabaseClient
+            .from('runs')
+            .select('id, title, trail_id, status')
+            .eq('status', 'active')
+            .order('date', { ascending: true })
+            .limit(10),
+          supabaseClient
+            .from('runs')
+            .select('id, title, trail_id, status')
+            .eq('status', 'upcoming')
+            .order('date', { ascending: true })
+            .limit(12),
+        ]);
+
+        const active = (!activeRes.error && activeRes.data ? activeRes.data : []) as Row[];
+        const upcoming = (!upcomingRes.error && upcomingRes.data ? upcomingRes.data : []) as Row[];
+        const seen = new Set(active.map((x) => x.id));
+        const merged: Row[] = [
+          ...active,
+          ...upcoming.filter((u) => !seen.has(u.id)),
+        ].slice(0, 14);
+
+        if (merged.length) return merged;
+
+        const fallback = await supabaseClient
+          .from('runs')
+          .select('id, title, trail_id, status')
+          .order('date', { ascending: true })
+          .limit(8);
+        return (!fallback.error && fallback.data ? fallback.data : []) as Row[];
+      };
+
+      const rows = await loadRuns();
+      if (cancelled) return;
+
+      const trailIds = [...new Set(rows.map((x) => String(x.trail_id ?? '').trim()).filter(Boolean))];
+      const photoById: Record<string, string | null> = {};
+      const nameById: Record<string, string | null> = {};
+      if (trailIds.length) {
+        const tr = await supabaseClient.from('trails').select('*').in('id', trailIds);
+        if (!tr.error && tr.data) {
+          for (const row of tr.data as Record<string, unknown>[]) {
+            const m = mapDbTrailRow(row);
+            const id = String(m.id);
+            photoById[id] = m.image ?? null;
+            nameById[id] = m.name || null;
+          }
+        }
+      }
+
+      setLiveRuns(
+        rows.map((r: Row) => ({
+          id: r.id,
+          title: r.title ?? 'Run',
+          trail_name: r.trail_id ? nameById[String(r.trail_id)] ?? null : null,
+          trail_photo: r.trail_id ? photoById[String(r.trail_id)] ?? null : null,
+          isLive: String(r.status ?? '').toLowerCase() === 'active',
+        }))
+      );
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [supabaseClient]);
 
   return (
@@ -530,9 +692,14 @@ function StoriesBar() {
             <StoryAvatar
               key={run.id}
               src={run.trail_photo ?? 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=120&q=80'}
-              alt={run.title}
-              live
-              label={run.title}
+              alt={
+                run.trail_name
+                  ? `${run.title} · ${run.trail_name}`
+                  : run.title
+              }
+              live={run.isLive}
+              label={run.trail_name ?? run.title}
+              subtitle={run.trail_name ? run.title : undefined}
               href="/runs"
               runId={run.id}
             />
@@ -552,6 +719,7 @@ function StatBtn({
   activeColor,
   label,
   onClick,
+  showCountIncludingZero,
 }: {
   icon: React.ElementType;
   count?: number;
@@ -559,7 +727,11 @@ function StatBtn({
   activeColor?: string;
   label: string;
   onClick?: () => void;
+  /** When true, render the numeric count even when it is 0 (e.g. reposts). */
+  showCountIncludingZero?: boolean;
 }) {
+  const showCount =
+    count !== undefined && (showCountIncludingZero || count > 0);
   return (
     <motion.button
       whileTap={{ scale: 1.28 }}
@@ -571,7 +743,7 @@ function StatBtn({
       }`}
     >
       <Icon size={17} className={active ? '' : 'group-hover:scale-110 transition-transform'} strokeWidth={1.8} />
-      {count !== undefined && count > 0 && (
+      {showCount && (
         <span className="text-[12px] font-medium tabular-nums">{count >= 1000 ? `${(count / 1000).toFixed(1)}k` : count}</span>
       )}
     </motion.button>
@@ -607,9 +779,12 @@ function CommentRow({
       <div className="flex-1 min-w-0">
         <div className="flex items-baseline gap-1.5 flex-wrap">
           <span className="text-[12px] font-semibold text-zinc-300">{comment.user_name ?? 'Rider'}</span>
-          {comment.role?.toLowerCase() === 'owner' && (
-            <span className="px-1.5 py-px text-[9px] font-black text-black bg-[#FF8C00] rounded leading-none flex-shrink-0">
-              OWNER
+          {(comment.role?.toLowerCase() === 'owner' || comment.role?.toLowerCase() === 'admin') && (
+            <span
+              title={comment.role?.toLowerCase() === 'admin' ? 'Team admin' : 'Team owner'}
+              className="px-1.5 py-px text-[9px] font-black text-black bg-orange-500 rounded leading-none flex-shrink-0"
+            >
+              SO
             </span>
           )}
           <span className="text-[12px] text-zinc-400 break-words">{comment.content}</span>
@@ -669,7 +844,15 @@ function RigPostCard({ post, index }: {
   post: Post;
   index: number;
 }) {
-  const { user, isConfigured, supabaseClient, loading: authLoading } = useAuth();
+  const { user, profile, isConfigured, supabaseClient, loading: authLoading } = useAuth();
+
+  const headerRole = (() => {
+    const r = String(post.role ?? 'user').toLowerCase();
+    if (user?.id && post.user_id === user.id && profile?.role != null && String(profile.role).trim()) {
+      return String(profile.role).toLowerCase();
+    }
+    return r;
+  })();
   const { showToast } = useToast();
   const [liked, setLiked] = useState(post.liked_by_me ?? false);
   const [reposted, setReposted] = useState(post.reposted_by_me ?? false);
@@ -687,11 +870,21 @@ function RigPostCard({ post, index }: {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [avatarError, setAvatarError] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+
+  useEffect(() => {
+    setAvatarError(false);
+  }, [post.avatar_url, post.id]);
+
+  useEffect(() => {
+    setRepostsCount(post.reposts_count ?? 0);
+  }, [post.reposts_count]);
   const [reportOpen, setReportOpen] = useState(false);
   const [reportReason, setReportReason] = useState('');
   const [isReporting, setIsReporting] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const commentInputRef = useRef<HTMLInputElement>(null);
+  /** False when `comment_likes` table is missing or query fails (avoid noisy 404 loops). */
+  const commentLikesReadyRef = useRef(true);
 
   // Close menu on outside click
   useEffect(() => {
@@ -727,6 +920,13 @@ function RigPostCard({ post, index }: {
 
     setCommentsLoading(true);
 
+    // Placeholder feed IDs (e.g. "2") are not UUIDs — comments FK expects uuid → skip query (400).
+    if (!isLikelyUuid(canonicalId)) {
+      setComments([]);
+      setCommentsLoading(false);
+      return;
+    }
+
     Promise.all([
       // Use select('*') to avoid 400 errors if some columns don't exist yet.
       supabaseClient
@@ -734,19 +934,24 @@ function RigPostCard({ post, index }: {
         .select('*')
         .eq('post_id', canonicalId)
         .order('created_at', { ascending: true }),
-      user
+      user && commentLikesReadyRef.current
         ? supabaseClient
             .from('comment_likes')
             .select('comment_id')
             .eq('user_id', user.id)
-        : Promise.resolve({ data: [] }),
-    ]).then(async ([{ data: rawComments, error: commentsError }, { data: myLikes }]) => {
+        : Promise.resolve({ data: [], error: null }),
+    ]).then(async ([{ data: rawComments, error: commentsError }, likesRes]) => {
       if (commentsError) {
         setCommentsLoading(false);
         return;
       }
 
+      if (likesRes.error) {
+        commentLikesReadyRef.current = false;
+      }
+
       const rows = rawComments ?? [];
+      const myLikes = likesRes.error ? [] : (likesRes.data ?? []);
 
       // Separate query for author roles — avoids FK-join failures.
       const distinctUserIds = [...new Set(rows.map((c: any) => c.user_id as string))];
@@ -759,7 +964,7 @@ function RigPostCard({ post, index }: {
         (userRows ?? []).forEach((u: any) => { roleMap[u.id] = u.role ?? null; });
       }
 
-      const likedIds = new Set((myLikes ?? []).map((l: any) => l.comment_id));
+      const likedIds = new Set(myLikes.map((l: any) => l.comment_id));
       const enriched: Comment[] = rows.map((c: any) => ({
         ...c,
         // Live role from users table wins; denormalized column is fallback.
@@ -799,15 +1004,10 @@ function RigPostCard({ post, index }: {
     if (user && isConfigured && supabaseClient) {
       try {
         if (nowLiked) {
-          const { error } = await supabaseClient
-            .from('post_likes')
-            .insert({ post_id: post.id, user_id: user.id });
+          const { error } = await insertPostLike(supabaseClient, user.id, post.id);
           if (error && error.code !== '23505') throw error;
         } else {
-          const { error } = await supabaseClient
-            .from('post_likes')
-            .delete()
-            .match({ post_id: post.id, user_id: user.id });
+          const { error } = await deletePostLike(supabaseClient, user.id, post.id);
           if (error) throw error;
         }
       } catch {
@@ -834,12 +1034,16 @@ function RigPostCard({ post, index }: {
       if (!error) { setReposted(false); setRepostsCount((c) => c - 1); }
     } else {
       const userName = (user.user_metadata?.full_name as string) || user.email?.split('@')[0] || 'Rider';
-      const { error } = await supabaseClient.from('posts').insert({
+      const snippet = post.body ?? post.content ?? post.caption ?? '';
+      const { error } = await insertAdaptive(supabaseClient, 'posts', {
         user_id: user.id,
         user_name: userName,
-        body: post.body ?? post.caption ?? '',
+        caption: snippet,
+        content: snippet,
+        body: snippet,
         image_url: post.image_url ?? null,
         rig_model: post.rig_model ?? null,
+        rig_name: post.rig_model ?? null,
         repost_of_id: post.id,
         role: 'user',
       });
@@ -860,6 +1064,10 @@ function RigPostCard({ post, index }: {
   const toggleCommentLike = async (comment: Comment) => {
     if (!requireAuth('like comments')) return;
     if (!supabaseClient || !user) return;
+    if (!commentLikesReadyRef.current) {
+      showToast('Comment likes need the comment_likes table in Supabase', 'info');
+      return;
+    }
     const commentId = comment.id;
 
     // Read current liked state directly from the flat comments array so stale
@@ -880,16 +1088,18 @@ function RigPostCard({ post, index }: {
         .from('comment_likes')
         .insert({ comment_id: commentId, user_id: user.id });
       if (error && error.code !== '23505') {
+        commentLikesReadyRef.current = false;
         // Rollback on unexpected error
         setComments((prev) => prev.map((c) =>
           c.id === commentId ? { ...c, liked_by_me: false, likes_count: (c.likes_count ?? 1) - 1 } : c
         ));
       }
     } else {
-      await supabaseClient
+      const { error } = await supabaseClient
         .from('comment_likes')
         .delete()
         .match({ comment_id: commentId, user_id: user.id });
+      if (error) commentLikesReadyRef.current = false;
     }
   };
 
@@ -910,15 +1120,10 @@ function RigPostCard({ post, index }: {
     if (supabaseClient && user) {
       try {
         if (nowSaved) {
-          const { error } = await supabaseClient
-            .from('saved_posts')
-            .insert({ post_id: post.id, user_id: user.id });
+          const { error } = await insertSavedPost(supabaseClient, user.id, post.id);
           if (error && error.code !== '23505') throw error;
         } else {
-          const { error } = await supabaseClient
-            .from('saved_posts')
-            .delete()
-            .match({ post_id: post.id, user_id: user.id });
+          const { error } = await deleteSavedPost(supabaseClient, user.id, post.id);
           if (error) throw error;
         }
       } catch {
@@ -954,16 +1159,16 @@ function RigPostCard({ post, index }: {
     setCommentText('');
     setReplyingTo(null);
     try {
-      // Insert with only core columns that are guaranteed to exist.
-      // Avoid inserting parent_id or role if those columns don't exist in the schema.
-      const { error } = await supabaseClient.from('comments').insert({
+      if (!isLikelyUuid(String(canonicalPostId))) throw new Error('Invalid post id');
+      const { error } = await insertAdaptive(supabaseClient, 'comments', {
         post_id: canonicalPostId,
         user_id: user.id,
         content: optimistic.content,
+        body: optimistic.content,
         user_name: userName,
         avatar_url: avatarUrl,
       });
-      if (error) throw error;
+      if (error) throw new Error(error.message);
     } catch {
       setComments((c) => c.filter((x) => x.id !== optimistic.id));
       setCommentsCount((n) => n - 1);
@@ -994,18 +1199,20 @@ function RigPostCard({ post, index }: {
     setIsReporting(true);
     try {
       if (supabaseClient) {
-        await supabaseClient.from('reports').insert({
+        const { error } = await supabaseClient.from('reports').insert({
           post_id: post.id,
           reporter_id: user.id,
           reason: reportReason,
         });
+        if (error) throw error;
       }
       showToast('Report submitted. Thank you.', 'success');
       setReportOpen(false);
       setReportReason('');
       setMenuOpen(false);
-    } catch {
-      showToast('Failed to submit report', 'error');
+    } catch (e: unknown) {
+      const msg = e && typeof e === 'object' && 'message' in e ? String((e as { message?: string }).message) : '';
+      showToast(msg ? `Report failed: ${msg}` : 'Failed to submit report', 'error');
     } finally {
       setIsReporting(false);
     }
@@ -1013,20 +1220,27 @@ function RigPostCard({ post, index }: {
 
   const handleDelete = async () => {
     if (!supabaseClient || !user) return;
-    // Guard: only owner or post author can delete
-    if (user.id !== post.user_id && (user as any).role !== 'owner') {
+    if (!isLikelyUuid(String(post.id))) {
+      showToast('Cannot delete demo posts', 'info');
+      return;
+    }
+    const modRole = String(profile?.role ?? '').toLowerCase();
+    const isModerator = modRole === 'owner' || modRole === 'admin';
+    if (user.id !== post.user_id && !isModerator) {
       showToast('You cannot delete this post', 'error');
       return;
     }
     try {
+      // Single filter: RLS allows delete when auth.uid() = user_id (author) or when a
+      // moderator policy matches (see migration posts_moderator_delete_rls).
       const { error } = await supabaseClient.from('posts').delete().eq('id', post.id);
       if (error) throw error;
       showToast('Post deleted', 'success');
-      // Trigger parent refresh
       await new Promise(resolve => setTimeout(resolve, 300));
       window.location.reload();
-    } catch {
-      showToast('Failed to delete post', 'error');
+    } catch (e: unknown) {
+      const msg = e && typeof e === 'object' && 'message' in e ? String((e as { message?: string }).message) : '';
+      showToast(msg ? `Could not delete: ${msg}` : 'Failed to delete post', 'error');
     }
   };
 
@@ -1060,17 +1274,6 @@ function RigPostCard({ post, index }: {
         {/* ── Right column: content ─────────────── */}
         <div className="flex-1 min-w-0">
 
-          {/* Repost banner */}
-          {post.repost_of_id && (
-            <div className="flex items-center gap-1 text-[11px] text-zinc-500 mb-1">
-              <Repeat2 size={12} className="text-emerald-500/70" />
-              <span>
-                {post.username ?? 'Rider'} reposted
-                {post.original_user_name ? ` · ${post.original_user_name}` : ''}
-              </span>
-            </div>
-          )}
-
           {/* Header row: name + verified + vehicle + time + menu */}
           <div className="flex items-start justify-between gap-2 mb-1">
             <div className="min-w-0 flex-1">
@@ -1082,9 +1285,12 @@ function RigPostCard({ post, index }: {
                 {post.verified && (
                   <BadgeCheck size={15} className="text-orange-500 flex-shrink-0 mt-px" />
                 )}
-                {post.role?.toLowerCase() === 'owner' && (
-                  <span className="px-2 py-0.5 text-[10px] font-black text-black bg-[#FF8C00] rounded-md leading-none flex-shrink-0">
-                    OWNER
+                {(headerRole === 'owner' || headerRole === 'admin') && (
+                  <span
+                    title={headerRole === 'admin' ? 'SoCalOffroaders admin' : 'SoCalOffroaders owner'}
+                    className="px-1.5 py-0.5 text-[9px] font-black text-black bg-orange-500 rounded-md leading-none flex-shrink-0"
+                  >
+                    SO
                   </span>
                 )}
               </Link>
@@ -1125,7 +1331,9 @@ function RigPostCard({ post, index }: {
                     >
                       <Flag size={14} /> Report Post
                     </button>
-                    {(user?.id === post.user_id || user?.role === 'owner') && (
+                    {(user?.id === post.user_id ||
+                      profile?.role === 'owner' ||
+                      profile?.role === 'admin') && (
                       <button
                         onClick={() => { handleDelete(); setMenuOpen(false); }}
                         className="flex items-center gap-2.5 w-full px-4 py-3 text-[13px] text-red-500 hover:bg-red-500/10 transition-colors text-left border-t border-zinc-800"
@@ -1195,6 +1403,7 @@ function RigPostCard({ post, index }: {
                 activeColor="text-emerald-500"
                 label={reposted ? 'Unrepost' : 'Repost'}
                 onClick={toggleRepost}
+                showCountIncludingZero
               />
               <StatBtn
                 icon={Heart}
@@ -1453,6 +1662,7 @@ function PullToRefreshFeed({ children, onRefresh }: { children: React.ReactNode;
 
 function ModerationPanel() {
   const { supabaseClient } = useAuth();
+  const { showToast } = useToast();
   const [open, setOpen] = useState(false);
   const [flaggedPosts, setFlaggedPosts] = useState<any[]>([]);
   const [flaggedComments, setFlaggedComments] = useState<any[]>([]);
@@ -1465,6 +1675,19 @@ function ModerationPanel() {
       supabaseClient.from('post_flags').select('post_id'),
       supabaseClient.from('comment_flags').select('comment_id'),
     ]);
+
+    if (postFlagData.error || commentFlagData.error) {
+      const msg = postFlagData.error?.message ?? commentFlagData.error?.message ?? 'unknown error';
+      console.warn('[Moderation]', msg);
+      showToast(
+        'Moderation queue could not load. Apply latest Supabase migrations (flags / RLS).',
+        'error'
+      );
+      setFlaggedPosts([]);
+      setFlaggedComments([]);
+      setLoading(false);
+      return;
+    }
 
     const postCounts: Record<string, number> = {};
     (postFlagData.data ?? []).forEach((r: any) => {
@@ -1480,10 +1703,10 @@ function ModerationPanel() {
 
     const [postRows, commentRows] = await Promise.all([
       flaggedPostIds.length > 0
-        ? supabaseClient.from('posts').select('id, body, user_name, created_at').in('id', flaggedPostIds)
+        ? supabaseClient.from('posts').select('*').in('id', flaggedPostIds)
         : Promise.resolve({ data: [] }),
       flaggedCommentIds.length > 0
-        ? supabaseClient.from('comments').select('id, content, user_name, created_at').in('id', flaggedCommentIds)
+        ? supabaseClient.from('comments').select('*').in('id', flaggedCommentIds)
         : Promise.resolve({ data: [] }),
     ]);
 
@@ -1561,7 +1784,9 @@ function ModerationPanel() {
                             <div key={p.id} className="bg-zinc-900 border border-zinc-800 rounded-xl p-3 flex items-start gap-3">
                               <div className="flex-1 min-w-0">
                                 <p className="text-zinc-400 text-[11px] mb-0.5">{p.user_name ?? 'Unknown'}</p>
-                                <p className="text-white text-[13px] leading-relaxed line-clamp-3">{p.body}</p>
+                                <p className="text-white text-[13px] leading-relaxed line-clamp-3">
+                                  {p.body ?? p.content ?? p.caption}
+                                </p>
                               </div>
                               <button
                                 onClick={() => dismiss('post', p.id)}
@@ -1584,7 +1809,9 @@ function ModerationPanel() {
                             <div key={c.id} className="bg-zinc-900 border border-zinc-800 rounded-xl p-3 flex items-start gap-3">
                               <div className="flex-1 min-w-0">
                                 <p className="text-zinc-400 text-[11px] mb-0.5">{c.user_name ?? 'Unknown'}</p>
-                                <p className="text-white text-[13px] leading-relaxed line-clamp-3">{c.content}</p>
+                                <p className="text-white text-[13px] leading-relaxed line-clamp-3">
+                                  {c.content ?? c.body}
+                                </p>
                               </div>
                               <button
                                 onClick={() => dismiss('comment', c.id)}
@@ -1599,6 +1826,12 @@ function ModerationPanel() {
                     )}
                   </>
                 )}
+                <Link
+                  href="/admin"
+                  className="block w-full text-center py-3 mt-2 rounded-xl bg-orange-500/15 text-orange-400 text-[13px] font-bold border border-orange-500/30"
+                >
+                  Open full admin panel
+                </Link>
               </div>
             </motion.div>
           </>
@@ -1613,7 +1846,7 @@ export default function HomePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
-  const { user, supabaseClient, loading: authLoading } = useAuth();
+  const { user, profile, supabaseClient, loading: authLoading } = useAuth();
   const router = useRouter();
 
   // Fetch the current user's role for moderation access
@@ -1621,10 +1854,10 @@ export default function HomePage() {
     if (!user || !supabaseClient) return;
     supabaseClient
       .from('users')
-      .select('role')
+      .select('*')
       .eq('id', user.id)
-      .single()
-      .then(({ data }) => { if (data) setUserRole(data.role ?? null); });
+      .maybeSingle()
+      .then(({ data }) => setUserRole((data as { role?: string } | null)?.role ?? null));
   }, [user, supabaseClient]);
 
   const isModeratorUser = userRole === 'owner' || userRole === 'admin';
@@ -1640,83 +1873,154 @@ export default function HomePage() {
       return;
     }
     try {
-      // Fetch posts + user interaction booleans in parallel
-      const [postsResult, likesResult, savedResult, repostsResult] = await Promise.all([
-        supabaseClient
-          .from('posts')
-          .select('*')
-          .order('created_at', { ascending: false })
-          .limit(30),
-        user
-          ? supabaseClient.from('post_likes').select('post_id').eq('user_id', user.id)
-          : Promise.resolve({ data: [] }),
-        user
-          ? supabaseClient.from('saved_posts').select('post_id').eq('user_id', user.id)
-          : Promise.resolve({ data: [] }),
-        user
-          ? supabaseClient
-              .from('posts')
-              .select('repost_of_id')
-              .eq('user_id', user.id)
-              .not('repost_of_id', 'is', null)
-          : Promise.resolve({ data: [] }),
-      ]);
+      // Pull extra rows so the feed stays full when many recent rows are repost copies
+      // (repost rows are filtered out client-side).
+      const postsResult = await supabaseClient
+        .from('posts')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(120);
 
       if (postsResult.error) throw postsResult.error;
 
-      const rawPosts: any[] = postsResult.data ?? [];
+      const modBypass =
+        userRole === 'owner' || userRole === 'admin';
+      const viewerId = user?.id ?? null;
 
-      // For repost rows, look up the original post so the banner and counts
-      // (likes, comments) reflect the canonical thread, not the repost copy.
-      const repostOriginalIds = [...new Set(
-        rawPosts.filter((p) => p.repost_of_id).map((p) => p.repost_of_id as string)
-      )];
-      type OriginalMeta = { user_name: string; likes_count: number; comments_count: number };
-      let originalMeta: Record<string, OriginalMeta> = {};
-      if (repostOriginalIds.length > 0) {
-        const { data: originals } = await supabaseClient
+      const rawPosts: any[] = (postsResult.data ?? []).filter((p: any) => {
+        if (p.hidden === true) return false;
+        const st = String(p.moderation_status ?? 'approved').trim().toLowerCase();
+        if (!st || st === 'approved') return true;
+        if (modBypass) return true;
+        if (viewerId && String(p.user_id) === String(viewerId)) return true;
+        return false;
+      });
+
+      // Home feed shows canonical posts only — reposts stay as separate rows in DB
+      // (for profile "Reposts" + counting) but do not duplicate the card here.
+      const feedSource = rawPosts.filter((p: any) => !p.repost_of_id);
+
+      const [likesRows, savedRows, repostOriginalIdList] = user
+        ? await Promise.all([
+            fetchLikedPostIdRows(supabaseClient, user.id),
+            fetchSavedPostIdRows(supabaseClient, user.id),
+            fetchUserRepostedOriginalIds(supabaseClient, user.id),
+          ])
+        : [[], [], []];
+
+      const canonicalIds = [...new Set(feedSource.map((p: any) => String(p.id)))];
+      const repostCountMap: Record<string, number> = {};
+      if (canonicalIds.length > 0) {
+        const { data: repRows, error: repCountErr } = await supabaseClient
           .from('posts')
-          .select('id, user_name, likes_count, comments_count')
-          .in('id', repostOriginalIds);
-        (originals ?? []).forEach((o: any) => {
-          originalMeta[o.id] = {
-            user_name: o.user_name ?? 'Rider',
-            likes_count: o.likes_count ?? 0,
-            comments_count: o.comments_count ?? 0,
+          .select('repost_of_id')
+          .in('repost_of_id', canonicalIds);
+        if (!repCountErr && repRows) {
+          for (const row of repRows as { repost_of_id?: string | null }[]) {
+            const oid = row.repost_of_id;
+            if (!oid) continue;
+            const k = String(oid);
+            repostCountMap[k] = (repostCountMap[k] ?? 0) + 1;
+          }
+        }
+      }
+
+      const authorIds = new Set<string>();
+      feedSource.forEach((p: any) => {
+        if (p.user_id) authorIds.add(String(p.user_id));
+      });
+
+      type AuthorRow = {
+        name?: string | null;
+        email?: string | null;
+        role?: string | null;
+        is_verified?: boolean | null;
+        avatar_url?: string | null;
+      };
+      const authorById: Record<string, AuthorRow> = {};
+      if (authorIds.size > 0) {
+        const { data: authorRows } = await supabaseClient
+          .from('users')
+          .select('*')
+          .in('id', [...authorIds]);
+        (authorRows ?? []).forEach((u: any) => {
+          authorById[String(u.id)] = {
+            name: u.name ?? null,
+            email: u.email ?? null,
+            role: u.role ?? null,
+            is_verified: u.is_verified ?? null,
+            avatar_url: u.avatar_url ?? null,
           };
         });
       }
 
-      const likedIds = new Set((likesResult.data ?? []).map((r: any) => r.post_id));
-      const savedIds = new Set((savedResult.data ?? []).map((r: any) => r.post_id));
-      // repostedIds contains the original post IDs that this user has reposted
-      const repostedIds = new Set((repostsResult.data ?? []).map((r: any) => r.repost_of_id));
+      const authorAvatarUrl = (postRow: any, au?: AuthorRow): string | undefined => {
+        const fromUser = au?.avatar_url;
+        if (fromUser != null && String(fromUser).trim()) return String(fromUser).trim();
+        const fromPost = postRow?.avatar_url;
+        if (fromPost != null && String(fromPost).trim()) return String(fromPost).trim();
+        return undefined;
+      };
 
-      const normalised = rawPosts.map((p: any) => {
-        const orig = p.repost_of_id ? (originalMeta[p.repost_of_id] ?? null) : null;
+      const authorDisplayName = (userId: string | undefined | null, postRow: any): string => {
+        const pn = postRow?.user_name ?? postRow?.username;
+        if (pn != null && String(pn).trim()) return String(pn).trim();
+        const au = userId ? authorById[String(userId)] : undefined;
+        if (au?.name != null && String(au.name).trim()) return String(au.name).trim();
+        if (au?.email) return String(au.email).split('@')[0];
+        return 'Rider';
+      };
+
+      const authorRole = (userId: string | undefined | null, postRow: any): string =>
+        String(
+          (userId ? authorById[String(userId)]?.role : null) ?? postRow?.role ?? 'user'
+        );
+
+      const likedIds = new Set(likesRows.map((r) => r.post_id));
+      const savedIds = new Set(savedRows.map((r) => r.post_id));
+      const repostedIds = new Set(repostOriginalIdList);
+
+      const profileRole =
+        profile && typeof (profile as { role?: unknown }).role === 'string'
+          ? String((profile as { role: string }).role).trim()
+          : '';
+
+      const normalised = feedSource.map((p: any) => {
+        const au = p.user_id ? authorById[String(p.user_id)] : undefined;
+        const mergedAvatar = authorAvatarUrl(p, au);
+        const viewerOwn =
+          viewerId != null && String(p.user_id) === String(viewerId);
+        const roleStr =
+          viewerOwn && profileRole
+            ? profileRole
+            : authorRole(p.user_id, p);
         return {
           ...p,
-          username: p.user_name ?? 'Rider',
-          role: p.role ?? 'user',
+          username: authorDisplayName(p.user_id, p),
+          role: roleStr,
+          ...(mergedAvatar ? { avatar_url: mergedAvatar } : {}),
+          verified: Boolean(p.verified ?? au?.is_verified ?? false),
+          // Unify content fields across schemas.
+          body: p.body ?? p.content ?? p.caption ?? '',
+          caption: p.caption ?? p.content ?? p.body ?? '',
           liked_by_me: likedIds.has(p.id),
           bookmarked_by_me: savedIds.has(p.id),
-          reposted_by_me: p.repost_of_id
-            ? repostedIds.has(p.repost_of_id)
-            : repostedIds.has(p.id),
-          // Repost rows: show the original thread's engagement counts so it
-          // feels like the same post everywhere in the feed.
-          likes_count: orig ? orig.likes_count : (p.likes_count ?? 0),
-          comments_count: orig ? orig.comments_count : (p.comments_count ?? 0),
-          original_user_name: orig ? orig.user_name : null,
+          reposted_by_me: repostedIds.has(p.id),
+          likes_count: p.likes_count ?? p.likes ?? 0,
+          comments_count: p.comments_count ?? p.comments ?? 0,
+          reposts_count: repostCountMap[String(p.id)] ?? p.reposts_count ?? 0,
+          original_user_name: null,
         };
       });
-      setPosts(normalised.length ? normalised : PLACEHOLDER_POSTS);
+      setPosts(
+        normalised.length ? normalised.slice(0, 30) : PLACEHOLDER_POSTS
+      );
     } catch {
       setPosts(PLACEHOLDER_POSTS);
     } finally {
       setIsLoading(false);
     }
-  }, [supabaseClient, user, authLoading]);
+  }, [supabaseClient, user, authLoading, userRole, profile]);
 
   // Re-run whenever auth state resolves (authLoading flips false) so interactions hydrate correctly
   useEffect(() => { fetchPosts(); }, [fetchPosts]);
@@ -1729,10 +2033,10 @@ export default function HomePage() {
         <div className="flex items-center justify-between px-4 py-3 max-w-md mx-auto">
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-lg bg-orange-500 flex items-center justify-center flex-shrink-0">
-              <span className="text-black font-black text-[10px] tracking-tight">PO</span>
+              <span className="text-black font-black text-[10px] tracking-tight">SO</span>
             </div>
             <span className="font-black text-white text-base tracking-tight">
-              Project<span className="text-orange-500">Offroad</span>
+              SoCal<span className="text-orange-500">Offroaders</span>
             </span>
           </div>
           {isModeratorUser && <ModerationPanel />}

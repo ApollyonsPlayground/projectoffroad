@@ -1,7 +1,7 @@
 {
-  "name": "SoCal Offroaders",
+  "name": "SoCalOffroaders",
   "short_name": "SoCalOR",
-  "description": "Southern California Offroad Community - Find trails, join runs, connect with clubs",
+  "description": "Southern California off-road community — trails, runs, clubs (socaloffroaders.org)",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#1a1a1a",

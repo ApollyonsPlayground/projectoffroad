@@ -3,11 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useAuth } from '@/context/AuthContext'
-import { createClient } from '@supabase/supabase-js'
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-const supabase = createClient(supabaseUrl, supabaseAnonKey)
+import { supabase } from '@/lib/db/supabase'
 
 interface Club {
   id: string
@@ -63,6 +59,10 @@ export default function ClubDetailPage() {
   }, [user, members])
 
   async function fetchClub() {
+    if (!supabase) {
+      setLoading(false)
+      return
+    }
     const { data } = await supabase
       .from('clubs')
       .select('*')
@@ -86,6 +86,7 @@ export default function ClubDetailPage() {
   }
 
   async function fetchMembers() {
+    if (!supabase) return
     const { data } = await supabase
       .from('club_members')
       .select('*, user:users(id, name, avatar_url)')
@@ -102,6 +103,10 @@ export default function ClubDetailPage() {
     }
     
     setJoining(true)
+    if (!supabase) {
+      setJoining(false)
+      return
+    }
     const { error } = await supabase
       .from('club_members')
       .insert({ club_id: id, user_id: user.id, role: 'member' })

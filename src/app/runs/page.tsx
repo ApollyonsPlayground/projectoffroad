@@ -13,9 +13,8 @@ import {
   Loader2,
   Zap,
   X,
-  Mountain,
-  ChevronDown,
   Flag,
+  Shield,
 } from 'lucide-react';
 
 import Link from 'next/link';
@@ -23,6 +22,12 @@ import BottomNav from '@/components/BottomNav';
 import { RunListSkeleton } from '@/components/SkeletonLoader';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/Toast';
+import { HostRunWizard } from '@/components/runs/HostRunWizard';
+import { mapDbTrailRow } from '@/lib/trails/mapDbTrail';
+
+/** When a run has no trail photo yet */
+const RUN_CARD_FALLBACK_IMG =
+  'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=800&q=80';
 
 interface Run {
   id: string;
@@ -37,35 +42,11 @@ interface Run {
   club_id?: string | null;
   trail_id?: string | null;
   host_id?: string | null;
+  host_display_name?: string | null;
+  run_source?: 'club_official' | 'user_submitted' | null;
   club?: { name: string } | null;
-  trail?: { name: string; difficulty: string } | null;
+  trail?: { name: string; difficulty: string; photo_url?: string | null } | null;
 }
-
-interface Club {
-  id: string;
-  name: string;
-}
-
-interface Trail {
-  id: string;
-  name: string;
-  location: string | null;
-  difficulty: string | null;
-}
-
-// ─── Form state type ──────────────────────────────────────────────────────────
-const DIFFICULTIES = ['beginner', 'moderate', 'advanced', 'extreme'] as const;
-
-const EMPTY_FORM = {
-  title: '',
-  description: '',
-  date: '',
-  meetup_location: '',
-  max_participants: '',
-  difficulty: 'moderate' as string,
-  club_id: '',
-  trail_id: '',
-};
 
 // ─── HostRunDrawer ────────────────────────────────────────────────────────────
 function HostRunDrawer({
@@ -77,91 +58,10 @@ function HostRunDrawer({
   onClose: () => void;
   onSuccess: () => void;
 }) {
-  const { user, supabaseClient } = useAuth();
-  const { showToast } = useToast();
-
-  const [form, setForm] = useState({ ...EMPTY_FORM });
-  const [clubs, setClubs] = useState<Club[]>([]);
-  const [trails, setTrails] = useState<Trail[]>([]);
-  const [loadingDropdowns, setLoadingDropdowns] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-
-  // Fetch clubs + trails when drawer opens
-  useEffect(() => {
-    if (!open || !supabaseClient || !user) return;
-    setLoadingDropdowns(true);
-    Promise.all([
-      // Clubs where user is owner or admin via club_members
-      supabaseClient
-        .from('club_members')
-        .select('club_id, clubs(id, name)')
-        .eq('user_id', user.id)
-        .in('role', ['owner', 'admin']),
-      supabaseClient
-        .from('trails')
-        .select('id, name, location, difficulty')
-        .order('name', { ascending: true }),
-    ]).then(([membersRes, trailsRes]) => {
-      const clubList: Club[] = (membersRes.data ?? [])
-        .map((r: any) => r.clubs)
-        .filter(Boolean)
-        .reduce((acc: Club[], c: Club) => {
-          if (!acc.find((x) => x.id === c.id)) acc.push(c);
-          return acc;
-        }, []);
-      setClubs(clubList);
-      setTrails((trailsRes.data ?? []) as Trail[]);
-      setLoadingDropdowns(false);
-    });
-  }, [open, supabaseClient, user]);
-
-  const set = (key: keyof typeof EMPTY_FORM) => (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
-  ) => setForm((prev) => ({ ...prev, [key]: e.target.value }));
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user || !supabaseClient) return;
-    if (!form.title.trim() || !form.date || !form.meetup_location.trim()) {
-      showToast('Please fill in Title, Date, and Meetup Location', 'error');
-      return;
-    }
-    setSubmitting(true);
-    try {
-      const { error } = await supabaseClient.from('runs').insert({
-        title: form.title.trim(),
-        description: form.description.trim() || null,
-        date: new Date(form.date).toISOString(),
-        meetup_location: form.meetup_location.trim(),
-        max_participants: form.max_participants ? parseInt(form.max_participants, 10) : null,
-        difficulty: form.difficulty,
-        club_id: form.club_id || null,
-        trail_id: form.trail_id || null,
-        host_id: user.id,
-        status: 'upcoming',
-      });
-      if (error) throw error;
-      showToast('Run created!', 'success');
-      setForm({ ...EMPTY_FORM });
-      onSuccess();
-      onClose();
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Failed to create run';
-      showToast(msg, 'error');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const inputClass =
-    'w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2.5 text-[14px] text-white placeholder-zinc-600 focus:outline-none focus:border-orange-500/60 transition-colors';
-  const labelClass = 'block text-[12px] font-semibold text-zinc-400 uppercase tracking-wider mb-1.5';
-
   return (
     <AnimatePresence>
       {open && (
         <>
-          {/* Backdrop */}
           <motion.div
             key="backdrop"
             initial={{ opacity: 0 }}
@@ -170,7 +70,6 @@ function HostRunDrawer({
             className="fixed inset-0 z-[9990] bg-black/80 backdrop-blur-sm"
             onClick={onClose}
           />
-          {/* Drawer */}
           <motion.div
             key="drawer"
             initial={{ y: '100%' }}
@@ -181,167 +80,30 @@ function HostRunDrawer({
             style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Handle + header */}
             <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-zinc-800 flex-shrink-0">
               <div className="flex items-center gap-2">
                 <Flag size={16} className="text-orange-500" />
                 <h2 className="text-[16px] font-black text-white">Host a Run</h2>
               </div>
               <button
+                type="button"
                 onClick={onClose}
-                className="w-8 h-8 flex items-center justify-center rounded-full bg-zinc-800 text-zinc-400 hover:text-white transition-colors"
+                className="w-10 h-10 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full bg-zinc-800 text-zinc-400 hover:text-white transition-colors touch-manipulation"
                 aria-label="Close"
               >
                 <X size={16} />
               </button>
             </div>
-
-            {/* Scrollable form */}
-            <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
-
-              {/* Title */}
-              <div>
-                <label className={labelClass}>Title *</label>
-                <input
-                  className={inputClass}
-                  placeholder="e.g. Big Bear Shakedown Run"
-                  value={form.title}
-                  onChange={set('title')}
-                  required
-                />
-              </div>
-
-              {/* Description */}
-              <div>
-                <label className={labelClass}>Description</label>
-                <textarea
-                  className={`${inputClass} resize-none`}
-                  rows={3}
-                  placeholder="What to expect, trail conditions, bring-list..."
-                  value={form.description}
-                  onChange={set('description')}
-                />
-              </div>
-
-              {/* Date / Time */}
-              <div>
-                <label className={labelClass}>Date & Time *</label>
-                <input
-                  type="datetime-local"
-                  className={`${inputClass} [color-scheme:dark]`}
-                  value={form.date}
-                  onChange={set('date')}
-                  required
-                />
-              </div>
-
-              {/* Meetup Location */}
-              <div>
-                <label className={labelClass}>Meetup Location *</label>
-                <input
-                  className={inputClass}
-                  placeholder="e.g. Forest Falls Trailhead Parking Lot"
-                  value={form.meetup_location}
-                  onChange={set('meetup_location')}
-                  required
-                />
-              </div>
-
-              {/* Difficulty + Max Participants (side by side) */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className={labelClass}>Difficulty</label>
-                  <div className="relative">
-                    <select
-                      className={`${inputClass} appearance-none pr-8`}
-                      value={form.difficulty}
-                      onChange={set('difficulty')}
-                    >
-                      {DIFFICULTIES.map((d) => (
-                        <option key={d} value={d} className="bg-zinc-900 capitalize">
-                          {d.charAt(0).toUpperCase() + d.slice(1)}
-                        </option>
-                      ))}
-                    </select>
-                    <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500" />
-                  </div>
-                </div>
-                <div>
-                  <label className={labelClass}>Max Riders</label>
-                  <input
-                    type="number"
-                    min={1}
-                    max={200}
-                    className={inputClass}
-                    placeholder="No limit"
-                    value={form.max_participants}
-                    onChange={set('max_participants')}
-                  />
-                </div>
-              </div>
-
-              {/* Club dropdown */}
-              <div>
-                <label className={labelClass}>
-                  Hosting Club
-                  {loadingDropdowns && <Loader2 size={11} className="inline ml-1.5 animate-spin text-zinc-500" />}
-                </label>
-                <div className="relative">
-                  <select
-                    className={`${inputClass} appearance-none pr-8`}
-                    value={form.club_id}
-                    onChange={set('club_id')}
-                    disabled={loadingDropdowns}
-                  >
-                    <option value="">No club / personal run</option>
-                    {clubs.map((c) => (
-                      <option key={c.id} value={c.id} className="bg-zinc-900">{c.name}</option>
-                    ))}
-                  </select>
-                  <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500" />
-                </div>
-                {clubs.length === 0 && !loadingDropdowns && (
-                  <p className="text-[11px] text-zinc-600 mt-1">You need owner/admin role in a club to host under it.</p>
-                )}
-              </div>
-
-              {/* Trail dropdown */}
-              <div>
-                <label className={labelClass}>
-                  <Mountain size={11} className="inline mr-1" />
-                  Trail
-                </label>
-                <div className="relative">
-                  <select
-                    className={`${inputClass} appearance-none pr-8`}
-                    value={form.trail_id}
-                    onChange={set('trail_id')}
-                    disabled={loadingDropdowns}
-                  >
-                    <option value="">Select a trail (optional)</option>
-                    {trails.map((t) => (
-                      <option key={t.id} value={t.id} className="bg-zinc-900">
-                        {t.name}{t.location ? ` — ${t.location}` : ''}
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500" />
-                </div>
-              </div>
-
-              {/* Submit */}
-              <button
-                type="submit"
-                disabled={submitting}
-                className="w-full flex items-center justify-center gap-2 py-3 bg-orange-500 hover:bg-orange-600 disabled:bg-zinc-700 text-black disabled:text-zinc-500 text-[14px] font-black rounded-xl transition-colors"
-              >
-                {submitting ? <Loader2 size={16} className="animate-spin" /> : <Flag size={16} />}
-                {submitting ? 'Creating…' : 'Create Run'}
-              </button>
-
-              {/* Spacer so content isn't hidden behind the keyboard on mobile */}
-              <div className="h-4" />
-            </form>
+            <div className="flex-1 overflow-y-auto min-h-0">
+              <HostRunWizard
+                variant="drawer"
+                onSuccess={() => {
+                  onSuccess();
+                  onClose();
+                }}
+                onCancel={onClose}
+              />
+            </div>
           </motion.div>
         </>
       )}
@@ -378,6 +140,7 @@ function RunCard({
   joining,
   participantCount,
   onRsvp,
+  currentUserId,
 }: {
   run: Run;
   index: number;
@@ -385,10 +148,15 @@ function RunCard({
   joining: boolean;
   participantCount: number;
   onRsvp: (run: Run) => void;
+  currentUserId: string | null;
 }) {
+  const isHost = Boolean(currentUserId && run.host_id === currentUserId);
   const isFull = run.max_participants != null && participantCount >= run.max_participants;
   const spotsLeft = run.max_participants != null ? run.max_participants - participantCount : null;
   const isAlmostFull = spotsLeft != null && spotsLeft <= 3 && spotsLeft > 0;
+
+  const trailPhoto =
+    (run.trail?.photo_url && String(run.trail.photo_url).trim()) || RUN_CARD_FALLBACK_IMG;
 
   return (
     <motion.article
@@ -397,13 +165,72 @@ function RunCard({
       transition={{ delay: index * 0.08 }}
       className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden hover:border-orange-500/40 transition-colors"
     >
+      {/* Trail imagery + trail name (same catalog as Trail Explorer) */}
+      <div className="relative h-[132px] bg-zinc-800 shrink-0">
+        <img
+          src={trailPhoto}
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/55 to-zinc-950/15" />
+        <div className="absolute bottom-2.5 left-3 right-3">
+          {run.trail?.name ? (
+            <>
+              <p className="text-[16px] font-black text-white leading-tight drop-shadow-[0_1px_8px_rgba(0,0,0,0.85)]">
+                {run.trail.name}
+              </p>
+              <p className="text-[12px] font-semibold text-orange-300/95 mt-1 truncate drop-shadow-md">
+                {run.title}
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="text-[16px] font-black text-white leading-tight drop-shadow-[0_1px_8px_rgba(0,0,0,0.85)]">
+                {run.title}
+              </p>
+              <p className="text-[11px] text-zinc-400 mt-0.5">Meetup / trail TBD</p>
+            </>
+          )}
+        </div>
+      </div>
+
       <div className="p-4">
         {/* Header */}
         <div className="flex items-start justify-between gap-2 mb-2">
           <div className="flex-1 min-w-0">
-            <h3 className="font-bold text-white text-[15px] leading-snug mb-0.5">{run.title}</h3>
+            <div className="flex flex-wrap items-center gap-1.5 mb-0.5">
+              {!run.trail?.name ? (
+                <h3 className="font-bold text-white text-[15px] leading-snug">{run.title}</h3>
+              ) : null}
+              {run.run_source === 'user_submitted' && (
+                <span className="px-2 py-0.5 text-[10px] font-black uppercase rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/35">
+                  Community
+                </span>
+              )}
+              {run.run_source === 'club_official' && (
+                <span className="px-2 py-0.5 text-[10px] font-black uppercase rounded-md bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                  Club
+                </span>
+              )}
+            </div>
             {run.club?.name && (
               <p className="text-[12px] text-orange-500 font-semibold">{run.club.name}</p>
+            )}
+            {run.run_source === 'club_official' && !run.club?.name && (
+              <p className="text-[12px] text-emerald-400/95 font-semibold">Staff verified</p>
+            )}
+            {run.trail?.name && (
+              <p className="text-[12px] text-zinc-400 mt-0.5 truncate">
+                Trail · <span className="text-zinc-300 font-medium">{run.trail.name}</span>
+              </p>
+            )}
+            {run.host_id && (
+              <Link
+                href={`/profile/${run.host_id}`}
+                className="text-[12px] text-zinc-500 hover:text-orange-400 mt-0.5 inline-block font-medium"
+              >
+                Organizer: {run.host_display_name ?? 'View profile'}
+              </Link>
             )}
           </div>
           <span className={`flex-shrink-0 px-2 py-1 text-[11px] font-bold uppercase rounded-lg ${getDifficultyColor(run.difficulty)}`}>
@@ -445,25 +272,32 @@ function RunCard({
             Details
             <ChevronRight size={14} />
           </Link>
-          <button
-            onClick={() => onRsvp(run)}
-            disabled={isFull && !joined || joining}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-[13px] font-semibold rounded-lg transition-colors ${
-              joined
-                ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
-                : isFull
-                ? 'bg-zinc-700 text-zinc-500 cursor-not-allowed'
-                : 'bg-orange-500 hover:bg-orange-600 text-black'
-            }`}
-          >
-            {joining ? (
-              <Loader2 size={14} className="animate-spin" />
-            ) : joined ? (
-              <><CheckCircle2 size={14} /> Joined</>
-            ) : (
-              <><Zap size={14} /> Join Run</>
-            )}
-          </button>
+          {isHost ? (
+            <div className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-[13px] font-semibold rounded-lg border border-orange-500/35 bg-orange-500/10 text-orange-300">
+              <Shield size={14} className="text-orange-400 flex-shrink-0" />
+              {"You're hosting"}
+            </div>
+          ) : (
+            <button
+              onClick={() => onRsvp(run)}
+              disabled={(isFull && !joined) || joining}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-[13px] font-semibold rounded-lg transition-colors ${
+                joined
+                  ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                  : isFull
+                  ? 'bg-zinc-700 text-zinc-500 cursor-not-allowed'
+                  : 'bg-orange-500 hover:bg-orange-600 text-black'
+              }`}
+            >
+              {joining ? (
+                <Loader2 size={14} className="animate-spin" />
+              ) : joined ? (
+                <><CheckCircle2 size={14} /> Joined</>
+              ) : (
+                <><Zap size={14} /> Join Run</>
+              )}
+            </button>
+          )}
         </div>
       </div>
     </motion.article>
@@ -494,22 +328,97 @@ export default function RunsPage() {
     }
     setIsLoading(true);
     try {
-      const query = supabaseClient
-        .from('runs')
-        .select('id, title, description, date, meetup_location, difficulty, max_participants, vehicle_requirements, status, club_id, club:clubs(name)')
-        .eq('status', filter)
-        .order('date', { ascending: true });
+      // `*` first avoids 400 spam when FK embeds (`club:clubs`, `trail:trails`) are not in PostgREST schema cache.
+      // Narrow selects follow for nicer payloads when embeds exist.
+      const selectAttempts = [
+        '*',
+        'id, title, description, date, meetup_location, difficulty, max_participants, vehicle_requirements, status, club_id',
+        'id, title, description, date, meetup_location, difficulty, max_participants, vehicle_requirements, status, club_id, trail_id',
+        'id, title, description, date, meetup_location, difficulty, max_participants, vehicle_requirements, status, club_id, trail_id, run_source, host_id',
+        'id, title, description, date, meetup_location, difficulty, max_participants, vehicle_requirements, status, club_id, run_source, host_id',
+        'id, title, description, date, meetup_location, difficulty, max_participants, vehicle_requirements, status, club_id, club:clubs(name)',
+        'id, title, description, date, meetup_location, difficulty, max_participants, vehicle_requirements, status, club_id, club:clubs(name), trail:trails(name, difficulty)',
+        'id, title, description, date, meetup_location, difficulty, max_participants, vehicle_requirements, status, club_id, run_source, host_id, club:clubs(name), trail:trails(name, difficulty)',
+      ];
 
-      const { data: runsData, error: runsError } = await query;
-      if (runsError) throw runsError;
+      let runsData: Run[] | null = null;
+      let runsError: Error | null = null;
+      for (const sel of selectAttempts) {
+        const res = await supabaseClient
+          .from('runs')
+          .select(sel)
+          .eq('status', filter)
+          .order('date', { ascending: true });
+        if (!res.error) {
+          runsData = (res.data ?? []) as unknown as Run[];
+          runsError = null;
+          break;
+        }
+        runsError = res.error as unknown as Error;
+      }
+      if (runsError || runsData == null) throw runsError ?? new Error('runs fetch failed');
 
-      const fetchedRuns = (runsData ?? []) as Run[];
-      setRuns(fetchedRuns);
+      const fetchedRuns = runsData;
 
-      if (fetchedRuns.length === 0) return;
+      const trailIds = [
+        ...new Set(fetchedRuns.map((r) => String(r.trail_id ?? '').trim()).filter(Boolean)),
+      ];
+      const trailById: Record<string, { name: string; difficulty: string; photo_url: string | null }> = {};
+      if (trailIds.length) {
+        const tr = await supabaseClient.from('trails').select('*').in('id', trailIds);
+        if (!tr.error && tr.data) {
+          for (const row of tr.data as Record<string, unknown>[]) {
+            const m = mapDbTrailRow(row);
+            trailById[m.id] = {
+              name: m.name,
+              difficulty: m.difficulty,
+              photo_url: m.image ?? null,
+            };
+          }
+        }
+      }
+
+      const hostIds = [...new Set(fetchedRuns.map((r) => r.host_id).filter(Boolean))] as string[];
+      let hostNameById: Record<string, string> = {};
+      if (hostIds.length) {
+        const { data: hostRows } = await supabaseClient.from('users').select('id, name').in('id', hostIds);
+        if (hostRows) {
+          for (const row of hostRows as { id: string; name: string | null }[]) {
+            hostNameById[row.id] = String(row.name ?? '').trim() || 'Organizer';
+          }
+        }
+      }
+      const enriched = fetchedRuns.map((r) => {
+        const tid = r.trail_id ? String(r.trail_id).trim() : '';
+        const fromDb = tid ? trailById[tid] : undefined;
+        const embedded = r.trail as { name?: string; difficulty?: string; photo_url?: string | null } | null | undefined;
+        const mergedTrail =
+          fromDb != null
+            ? {
+                name: fromDb.name,
+                difficulty: fromDb.difficulty,
+                photo_url: fromDb.photo_url,
+              }
+            : embedded && embedded.name
+              ? {
+                  name: embedded.name,
+                  difficulty: String(embedded.difficulty ?? ''),
+                  photo_url: embedded.photo_url ?? null,
+                }
+              : null;
+
+        return {
+          ...r,
+          trail: mergedTrail,
+          host_display_name: r.host_id ? hostNameById[r.host_id] ?? null : null,
+        };
+      });
+      setRuns(enriched);
+
+      if (enriched.length === 0) return;
 
       // Batch fetch participant counts and user's own RSVPs in parallel
-      const runIds = fetchedRuns.map((r) => r.id);
+      const runIds = enriched.map((r) => r.id);
       const [countsRes, joinedRes] = await Promise.all([
         supabaseClient
           .from('run_participants')
@@ -547,6 +456,10 @@ export default function RunsPage() {
       return;
     }
     if (!supabaseClient) return;
+    if (run.host_id === user.id) {
+      showToast('You\'re hosting this run — no need to join', 'info');
+      return;
+    }
     setJoiningId(run.id);
     const alreadyJoined = joinedRunIds.has(run.id);
     try {
@@ -562,7 +475,7 @@ export default function RunsPage() {
       } else {
         const { error } = await supabaseClient
           .from('run_participants')
-          .insert({ run_id: run.id, user_id: user.id, rsvp_status: 'confirmed' });
+          .insert({ run_id: run.id, user_id: user.id, rsvp_status: 'going' });
         if (error && error.code !== '23505') throw error;
         setJoinedRunIds((prev) => new Set([...prev, run.id]));
         setParticipantCounts((prev) => ({ ...prev, [run.id]: (prev[run.id] ?? 0) + 1 }));
@@ -657,6 +570,7 @@ export default function RunsPage() {
                   joined={joinedRunIds.has(run.id)}
                   joining={joiningId === run.id}
                   participantCount={participantCounts[run.id] ?? 0}
+                  currentUserId={user?.id ?? null}
                   onRsvp={handleRsvp}
                 />
               ))}

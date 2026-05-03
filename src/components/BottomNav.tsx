@@ -7,6 +7,9 @@ import { useEffect, useState } from 'react';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import { useAuth } from '@/context/AuthContext';
 
+/** Skip DM unread polling when messaging tables are not deployed (avoids console 404 spam). */
+const DM_UNAVAILABLE_KEY = 'socaloffroaders_dm_unavailable';
+
 const NAV_ITEMS = [
   { href: '/',          label: 'Home',     icon: Home,          requiresAuth: false },
   { href: '/trails',    label: 'Trails',   icon: Map,           requiresAuth: false },
@@ -25,29 +28,59 @@ export default function BottomNav() {
   useEffect(() => {
     if (!supabaseClient || !user) { setHasUnread(false); return; }
 
+    if (typeof sessionStorage !== 'undefined' && sessionStorage.getItem(DM_UNAVAILABLE_KEY) === '1') {
+      setHasUnread(false);
+      return;
+    }
+
     const checkUnread = async () => {
-      const { data } = await supabaseClient
+      const { data, error } = await supabaseClient
         .from('conversation_participants')
         .select('is_read')
         .eq('user_id', user.id)
         .eq('is_read', false)
         .limit(1);
+      if (error) {
+        setHasUnread(false);
+        try {
+          sessionStorage.setItem(DM_UNAVAILABLE_KEY, '1');
+        } catch {
+          /* ignore */
+        }
+        return false;
+      }
       setHasUnread((data?.length ?? 0) > 0);
+      return true;
     };
 
-    checkUnread();
+    let cancelled = false;
+    let realtime: ReturnType<typeof supabaseClient.channel> | null = null;
 
-    // Realtime: re-check when conversation_participants changes for this user
-    const channel = supabaseClient
-      .channel('unread-badge')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'conversation_participants', filter: `user_id=eq.${user.id}` },
-        () => { checkUnread(); }
-      )
-      .subscribe();
+    checkUnread().then((ok) => {
+      if (!ok || cancelled) return;
+      realtime = supabaseClient
+        .channel('unread-badge')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'conversation_participants', filter: `user_id=eq.${user.id}` },
+          () => {
+            void checkUnread();
+          }
+        )
+        .subscribe();
+      if (cancelled && realtime) {
+        supabaseClient.removeChannel(realtime);
+        realtime = null;
+      }
+    });
 
-    return () => { supabaseClient.removeChannel(channel); };
+    return () => {
+      cancelled = true;
+      if (realtime) {
+        supabaseClient.removeChannel(realtime);
+        realtime = null;
+      }
+    };
   }, [supabaseClient, user]);
 
   const triggerHaptic = async () => {

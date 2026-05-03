@@ -7,6 +7,7 @@ import {
   MapPin,
   BadgeCheck,
   Truck,
+  Shield,
   Settings,
   LogOut,
   ChevronRight,
@@ -22,6 +23,7 @@ import {
   Grid3X3,
   Repeat2,
   Bookmark,
+  Zap,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -30,6 +32,11 @@ import { ProfileSkeleton } from '@/components/SkeletonLoader';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/Toast';
 import { supabase } from '@/lib/db/supabase';
+import {
+  fetchLikedPostIdsRecent,
+  fetchPostsByIds,
+  fetchSavedPostIdsRecent,
+} from '@/lib/supabase/resilientSocial';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -43,6 +50,14 @@ interface Vehicle {
   is_primary: boolean;
 }
 
+interface ProfileRunRow {
+  id: string;
+  title: string;
+  date: string;
+  status: string;
+  role: 'hosting' | 'joined';
+}
+
 type TabId = 'posts' | 'reposts' | 'liked' | 'favorites';
 
 interface Post {
@@ -53,6 +68,19 @@ interface Post {
   likes_count: number;
   created_at: string;
   repost_of_id?: string | null;
+}
+
+function normalizeProfilePost(p: Record<string, unknown>): Post {
+  const text = String(p.body ?? p.content ?? p.caption ?? '');
+  return {
+    id: String(p.id),
+    image_url: (p.image_url as string) ?? undefined,
+    body: text,
+    caption: String(p.caption ?? text),
+    likes_count: Number(p.likes_count ?? p.likes ?? 0),
+    created_at: String(p.created_at ?? ''),
+    repost_of_id: (p.repost_of_id as string | null | undefined) ?? null,
+  };
 }
 
 // ─── Placeholder data (shown when Supabase is not configured) ─────────────────
@@ -262,9 +290,19 @@ export default function ProfilePage() {
   const [favorites, setFavorites] = useState<Post[]>([]);
   const [tabLoading, setTabLoading] = useState(false);
 
+  const [myRuns, setMyRuns] = useState<ProfileRunRow[]>([]);
+  const [runsLoading, setRunsLoading] = useState(false);
+
   // Cast profile (Record<string,unknown>) to a typed shape for safe rendering
   type DisplayProfile = typeof PLACEHOLDER_PROFILE & { avatar_url?: string | null };
   const displayProfile: DisplayProfile = (profile as DisplayProfile | null) || PLACEHOLDER_PROFILE;
+
+  const displayName =
+    String(displayProfile.name ?? '').trim() ||
+    String((user?.user_metadata?.full_name as string) ?? '').trim() ||
+    String((user?.user_metadata?.name as string) ?? '').trim() ||
+    user?.email?.split('@')[0] ||
+    'Rider';
 
   // Fetch vehicles only (tab data handled separately)
   const fetchData = useCallback(async () => {
@@ -295,39 +333,41 @@ export default function ProfilePage() {
     setTabLoading(true);
     try {
       if (tab === 'posts') {
-        const { data } = await supabaseClient
+        const { data, error } = await supabaseClient
           .from('posts')
-          .select('id, image_url, body, caption, likes_count, created_at, repost_of_id, user_name, role')
+          .select('*')
           .eq('user_id', user.id)
-          .is('repost_of_id', null)
           .order('created_at', { ascending: false })
-          .limit(30);
-        setMyPosts((data as Post[]) ?? []);
+          .limit(60);
+        if (error) setMyPosts([]);
+        else {
+          const rows = ((data ?? []) as Record<string, unknown>[]).filter((p) => !p.repost_of_id).slice(0, 30);
+          setMyPosts(rows.map(normalizeProfilePost));
+        }
       } else if (tab === 'reposts') {
-        const { data } = await supabaseClient
+        const { data, error } = await supabaseClient
           .from('posts')
-          .select('id, image_url, body, caption, likes_count, created_at, repost_of_id, user_name, role')
+          .select('*')
           .eq('user_id', user.id)
-          .not('repost_of_id', 'is', null)
           .order('created_at', { ascending: false })
-          .limit(30);
-        setReposts((data as Post[]) ?? []);
+          .limit(60);
+        if (error) setReposts([]);
+        else {
+          const rows = ((data ?? []) as Record<string, unknown>[]).filter((p) => !!p.repost_of_id).slice(0, 30);
+          setReposts(rows.map(normalizeProfilePost));
+        }
       } else if (tab === 'liked') {
-        const { data } = await supabaseClient
-          .from('post_likes')
-          .select('posts(id, image_url, body, caption, likes_count, created_at, repost_of_id)')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false })
-          .limit(30);
-        setLiked(((data ?? []).map((r: any) => r.posts).filter(Boolean)) as Post[]);
+        const ids = await fetchLikedPostIdsRecent(supabaseClient, user.id, 30);
+        const posts = await fetchPostsByIds(supabaseClient, ids);
+        const order = new Map(ids.map((id, i) => [id, i]));
+        posts.sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
+        setLiked(posts.map((p) => normalizeProfilePost(p as Record<string, unknown>)));
       } else if (tab === 'favorites') {
-        const { data } = await supabaseClient
-          .from('saved_posts')
-          .select('posts(id, image_url, body, caption, likes_count, created_at, repost_of_id)')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false })
-          .limit(30);
-        setFavorites(((data ?? []).map((r: any) => r.posts).filter(Boolean)) as Post[]);
+        const ids = await fetchSavedPostIdsRecent(supabaseClient, user.id, 30);
+        const posts = await fetchPostsByIds(supabaseClient, ids);
+        const order = new Map(ids.map((id, i) => [id, i]));
+        posts.sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
+        setFavorites(posts.map((p) => normalizeProfilePost(p as Record<string, unknown>)));
       }
     } finally {
       setTabLoading(false);
@@ -378,6 +418,71 @@ export default function ProfilePage() {
   useEffect(() => {
     if (!isLoading) fetchTab(activeTab);
   }, [activeTab, isLoading, fetchTab]);
+
+  useEffect(() => {
+    if (!supabaseClient || !user || loading || isLoading) return;
+    let cancelled = false;
+    setRunsLoading(true);
+    const statuses = ['upcoming', 'active', 'completed'];
+    void (async () => {
+      try {
+        const [hostedRes, partsRes] = await Promise.all([
+          supabaseClient
+            .from('runs')
+            .select('id, title, date, status')
+            .eq('host_id', user.id)
+            .in('status', statuses)
+            .order('date', { ascending: false })
+            .limit(24),
+          supabaseClient.from('run_participants').select('run_id').eq('user_id', user.id).limit(80),
+        ]);
+        if (cancelled) return;
+        type R = { id: string; title: string; date: string; status: string; host_id?: string };
+        const hosted = ((hostedRes.data ?? []) as R[]).filter((r) => statuses.includes(r.status));
+        const partIds = [...new Set((partsRes.data ?? []).map((p: { run_id: string }) => p.run_id))];
+        let joined: R[] = [];
+        if (partIds.length) {
+          const jr = await supabaseClient
+            .from('runs')
+            .select('id, title, date, status, host_id')
+            .in('id', partIds)
+            .in('status', statuses);
+          if (!jr.error && jr.data) {
+            joined = (jr.data as R[]).filter((r) => r.host_id !== user.id);
+          }
+        }
+        if (cancelled) return;
+        const hostedIds = new Set(hosted.map((r) => r.id));
+        const rows: ProfileRunRow[] = [
+          ...hosted.map((r) => ({
+            id: r.id,
+            title: r.title,
+            date: r.date,
+            status: r.status,
+            role: 'hosting' as const,
+          })),
+          ...joined
+            .filter((r) => !hostedIds.has(r.id))
+            .map((r) => ({
+              id: r.id,
+              title: r.title,
+              date: r.date,
+              status: r.status,
+              role: 'joined' as const,
+            })),
+        ];
+        rows.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        setMyRuns(rows);
+      } catch {
+        setMyRuns([]);
+      } finally {
+        if (!cancelled) setRunsLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [supabaseClient, user, loading, isLoading]);
 
   const handleVehicleSaved = (v: Vehicle) => {
     setVehicles((prev) => {
@@ -456,9 +561,24 @@ export default function ProfilePage() {
       <header className="sticky top-0 z-30 bg-black/90 backdrop-blur-xl border-b border-zinc-900">
         <div className="max-w-md mx-auto flex items-center justify-between px-4 py-3">
           <h1 className="text-[17px] font-bold text-white">Rig Portfolio</h1>
-          <Link href="/settings" className="p-2 text-zinc-500 hover:text-white transition-colors">
-            <Settings size={20} />
-          </Link>
+          <div className="flex items-center gap-0.5">
+            {(profile?.role === 'owner' || profile?.role === 'admin') && (
+              <button
+                type="button"
+                onClick={() => window.dispatchEvent(new CustomEvent('open-admin-panel'))}
+                className="p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center text-orange-500 hover:text-orange-400 transition-colors touch-manipulation"
+                aria-label="Open admin tools"
+              >
+                <Shield size={20} />
+              </button>
+            )}
+            <Link
+              href="/settings"
+              className="p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center text-zinc-500 hover:text-white transition-colors touch-manipulation"
+            >
+              <Settings size={20} />
+            </Link>
+          </div>
         </div>
       </header>
 
@@ -477,7 +597,7 @@ export default function ProfilePage() {
                 {(localAvatarUrl ?? displayProfile.avatar_url) ? (
                   <img
                     src={(localAvatarUrl ?? displayProfile.avatar_url) as string}
-                    alt={String(displayProfile.name)}
+                    alt={displayName}
                     className="w-full h-full object-cover"
                   />
                 ) : (
@@ -516,7 +636,7 @@ export default function ProfilePage() {
             {/* Name + meta */}
             <div className="flex-1 min-w-0 pt-1">
               <div className="flex items-center gap-1.5 flex-wrap">
-                <h2 className="text-[17px] font-bold text-white leading-tight">{String(displayProfile.name)}</h2>
+                <h2 className="text-[17px] font-bold text-white leading-tight">{displayName}</h2>
                 {isVerified && (
                   <div className="relative flex items-center" aria-label="Verified member">
                     <motion.div
@@ -654,6 +774,72 @@ export default function ProfilePage() {
               <Truck size={24} className="text-zinc-700" />
               Tap to add your first rig
             </button>
+          )}
+        </section>
+
+        {/* My runs — host + joined ───────────────── */}
+        <section className="px-4 py-4 border-b border-zinc-900">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-[14px] font-bold text-white flex items-center gap-2">
+              <Calendar size={16} className="text-orange-500" />
+              My runs
+            </h3>
+            <Link
+              href="/runs/create"
+              className="flex items-center gap-1 text-[13px] font-semibold text-orange-500 hover:text-orange-400 transition-colors"
+            >
+              <Plus size={14} />
+              Host
+            </Link>
+          </div>
+          {runsLoading ? (
+            <div className="flex justify-center py-10">
+              <Loader2 size={22} className="animate-spin text-zinc-600" />
+            </div>
+          ) : myRuns.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-zinc-800 py-8 px-4 text-center">
+              <p className="text-[13px] text-zinc-600 mb-3">Join or host a run — it will show up here.</p>
+              <Link href="/runs" className="text-[13px] font-bold text-orange-500 hover:text-orange-400">
+                Browse runs
+              </Link>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {myRuns.map((r) => (
+                <Link
+                  key={`${r.role}-${r.id}`}
+                  href={`/runs/${r.id}`}
+                  className="flex items-center gap-3 bg-zinc-900 border border-zinc-800 rounded-xl p-3 hover:border-orange-500/35 transition-colors"
+                >
+                  <div className="w-10 h-10 rounded-full bg-zinc-950 border border-zinc-800 flex items-center justify-center flex-shrink-0">
+                    <Zap size={18} className={r.status === 'active' ? 'text-orange-400' : 'text-zinc-600'} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[14px] font-semibold text-white truncate">{r.title}</p>
+                    <p className="text-[12px] text-zinc-500 mt-0.5">
+                      {new Date(r.date).toLocaleString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        hour: 'numeric',
+                        minute: '2-digit',
+                      })}
+                      <span className="text-zinc-600"> · </span>
+                      <span className="capitalize">{r.status}</span>
+                    </p>
+                  </div>
+                  <span
+                    className={`flex-shrink-0 px-2 py-1 rounded-lg text-[10px] font-black uppercase ${
+                      r.role === 'hosting'
+                        ? 'bg-orange-500/15 text-orange-400 border border-orange-500/30'
+                        : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/25'
+                    }`}
+                  >
+                    {r.role === 'hosting' ? 'Hosting' : 'Joined'}
+                  </span>
+                  <ChevronRight size={16} className="text-zinc-600 flex-shrink-0" />
+                </Link>
+              ))}
+            </div>
           )}
         </section>
 

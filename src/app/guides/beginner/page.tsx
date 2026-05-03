@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { AlertTriangle, MapPin, Wrench, Shield, CheckCircle, ArrowLeft } from 'lucide-react';
 
 export const metadata: Metadata = {
-  title: "Beginner's Guide to Off-Roading | SoCal Off-Roaders",
+  title: "Beginner's Guide to Off-Roading | SoCalOffroaders",
   description: "A practical, no-fluff beginner's guide for off-roading in Southern California. Vehicle prep, recovery gear, trail etiquette, and more.",
 };
 

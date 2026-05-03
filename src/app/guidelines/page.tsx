@@ -8,7 +8,7 @@ export default function GuidelinesPage() {
         
         <div className="prose prose-invert prose-amber">
           <p className="text-gray-400">
-            SoCal Offroaders brings together offroad enthusiasts who share a passion for exploring the backcountry. 
+            SoCalOffroaders brings together off-road enthusiasts who share a passion for exploring the backcountry. 
             These guidelines help keep our community safe, welcoming, and fun for everyone.
           </p>
 

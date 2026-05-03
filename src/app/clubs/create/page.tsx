@@ -3,11 +3,8 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/context/AuthContext'
-import { createClient } from '@supabase/supabase-js'
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-const supabase = createClient(supabaseUrl, supabaseAnonKey)
+import { ClubVerificationCallout } from '@/components/ClubVerificationCallout'
+import { supabase } from '@/lib/db/supabase'
 
 export default function CreateClubPage() {
   const router = useRouter()
@@ -30,6 +27,10 @@ export default function CreateClubPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!user) return
+    if (!supabase) {
+      alert('App configuration error: Supabase client unavailable.')
+      return
+    }
 
     setSubmitting(true)
     
@@ -132,17 +133,19 @@ export default function CreateClubPage() {
             />
           </div>
 
+          <ClubVerificationCallout variant="banner" />
+
           {/* Submit */}
           <button
             type="submit"
             disabled={submitting}
-            className="w-full py-3 bg-[#FF8C00] hover:bg-[#FF9D00] text-white font-bold rounded-lg transition disabled:opacity-50"
+            className="w-full py-3 bg-[#FF8C00] hover:bg-[#FF9D00] text-white font-bold rounded-lg transition disabled:opacity-50 min-h-[48px] touch-manipulation"
           >
             {submitting ? 'Creating...' : 'Create Club'}
           </button>
 
           <p className="text-gray-500 text-sm text-center">
-            Your club will need verification before it shows as verified.
+            New clubs start unverified until the organizer confirms your listing (see above).
           </p>
         </form>
       </div>
