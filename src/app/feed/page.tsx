@@ -111,18 +111,35 @@ function NewPostDrawer({ open, onClose, onPosted }: {
       const { data: sessionData } = await supabaseClient.auth.getSession();
       const accessToken = sessionData.session?.access_token;
 
-      // Step 1: optional nudity scan before hosting image (Sightengine via /api/moderation/scan-image)
-      if (imageFile && accessToken) {
+      // Upload first, then scan by public URL (small JSON) — avoids Vercel/Next 413 on large multipart bodies.
+      let uploadedPath: string | null = null;
+      if (imageFile && supabaseClient) {
         setUploadProgress('uploading');
-        const fd = new FormData();
-        fd.append('file', imageFile);
+        const ext = imageFile.name.split('.').pop();
+        const path = `${user.id}/${Date.now()}.${ext}`;
+        const { error: uploadError } = await supabaseClient.storage
+          .from('post-images')
+          .upload(path, imageFile, { upsert: true });
+        if (uploadError) throw uploadError;
+        uploadedPath = path;
+        const { data: urlData } = supabaseClient.storage.from('post-images').getPublicUrl(path);
+        imageUrl = urlData.publicUrl;
+      }
+
+      if (imageUrl && accessToken) {
         const scanRes = await fetch('/api/moderation/scan-image', {
           method: 'POST',
-          headers: { Authorization: `Bearer ${accessToken}` },
-          body: fd,
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ url: imageUrl }),
         });
         const scanJson = await scanRes.json().catch(() => ({}));
         if (scanRes.status === 422) {
+          if (uploadedPath) {
+            await supabaseClient.storage.from('post-images').remove([uploadedPath]);
+          }
           const r = scanJson.reason as string | undefined;
           showToast(
             r === 'nudity_detected'
@@ -137,6 +154,9 @@ function NewPostDrawer({ open, onClose, onPosted }: {
           return;
         }
         if (!scanRes.ok) {
+          if (uploadedPath) {
+            await supabaseClient.storage.from('post-images').remove([uploadedPath]);
+          }
           showToast(scanJson.error ?? 'Image check failed', 'error');
           setIsSubmitting(false);
           setUploadProgress('idle');
@@ -145,19 +165,6 @@ function NewPostDrawer({ open, onClose, onPosted }: {
         if (scanJson.skipped) {
           moderationStatus = 'pending_no_engine';
         }
-      }
-
-      // Step 2: upload image if present
-      if (imageFile && supabaseClient) {
-        setUploadProgress('uploading');
-        const ext = imageFile.name.split('.').pop();
-        const path = `${user.id}/${Date.now()}.${ext}`;
-        const { error: uploadError } = await supabaseClient.storage
-          .from('post-images')
-          .upload(path, imageFile, { upsert: true });
-        if (uploadError) throw uploadError;
-        const { data: urlData } = supabaseClient.storage.from('post-images').getPublicUrl(path);
-        imageUrl = urlData.publicUrl;
       }
 
       const userName = snapshotPublicIdentity(profile ?? undefined, user);
@@ -217,7 +224,11 @@ function NewPostDrawer({ open, onClose, onPosted }: {
       onPosted?.();
       onClose();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Unknown error';
+      let msg = err instanceof Error ? err.message : 'Unknown error';
+      if (/failed to fetch/i.test(msg)) {
+        msg =
+          'Network error while posting (check connection). If it keeps happening, confirm Storage bucket post-images exists and Supabase URL is correct.';
+      }
       showToast(`Failed to post: ${msg}`, 'error');
     } finally {
       setIsSubmitting(false);
