@@ -1,6 +1,6 @@
 /**
- * Direct Sightengine upload (Node). Production posts use Supabase Edge `scan-upload` instead;
- * this helper remains useful for scripts/tests.
+ * Sightengine image scan (Node). Same models/thresholds as
+ * `supabase/functions/scan-upload` Edge Function.
  * https://sightengine.com/docs/nsfw-detection
  */
 
@@ -8,25 +8,32 @@ export interface ScanResult {
   ok: boolean;
   skipped: boolean;
   reason?: string;
-  rawScores?: Record<string, unknown>;
+  moderation_scores?: Record<string, unknown>;
 }
+
+const MODELS = 'nudity-2,gore-2,weapon-2,alcohol-2,drugs-2';
 
 export async function scanImageBuffer(buf: Buffer, mime: string): Promise<ScanResult> {
   const user = process.env.SIGHTENGINE_API_USER?.trim();
   const secret = process.env.SIGHTENGINE_API_SECRET?.trim();
 
   if (!user || !secret) {
-    return { ok: true, skipped: true, reason: 'moderation_not_configured' };
+    return {
+      ok: true,
+      skipped: true,
+      reason: 'moderation_not_configured',
+      moderation_scores: undefined,
+    };
   }
 
   const form = new FormData();
-  form.set('api_user', user);
-  form.set('api_secret', secret);
-  form.set('models', 'nudity');
-  const file = new File([new Uint8Array(buf)], 'upload.jpg', {
+  form.append('api_user', user);
+  form.append('api_secret', secret);
+  form.append('models', MODELS);
+  const upload = new File([new Uint8Array(buf)], 'upload.jpg', {
     type: mime || 'image/jpeg',
   });
-  form.set('media', file);
+  form.append('media', upload);
 
   const res = await fetch('https://api.sightengine.com/1.0/check.json', {
     method: 'POST',
@@ -34,36 +41,37 @@ export async function scanImageBuffer(buf: Buffer, mime: string): Promise<ScanRe
   });
 
   const json = (await res.json()) as Record<string, unknown>;
-
   const errObj = json.error as { message?: string } | undefined;
+
   if (!res.ok || json.status === 'failure') {
     return {
       ok: false,
       skipped: false,
       reason: String(errObj?.message ?? json.error ?? 'sightengine_error'),
-      rawScores: json,
+      moderation_scores: json,
     };
   }
 
-  const nudity = json.nudity as Record<string, number> | undefined;
-  if (!nudity) {
-    return { ok: true, skipped: false, rawScores: json };
-  }
+  const nudity = Number((json.nudity as Record<string, unknown> | undefined)?.raw ?? 0);
+  const gore = Number((json.gore as Record<string, unknown> | undefined)?.prob ?? 0);
+  const weapons = Number((json.weapon as Record<string, unknown> | undefined)?.prob ?? 0);
+  const alcohol = Number((json.alcohol as Record<string, unknown> | undefined)?.prob ?? 0);
+  const drugs = Number((json.drugs as Record<string, unknown> | undefined)?.prob ?? 0);
 
-  const raw = nudity.raw ?? 0;
-  const partial = nudity.partial ?? 0;
-  const sexual = nudity.sexual_activity ?? nudity.sexual ?? 0;
+  const isNSFW =
+    nudity > 0.5 || gore > 0.5 || weapons > 0.5 || alcohol > 0.5 || drugs > 0.5;
 
-  const blockScore = Math.max(raw, partial * 0.85, sexual * 0.9);
-
-  if (blockScore > 0.82) {
+  if (isNSFW) {
+    let reason = 'content_policy';
+    if (nudity > 0.5) reason = 'nudity_detected';
+    else if (gore > 0.5) reason = 'gore_detected';
     return {
       ok: false,
       skipped: false,
-      reason: 'nudity_detected',
-      rawScores: json,
+      reason,
+      moderation_scores: json,
     };
   }
 
-  return { ok: true, skipped: false, rawScores: json };
+  return { ok: true, skipped: false, moderation_scores: json };
 }

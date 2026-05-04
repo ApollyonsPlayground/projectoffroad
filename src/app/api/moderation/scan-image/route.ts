@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { scanImageBuffer } from '@/lib/moderation/sightengine';
 
 export const runtime = 'nodejs';
 
@@ -18,7 +19,12 @@ function scanEdgeSlug(): string {
 
 /**
  * POST multipart/form-data with field "file" — requires logged-in user.
- * Proxies to Supabase Edge Function `scan-upload` so Sightengine keys stay on Supabase only.
+ *
+ * Order:
+ * 1. If `SIGHTENGINE_API_USER` + `SIGHTENGINE_API_SECRET` are set on this server (e.g. Vercel),
+ *    scan with Sightengine here — keys on Supabase Edge are not required for that path.
+ * 2. Otherwise proxy to Supabase Edge Function `scan-upload` (keys in Supabase secrets).
+ *
  * Returns { ok, skipped?, reason?, moderation_scores? }
  */
 export async function POST(request: NextRequest) {
@@ -52,6 +58,36 @@ export async function POST(request: NextRequest) {
   }
 
   const mime = file.type || 'image/jpeg';
+
+  const sightUser = process.env.SIGHTENGINE_API_USER?.trim();
+  const sightSecret = process.env.SIGHTENGINE_API_SECRET?.trim();
+  if (sightUser && sightSecret) {
+    const scan = await scanImageBuffer(buf, mime);
+    if (scan.skipped) {
+      return NextResponse.json({
+        ok: true,
+        skipped: true,
+        moderation_scores: null,
+        reason: scan.reason ?? 'moderation_not_configured',
+      });
+    }
+    if (!scan.ok) {
+      return NextResponse.json(
+        {
+          ok: false,
+          reason: scan.reason,
+          moderation_scores: scan.moderation_scores,
+        },
+        { status: 422 },
+      );
+    }
+    return NextResponse.json({
+      ok: true,
+      skipped: false,
+      moderation_scores: scan.moderation_scores,
+    });
+  }
+
   const forward = new FormData();
   forward.append('file', new Blob([buf], { type: mime }), 'upload');
 
