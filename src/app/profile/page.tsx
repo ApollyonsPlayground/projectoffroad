@@ -408,6 +408,11 @@ export default function ProfilePage() {
         .update({ avatar_url: urlData.publicUrl })
         .eq('id', user.id);
       if (dbError) throw dbError;
+      // Keep JWT user_metadata in sync so fallbacks (feed, run chat, etc.) don’t show Google’s old picture.
+      const { error: authErr } = await supabaseClient.auth.updateUser({
+        data: { avatar_url: urlData.publicUrl },
+      });
+      if (authErr) console.warn('[profile] auth.updateUser avatar:', authErr.message);
       setLocalAvatarUrl(publicUrl);
       // Refresh the AuthContext profile so the new avatar propagates app-wide
       // without requiring a manual page reload.

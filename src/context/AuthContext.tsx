@@ -3,17 +3,19 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 import type { User, SupabaseClient } from '@supabase/supabase-js'
 import { createBrowserSupabaseClient } from '@/utils/supabase/client'
+import { ensureStoragePublicObjectUrl } from '@/lib/supabase/storagePublicUrl'
 
 const supabase = createBrowserSupabaseClient()
 
-/** True when `avatar_url` points at our public `avatars` bucket (custom upload). */
-function isSupabaseHostedAvatar(
-  avatarUrl: string | null | undefined,
-  supabasePublicUrl: string | undefined,
-): boolean {
-  if (!avatarUrl || !supabasePublicUrl) return false
-  const base = supabasePublicUrl.replace(/\/$/, '')
-  return avatarUrl.includes(`${base}/storage/v1/object/public/avatars/`)
+/**
+ * True when `avatar_url` is an object in our Storage `avatars` bucket (profile upload).
+ * We match on the path, not the hostname: OAuth sync used to overwrite uploads whenever
+ * NEXT_PUBLIC_SUPABASE_URL didn’t exactly match the URL returned by `getPublicUrl`.
+ */
+function isAppManagedProfilePhoto(avatarUrl: string | null | undefined): boolean {
+  if (!avatarUrl || typeof avatarUrl !== 'string') return false
+  const normalized = ensureStoragePublicObjectUrl(avatarUrl.trim()) || avatarUrl.trim()
+  return normalized.includes('/storage/v1/object/public/avatars/')
 }
 
 // profile is Record<string,unknown> but always contains at least { role?: string }
@@ -101,8 +103,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const avatar_url = (session.user.user_metadata?.avatar_url as string) || null
 
-      const supabasePublicUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-
       const { data: existing, error: selErr } = await supabase
         .from('users')
         .select('id, sync_display_name_from_google, avatar_url')
@@ -127,7 +127,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             .maybeSingle()
           const raceAvatar = raceRow?.avatar_url ?? null
           const racePatch: Record<string, unknown> = { email }
-          if (!isSupabaseHostedAvatar(raceAvatar, supabasePublicUrl)) {
+          if (!isAppManagedProfilePhoto(raceAvatar)) {
             racePatch.avatar_url = avatar_url
           }
           const { error: raceUpd } = await supabase.from('users').update(racePatch).eq('id', userId)
@@ -137,7 +137,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       } else {
         const storedAvatar = (existing as { avatar_url?: string | null }).avatar_url ?? null
-        const customLocked = isSupabaseHostedAvatar(storedAvatar, supabasePublicUrl)
+        const customLocked = isAppManagedProfilePhoto(storedAvatar)
 
         const patch: Record<string, unknown> = { email }
         if (!customLocked) {

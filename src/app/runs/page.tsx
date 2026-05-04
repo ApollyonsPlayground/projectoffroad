@@ -15,6 +15,7 @@ import {
   X,
   Flag,
   Shield,
+  Radio,
 } from 'lucide-react';
 
 import Link from 'next/link';
@@ -38,6 +39,7 @@ interface Run {
   difficulty: string;
   max_participants: number | null;
   vehicle_requirements?: string | null;
+  comms_note?: string | null;
   status: string;
   club_id?: string | null;
   trail_id?: string | null;
@@ -261,6 +263,12 @@ function RunCard({
               {isFull && ' · Full'}
             </span>
           </div>
+          {run.comms_note && String(run.comms_note).trim() && (
+            <div className="flex items-start gap-2 text-[13px]">
+              <Radio size={13} className="text-cyan-400 flex-shrink-0 mt-0.5" />
+              <span className="text-zinc-300 leading-snug break-words">{run.comms_note}</span>
+            </div>
+          )}
         </div>
 
         {/* Actions */}

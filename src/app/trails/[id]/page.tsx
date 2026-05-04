@@ -19,6 +19,7 @@ import {
   Users,
   ChevronRight,
   BadgeCheck,
+  StickyNote,
 } from 'lucide-react';
 import Link from 'next/link';
 import BottomNav from '@/components/BottomNav';
@@ -29,6 +30,15 @@ import { applyCatalogTrailLinks } from '@/lib/trails/staticTrailLinks';
 import { useSavedTrailIds } from '@/lib/hooks/useSavedTrailIds';
 
 type Trail = ExplorerTrail;
+
+interface TrailTripNoteRow {
+  id: string;
+  body: string;
+  created_at: string;
+  run_id: string;
+  runs?: { title: string; date: string } | null;
+  users?: { name: string | null } | null;
+}
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -67,6 +77,7 @@ export default function TrailDetailPage() {
   const [imageError, setImageError] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [tripNotes, setTripNotes] = useState<TrailTripNoteRow[]>([]);
 
   useEffect(() => {
     if (!id || typeof id !== 'string') return;
@@ -116,6 +127,35 @@ export default function TrailDetailPage() {
   }, [id, supabaseClient, isConfigured]);
 
   const trailId = typeof id === 'string' ? id : '';
+
+  useEffect(() => {
+    if (!trailId || !supabaseClient || !isConfigured) {
+      setTripNotes([]);
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      const attempts = [
+        'id, body, created_at, run_id, runs(title, date), users(name)',
+        'id, body, created_at, run_id, users(name)',
+      ];
+      for (const sel of attempts) {
+        const { data, error } = await supabaseClient
+          .from('run_reflections')
+          .select(sel)
+          .eq('trail_id', trailId)
+          .order('created_at', { ascending: false })
+          .limit(40);
+        if (!error && data != null && !cancelled) {
+          setTripNotes(data as TrailTripNoteRow[]);
+          break;
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [trailId, supabaseClient, isConfigured]);
   const isSaved = trailId ? savedIds.has(trailId) : false;
 
   const handleSave = useCallback(async () => {
@@ -304,6 +344,49 @@ export default function TrailDetailPage() {
           <h3 className="text-[12px] font-bold text-zinc-500 uppercase tracking-wider mb-2">About this Trail</h3>
           <p className="text-[14px] text-zinc-300 leading-relaxed">{trail.description}</p>
         </div>
+
+        {/* Trip notes from completed runs */}
+        {tripNotes.length > 0 && (
+          <div className="px-4 py-4 border-b border-zinc-900">
+            <h3 className="text-[12px] font-bold text-zinc-500 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+              <StickyNote size={14} className="text-orange-500" />
+              Recent trip notes
+            </h3>
+            <p className="text-[12px] text-zinc-600 mb-3 leading-relaxed">
+              Pulled from completed group runs on this trail — riders sharing conditions and pacing, not ratings.
+            </p>
+            <ul className="space-y-3">
+              {tripNotes.map((n) => (
+                <li
+                  key={n.id}
+                  className="rounded-xl border border-zinc-800 bg-zinc-950/80 px-3 py-3"
+                >
+                  <p className="text-[11px] text-zinc-500 mb-1.5">
+                    <span className="text-zinc-300 font-semibold">{n.users?.name ?? 'Rider'}</span>
+                    <span className="text-zinc-600 mx-1">·</span>
+                    {n.runs?.title ? (
+                      <Link
+                        href={`/runs/${n.run_id}`}
+                        className="text-orange-400/95 hover:text-orange-300 font-medium"
+                      >
+                        {n.runs.title}
+                      </Link>
+                    ) : (
+                      <span className="text-zinc-500">Past run</span>
+                    )}
+                    <span className="text-zinc-600 mx-1">·</span>
+                    {new Date(n.created_at).toLocaleDateString('en-US', {
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric',
+                    })}
+                  </p>
+                  <p className="text-[14px] text-zinc-200 leading-relaxed whitespace-pre-wrap">{n.body}</p>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         {/* Rig Requirements */}
         {trail.rigRequirements && (
