@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -30,10 +30,21 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import BottomNav from '@/components/BottomNav';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/Toast';
 import { snapshotPublicIdentity } from '@/lib/profileDisplay';
+import type { RunLiveMapParticipant } from '@/components/RunLiveMap';
+
+const RunLiveMap = dynamic(() => import('@/components/RunLiveMap'), {
+  ssr: false,
+  loading: () => (
+    <div className="h-[min(320px,55dvh)] flex items-center justify-center bg-zinc-900 border border-zinc-800 rounded-2xl">
+      <Loader2 className="animate-spin text-orange-500" size={24} />
+    </div>
+  ),
+});
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -651,6 +662,28 @@ export default function RunDetailPage() {
   const stagingDirectionsUrl = runStagingDirectionsUrl(run);
   const hasDirections = !!(trailDirectionsUrl || stagingDirectionsUrl);
 
+  const liveMapReference =
+    (() => {
+      const lat = run.meetup_latitude != null ? Number(run.meetup_latitude) : NaN;
+      const lng = run.meetup_longitude != null ? Number(run.meetup_longitude) : NaN;
+      if (!Number.isNaN(lat) && !Number.isNaN(lng)) return { lat, lng };
+      return coordsFromTrailEmbed(run.trail);
+    })();
+
+  const liveMapParticipants = useMemo((): RunLiveMapParticipant[] => {
+    const base: RunLiveMapParticipant[] = participants.map((p) => ({
+      user_id: p.user_id,
+      users: p.users ? { name: p.users.name } : null,
+    }));
+    if (run.host_id && !participants.some((p) => p.user_id === run.host_id)) {
+      base.push({
+        user_id: run.host_id,
+        users: { name: hostProfile?.name ?? 'Organizer' },
+      });
+    }
+    return base;
+  }, [participants, run.host_id, hostProfile?.name]);
+
   return (
     <div className="min-h-screen bg-black pb-28">
       {/* ── Back header ─────────────────────────────────────────────────── */}
@@ -937,6 +970,24 @@ export default function RunDetailPage() {
             </div>
           )}
         </motion.div>
+
+        {/* ── Live map (active run — host + joined riders) ───────────────── */}
+        {run.status === 'active' && canUseRunChat && supabaseClient && (
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.06 }}
+          >
+            <RunLiveMap
+              supabaseClient={supabaseClient}
+              runId={run.id}
+              user={user}
+              participants={liveMapParticipants}
+              referencePoint={liveMapReference}
+              onToast={showToast}
+            />
+          </motion.div>
+        )}
 
         {/* ── Live SOS Alerts ───────────────────────────────────────────── */}
         <AnimatePresence>
