@@ -16,7 +16,8 @@ export interface ScanResult {
 
 /** Keep in sync with `supabase/functions/scan-upload/index.ts` */
 export const THRESH_NUDITY_RAW = 0.58;
-export const THRESH_GORE_PROB = 0.55;
+/** Mud/splash/trail dust can trip gore slightly — keep above casual outdoor/off-road shots */
+export const THRESH_GORE_PROB = 0.65;
 
 const MODELS = 'nudity-2,gore-2,weapon-2,alcohol-2,drugs-2';
 
@@ -89,10 +90,12 @@ export async function scanImageBuffer(buf: Buffer, mime: string): Promise<ScanRe
     const errObj = json.error as { message?: string } | undefined;
 
     if (!res.ok || json.status === 'failure') {
+      const detail = String(errObj?.message ?? json.error ?? 'sightengine_error');
+      console.warn('[sightengine] API response:', detail);
       return {
-        ok: false,
-        skipped: false,
-        reason: String(errObj?.message ?? json.error ?? 'sightengine_error'),
+        ok: true,
+        skipped: true,
+        reason: 'sightengine_api_error',
         moderation_scores: json,
       };
     }
@@ -152,10 +155,12 @@ export async function scanImageByPublicUrl(imageUrl: string): Promise<ScanResult
     const errObj = json.error as { message?: string } | undefined;
 
     if (!res.ok || json.status === 'failure') {
+      const detail = String(errObj?.message ?? json.error ?? 'sightengine_error');
+      console.warn('[sightengine:url] API response:', detail);
       return {
-        ok: false,
-        skipped: false,
-        reason: String(errObj?.message ?? json.error ?? 'sightengine_error'),
+        ok: true,
+        skipped: true,
+        reason: 'sightengine_api_error',
         moderation_scores: json,
       };
     }

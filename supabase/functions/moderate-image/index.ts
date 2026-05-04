@@ -68,7 +68,7 @@ serve(async (req) => {
 
     // Same gate as scan-upload / sightengine.ts — weapon false-flags trucks; don't auto-flag on it.
     const THRESH_NUDITY_RAW = 0.58
-    const THRESH_GORE_PROB = 0.55
+    const THRESH_GORE_PROB = 0.65
 
     const nudity = result.nudity?.raw ?? 0
     const gore = result.gore?.prob ?? 0

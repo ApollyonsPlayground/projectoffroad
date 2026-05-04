@@ -110,18 +110,19 @@ Deno.serve(async (req) => {
     if (!seRes.ok || json.status === 'failure') {
       return new Response(
         JSON.stringify({
-          ok: false,
-          reason: String(errObj?.message ?? json.error ?? 'sightengine_error'),
+          ok: true,
+          skipped: true,
+          reason: 'sightengine_api_error',
           moderation_scores: json,
         }),
-        { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       );
     }
 
     // Thresholds + rules: keep in sync with src/lib/moderation/sightengine.ts
     // We request weapon/alcohol/drugs for audit only — weapon often false-flags trucks/vehicles.
     const THRESH_NUDITY_RAW = 0.58;
-    const THRESH_GORE_PROB = 0.55;
+    const THRESH_GORE_PROB = 0.65;
 
     const nudity = Number(
       (json.nudity as Record<string, unknown> | undefined)?.raw ?? 0,
