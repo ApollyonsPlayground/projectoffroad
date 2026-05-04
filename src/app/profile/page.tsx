@@ -38,6 +38,7 @@ import {
   fetchPostsByIds,
   fetchSavedPostIdsRecent,
 } from '@/lib/supabase/resilientSocial';
+import { ensureStoragePublicObjectUrl } from '@/lib/supabase/storagePublicUrl';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -73,9 +74,12 @@ interface Post {
 
 function normalizeProfilePost(p: Record<string, unknown>): Post {
   const text = String(p.body ?? p.content ?? p.caption ?? '');
+  const rawImg = (p.image_url as string) ?? undefined;
   return {
     id: String(p.id),
-    image_url: (p.image_url as string) ?? undefined,
+    image_url: rawImg
+      ? ensureStoragePublicObjectUrl(rawImg) || rawImg
+      : undefined,
     body: text,
     caption: String(p.caption ?? text),
     likes_count: Number(p.likes_count ?? p.likes ?? 0),

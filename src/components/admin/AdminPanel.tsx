@@ -22,6 +22,7 @@ import {
 import { motion } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/Toast';
+import { ensureStoragePublicObjectUrl } from '@/lib/supabase/storagePublicUrl';
 
 type Tab = 'overview' | 'clubs' | 'posts' | 'users';
 type ClubFilter = 'all' | 'verified' | 'pending';
@@ -485,7 +486,11 @@ export function AdminPanel({ variant, onCloseDrawer }: Props) {
                 </div>
                 <p className="text-[14px] text-zinc-200 whitespace-pre-wrap break-words">{p.body}</p>
                 {p.image_url && (
-                  <img src={p.image_url} alt="" className="rounded-lg max-h-40 object-cover w-full border border-zinc-800" />
+                  <img
+                    src={ensureStoragePublicObjectUrl(p.image_url) || p.image_url}
+                    alt=""
+                    className="rounded-lg max-h-40 object-cover w-full border border-zinc-800"
+                  />
                 )}
                 <div className="flex gap-2 pt-2">
                   <button

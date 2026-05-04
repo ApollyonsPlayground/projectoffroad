@@ -47,6 +47,7 @@ import {
   resolvePublicDisplayName,
   snapshotPublicIdentity,
 } from '@/lib/profileDisplay';
+import { ensureStoragePublicObjectUrl } from '@/lib/supabase/storagePublicUrl';
 
 // ─── NewPostDrawer ─────────────────────────────────────────────────────────────
 
@@ -1205,7 +1206,9 @@ function RigPostCard({ post, index }: {
         caption: '',
         content: '',
         body: '',
-        image_url: post.image_url ?? null,
+        image_url: post.image_url
+          ? ensureStoragePublicObjectUrl(post.image_url) || post.image_url
+          : null,
         rig_model: null,
         rig_name: null,
         repost_of_id: canonicalPostId,
@@ -1551,7 +1554,7 @@ function RigPostCard({ post, index }: {
           {post.image_url && (
             <div className="relative mb-3 rounded-xl overflow-hidden border border-zinc-800 bg-zinc-950 group cursor-zoom-in">
               <img
-                src={post.image_url}
+                src={ensureStoragePublicObjectUrl(post.image_url) || post.image_url}
                 alt={post.caption}
                 className="w-full object-cover"
                 loading="lazy"
@@ -1730,7 +1733,7 @@ function RigPostCard({ post, index }: {
       <AnimatePresence>
         {lightboxOpen && post.image_url && (
           <ImageLightbox
-            src={post.image_url}
+            src={ensureStoragePublicObjectUrl(post.image_url) || post.image_url}
             alt={post.caption}
             onClose={() => setLightboxOpen(false)}
           />
@@ -2232,10 +2235,14 @@ export default function HomePage() {
         const mergedBody = String(
           displaySrc.body ?? displaySrc.content ?? displaySrc.caption ?? ''
         );
-        const mergedImage =
+        const mergedImageRaw =
           displaySrc.image_url != null && String(displaySrc.image_url).trim()
             ? displaySrc.image_url
             : p.image_url;
+        const mergedImage =
+          mergedImageRaw != null && String(mergedImageRaw).trim()
+            ? ensureStoragePublicObjectUrl(String(mergedImageRaw)) || String(mergedImageRaw)
+            : undefined;
         const mergedRig =
           (displaySrc.rig_model as string | null | undefined) ||
           (displaySrc.rig_name as string | null | undefined) ||

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Award, Plus } from 'lucide-react';
 import Link from 'next/link';
 import { supabase } from '@/lib/db/supabase';
+import { ensureStoragePublicObjectUrl } from '@/lib/supabase/storagePublicUrl';
 
 interface FeaturedRig {
   id: string;
@@ -35,7 +36,8 @@ export default function FeaturedRigs() {
         // Map to FeaturedRig format - handle both JSON and text vehicle
         const mapped = (data || []).map((post: any) => ({
           id: post.id,
-          image_url: post.image_url,
+          image_url:
+            ensureStoragePublicObjectUrl(post.image_url) || post.image_url,
           user_name: post.user_name,
           vehicle: post.rig_specs?.vehicle || post.rig_specs || 'Offroad Rig'
         }));

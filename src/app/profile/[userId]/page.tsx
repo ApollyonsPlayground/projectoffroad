@@ -13,6 +13,7 @@ import {
   fetchPostsByIds,
   fetchSavedPostIdsRecent,
 } from '@/lib/supabase/resilientSocial';
+import { ensureStoragePublicObjectUrl } from '@/lib/supabase/storagePublicUrl';
 
 type Tab = 'posts' | 'reposts' | 'liked' | 'favorites';
 
@@ -25,9 +26,12 @@ interface PostRow {
 }
 
 function normalizePostRow(p: Record<string, unknown>): PostRow {
+  const raw = (p.image_url as string) ?? undefined;
   return {
     id: String(p.id),
-    image_url: (p.image_url as string) ?? undefined,
+    image_url: raw
+      ? ensureStoragePublicObjectUrl(raw) || raw
+      : undefined,
     body: String(p.body ?? p.content ?? p.caption ?? ''),
     created_at: String(p.created_at ?? ''),
     repost_of_id: (p.repost_of_id as string | null | undefined) ?? null,
