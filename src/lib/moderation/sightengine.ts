@@ -2,6 +2,9 @@
  * Sightengine image scan (Node). Same models/thresholds as
  * `supabase/functions/scan-upload` Edge Function.
  * https://sightengine.com/docs/nsfw-detection
+ *
+ * We still *request* weapon/alcohol/drugs scores for visibility/audit, but we do **not**
+ * auto-reject on them: the weapon model often false-flags trucks, tools, and machinery.
  */
 
 export interface ScanResult {
@@ -11,7 +14,25 @@ export interface ScanResult {
   moderation_scores?: Record<string, unknown>;
 }
 
+/** Keep in sync with `supabase/functions/scan-upload/index.ts` */
+export const THRESH_NUDITY_RAW = 0.58;
+export const THRESH_GORE_PROB = 0.55;
+
 const MODELS = 'nudity-2,gore-2,weapon-2,alcohol-2,drugs-2';
+
+export type BlockReason = 'nudity_detected' | 'gore_detected';
+
+/** Upload gate: only nudity + gore (not weapon — vehicle/truck false positives). */
+export function shouldBlockCommunityImage(json: Record<string, unknown>): {
+  block: boolean;
+  reason?: BlockReason;
+} {
+  const nudity = Number((json.nudity as Record<string, unknown> | undefined)?.raw ?? 0);
+  const gore = Number((json.gore as Record<string, unknown> | undefined)?.prob ?? 0);
+  if (nudity > THRESH_NUDITY_RAW) return { block: true, reason: 'nudity_detected' };
+  if (gore > THRESH_GORE_PROB) return { block: true, reason: 'gore_detected' };
+  return { block: false };
+}
 
 export async function scanImageBuffer(buf: Buffer, mime: string): Promise<ScanResult> {
   const user = process.env.SIGHTENGINE_API_USER?.trim();
@@ -52,19 +73,8 @@ export async function scanImageBuffer(buf: Buffer, mime: string): Promise<ScanRe
     };
   }
 
-  const nudity = Number((json.nudity as Record<string, unknown> | undefined)?.raw ?? 0);
-  const gore = Number((json.gore as Record<string, unknown> | undefined)?.prob ?? 0);
-  const weapons = Number((json.weapon as Record<string, unknown> | undefined)?.prob ?? 0);
-  const alcohol = Number((json.alcohol as Record<string, unknown> | undefined)?.prob ?? 0);
-  const drugs = Number((json.drugs as Record<string, unknown> | undefined)?.prob ?? 0);
-
-  const isNSFW =
-    nudity > 0.5 || gore > 0.5 || weapons > 0.5 || alcohol > 0.5 || drugs > 0.5;
-
-  if (isNSFW) {
-    let reason = 'content_policy';
-    if (nudity > 0.5) reason = 'nudity_detected';
-    else if (gore > 0.5) reason = 'gore_detected';
+  const { block, reason } = shouldBlockCommunityImage(json);
+  if (block && reason) {
     return {
       ok: false,
       skipped: false,

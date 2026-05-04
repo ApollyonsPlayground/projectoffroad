@@ -66,15 +66,17 @@ serve(async (req) => {
     const result = await sightengineResponse.json()
     console.log("Sightengine result:", JSON.stringify(result))
 
-    // Check for NSFW content
+    // Same gate as scan-upload / sightengine.ts — weapon false-flags trucks; don't auto-flag on it.
+    const THRESH_NUDITY_RAW = 0.58
+    const THRESH_GORE_PROB = 0.55
+
     const nudity = result.nudity?.raw ?? 0
     const gore = result.gore?.prob ?? 0
     const weapons = result.weapon?.prob ?? 0
     const alcohol = result.alcohol?.prob ?? 0
     const drugs = result.drugs?.prob ?? 0
 
-    // Threshold: flag if any category exceeds 0.5
-    const isNSFW = nudity > 0.5 || gore > 0.5 || weapons > 0.5 || alcohol > 0.5 || drugs > 0.5
+    const isNSFW = nudity > THRESH_NUDITY_RAW || gore > THRESH_GORE_PROB
 
     if (isNSFW) {
       console.log(`Post ${record.id} flagged as NSFW`)

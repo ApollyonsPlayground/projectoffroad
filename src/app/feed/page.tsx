@@ -123,10 +123,13 @@ function NewPostDrawer({ open, onClose, onPosted }: {
         });
         const scanJson = await scanRes.json().catch(() => ({}));
         if (scanRes.status === 422) {
+          const r = scanJson.reason as string | undefined;
           showToast(
-            scanJson.reason === 'nudity_detected'
+            r === 'nudity_detected'
               ? 'That image was blocked by the safety filter.'
-              : 'Image did not pass safety check.',
+              : r === 'gore_detected'
+                ? 'That image was blocked (graphic content).'
+                : 'Image did not pass safety check.',
             'error'
           );
           setIsSubmitting(false);

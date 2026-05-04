@@ -118,33 +118,23 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Thresholds + rules: keep in sync with src/lib/moderation/sightengine.ts
+    // We request weapon/alcohol/drugs for audit only — weapon often false-flags trucks/vehicles.
+    const THRESH_NUDITY_RAW = 0.58;
+    const THRESH_GORE_PROB = 0.55;
+
     const nudity = Number(
       (json.nudity as Record<string, unknown> | undefined)?.raw ?? 0,
     );
     const gore = Number(
       (json.gore as Record<string, unknown> | undefined)?.prob ?? 0,
     );
-    const weapons = Number(
-      (json.weapon as Record<string, unknown> | undefined)?.prob ?? 0,
-    );
-    const alcohol = Number(
-      (json.alcohol as Record<string, unknown> | undefined)?.prob ?? 0,
-    );
-    const drugs = Number(
-      (json.drugs as Record<string, unknown> | undefined)?.prob ?? 0,
-    );
 
-    const isNSFW =
-      nudity > 0.5 ||
-      gore > 0.5 ||
-      weapons > 0.5 ||
-      alcohol > 0.5 ||
-      drugs > 0.5;
+    const blockNudity = nudity > THRESH_NUDITY_RAW;
+    const blockGore = gore > THRESH_GORE_PROB;
 
-    if (isNSFW) {
-      let reason = 'content_policy';
-      if (nudity > 0.5) reason = 'nudity_detected';
-      else if (gore > 0.5) reason = 'gore_detected';
+    if (blockNudity || blockGore) {
+      const reason = blockNudity ? 'nudity_detected' : 'gore_detected';
       return new Response(
         JSON.stringify({
           ok: false,
