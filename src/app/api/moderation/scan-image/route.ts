@@ -58,16 +58,71 @@ export async function POST(request: NextRequest) {
   const base = url.replace(/\/+$/, '');
   const edgeUrl = `${base}/functions/v1/${scanEdgeSlug()}`;
 
-  const edgeRes = await fetch(edgeUrl, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      apikey: anonKey,
-    },
-    body: forward,
-  });
+  let edgeRes: Response;
+  try {
+    edgeRes = await fetch(edgeUrl, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        apikey: anonKey,
+      },
+      body: forward,
+    });
+  } catch {
+    // Edge Function offline / DNS — same as optional Sightengine (feed treats skipped → pending_no_engine).
+    return NextResponse.json({
+      ok: true,
+      skipped: true,
+      moderation_scores: null,
+      reason: 'scan_service_unreachable',
+    });
+  }
 
-  const payload = await edgeRes.json().catch(() => ({}));
+  const rawText = await edgeRes.text();
+  let payload: Record<string, unknown> = {};
+  try {
+    payload = rawText ? (JSON.parse(rawText) as Record<string, unknown>) : {};
+  } catch {
+    payload = {};
+  }
+
+  if (!edgeRes.ok) {
+    const status = edgeRes.status;
+    const hasMessage =
+      typeof payload.error === 'string' ||
+      typeof payload.reason === 'string';
+    const emptyBody = rawText.trim().length === 0;
+
+    // Undeployed Edge Function (HTML 404) or gateway errors — don’t block posting.
+    if (
+      status === 404 ||
+      status === 502 ||
+      status === 503 ||
+      status === 504 ||
+      (status >= 500 && status < 600 && !hasMessage && emptyBody)
+    ) {
+      return NextResponse.json({
+        ok: true,
+        skipped: true,
+        moderation_scores: null,
+        reason: 'scan_service_unavailable',
+      });
+    }
+
+    const fallback =
+      typeof payload.error === 'string'
+        ? payload.error
+        : typeof payload.reason === 'string'
+          ? payload.reason
+          : status === 400
+            ? 'Invalid image upload (try another photo or format).'
+            : `Image check failed (${status})`;
+
+    return NextResponse.json(
+      { ...payload, error: fallback },
+      { status: edgeRes.status },
+    );
+  }
 
   return NextResponse.json(payload, { status: edgeRes.status });
 }

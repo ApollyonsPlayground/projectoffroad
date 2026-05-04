@@ -63,20 +63,24 @@ Deno.serve(async (req) => {
       );
     }
 
-    const contentType = req.headers.get('content-type') ?? '';
-    if (!contentType.includes('multipart/form-data')) {
-      return new Response(
-        JSON.stringify({ error: 'Expected multipart form data' }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        },
-      );
+    let form: FormData;
+    try {
+      form = await req.formData();
+    } catch {
+      return new Response(JSON.stringify({ error: 'Expected multipart form data' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
-    const form = await req.formData();
-    const file = form.get('file');
-    if (!(file instanceof File) || file.size === 0) {
+    const rawFile = form.get('file');
+    const file =
+      rawFile instanceof File
+        ? rawFile
+        : rawFile instanceof Blob
+          ? rawFile
+          : null;
+    if (!file || file.size === 0) {
       return new Response(JSON.stringify({ error: 'Missing file field' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
