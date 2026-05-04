@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
+import { ThemeSync } from "@/components/ThemeSync";
 import { ViewTransitions } from "@/components/ViewTransitions";
 import { ToastProvider } from "@/components/Toast";
 import ClientGlobalSOS from "@/components/ClientGlobalSOS";
@@ -42,9 +43,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" data-scroll-behavior="smooth" className={`bg-black ${inter.variable}`}>
-      <body className="antialiased bg-black text-foreground min-h-screen font-sans">
+    <html lang="en" data-scroll-behavior="smooth" className={`bg-background ${inter.variable}`}>
+      <body className="antialiased bg-background text-foreground min-h-screen font-sans">
         <AuthProvider>
+          <ThemeSync />
           <ToastProvider>
             <ViewTransitions>
               {children}

@@ -2,11 +2,11 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 /**
  * Native shell loads the Next app from `server.url` (local dev or Vercel).
- * Set CAPACITOR_SERVER_URL for production builds (https://your-app.vercel.app/).
+ * Set CAPACITOR_SERVER_URL for production builds (e.g. https://socaloffroaders.com/).
  * Default http://localhost:3000 matches `npm run dev` for `npx cap run ios|android`.
  */
 const serverUrl =
-  process.env.CAPACITOR_SERVER_URL?.trim() || 'http://localhost:3000';
+  process.env.CAPACITOR_SERVER_URL?.trim() || 'https://socaloffroaders.com/';
 
 const config: CapacitorConfig = {
   appId: 'socaloffroaders.app',

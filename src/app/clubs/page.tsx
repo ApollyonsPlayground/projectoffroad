@@ -2,25 +2,24 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Search, 
-  MapPin, 
-  Users, 
-  Shield, 
+import {
+  Search,
+  MapPin,
+  Users,
+  Shield,
   Star,
   Instagram,
   Globe,
   ChevronDown,
   Plus,
   Navigation,
-  Loader2
+  Loader2,
 } from 'lucide-react';
 import Link from 'next/link';
 import BottomNav from '@/components/BottomNav';
 import { ClubListSkeleton } from '@/components/SkeletonLoader';
 import { supabase, isSupabaseConfigured } from '@/lib/db/supabase';
 import { useAuth } from '@/context/AuthContext';
-import { useToast } from '@/components/Toast';
 
 interface Club {
   id: string;
@@ -42,98 +41,39 @@ interface Club {
   distance?: number;
 }
 
-// Placeholder clubs for demo with lat/lng for proximity sorting
-const placeholderClubs: Club[] = [
-  {
-    id: '1',
-    name: 'SoCal Crawlers',
-    slug: 'socal-crawlers',
-    logo: 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=200&q=80',
-    banner_image: 'https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?w=800&q=80',
-    description: 'Rock crawling enthusiasts tackling the toughest trails in Southern California. Weekly runs and build nights.',
-    location: 'San Bernardino, CA',
-    region: 'Inland Empire',
-    verified: true,
-    premium: true,
-    member_count: 245,
-    website_url: 'https://socalcrawlers.com',
-    instagram_url: 'https://instagram.com/socalcrawlers',
-    lat: 34.1083,
-    lng: -117.2898,
-  },
-  {
-    id: '2',
-    name: 'Desert Runners OC',
-    slug: 'desert-runners-oc',
-    logo: 'https://images.unsplash.com/photo-1544636331-e26879cd4d9b?w=200&q=80',
-    banner_image: 'https://images.unsplash.com/photo-1486870591958-9b9d0d1dda99?w=800&q=80',
-    description: 'Orange County based club specializing in desert runs. Glamis, Ocotillo, and Johnson Valley regulars.',
-    location: 'Irvine, CA',
-    region: 'Orange County',
-    verified: true,
-    premium: false,
-    member_count: 189,
-    instagram_url: 'https://instagram.com/desertrunnersoc',
-    lat: 33.6846,
-    lng: -117.8265,
-  },
-  {
-    id: '3',
-    name: 'Big Bear Wheelers',
-    slug: 'big-bear-wheelers',
-    logo: 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=200&q=80',
-    banner_image: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800&q=80',
-    description: 'Local knowledge of every trail in Holcomb Valley. New members welcome - we run all skill levels.',
-    location: 'Big Bear Lake, CA',
-    region: 'Big Bear',
-    verified: true,
-    premium: false,
-    member_count: 156,
-    website_url: 'https://bigbearwheelers.org',
-    lat: 34.2439,
-    lng: -116.9114,
-  },
-  {
-    id: '4',
-    name: 'Tacoma TRD Club SD',
-    slug: 'tacoma-trd-sd',
-    logo: 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=200&q=80',
-    banner_image: 'https://images.unsplash.com/photo-1472396961693-142e6e269027?w=800&q=80',
-    description: 'Toyota Tacoma owners group focused on overlanding and trail exploration in San Diego county.',
-    location: 'San Diego, CA',
-    region: 'San Diego',
-    verified: false,
-    premium: false,
-    member_count: 98,
-    instagram_url: 'https://instagram.com/tacomatrdsd',
-    lat: 32.7157,
-    lng: -117.1611,
-  },
-  {
-    id: '5',
-    name: 'LA Overland Collective',
-    slug: 'la-overland-collective',
-    banner_image: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=800&q=80',
-    description: 'Multi-day overland trips and camping adventures. RTT enthusiasts and adventure seekers.',
-    location: 'Los Angeles, CA',
-    region: 'Los Angeles',
-    verified: false,
-    premium: false,
-    member_count: 134,
-    website_url: 'https://laoverlandcollective.com',
-    instagram_url: 'https://instagram.com/laoverland',
-    lat: 34.0522,
-    lng: -118.2437,
-  },
-];
+function normalizeClubFromDb(row: Record<string, unknown>): Club {
+  const inst = row.instagram_url ?? row.instagram;
+  let instagram_url: string | undefined;
+  if (typeof inst === 'string' && inst.trim().length > 0) {
+    const t = inst.trim();
+    instagram_url = t.startsWith('http') ? t : `https://instagram.com/${t.replace(/^@/, '')}`;
+  }
+  const web = row.website_url ?? row.website;
+  const member_count = typeof row.member_count === 'number' ? row.member_count : undefined;
+
+  return {
+    id: String(row.id ?? ''),
+    name: String(row.name ?? 'Club'),
+    slug: String(row.slug ?? ''),
+    logo: row.logo as string | undefined,
+    banner_image: row.banner_image as string | undefined,
+    description: String(row.description ?? ''),
+    location: String(row.location ?? ''),
+    region: String(row.region ?? 'Other'),
+    verified: Boolean(row.verified),
+    premium: Boolean(row.premium),
+    member_count,
+    website_url: typeof web === 'string' && web.trim() ? web.trim() : undefined,
+    instagram_url,
+    facebook_url: row.facebook_url as string | undefined,
+    lat: typeof row.lat === 'number' ? row.lat : undefined,
+    lng: typeof row.lng === 'number' ? row.lng : undefined,
+  };
+}
 
 const regions = ['All Regions', 'Inland Empire', 'Orange County', 'Big Bear', 'San Diego', 'Los Angeles', 'High Desert'];
 
-function ClubPosterCard({ club, index, onViewClub }: {
-  club: Club;
-  index: number;
-  onViewClub: (club: Club) => void;
-}) {
+function ClubPosterCard({ club, index }: { club: Club; index: number }) {
   return (
     <motion.article
       initial={{ opacity: 0, y: 20 }}
@@ -238,14 +178,12 @@ function ClubPosterCard({ club, index, onViewClub }: {
           )}
         </div>
 
-        {/* View Club Button */}
-        <motion.button
-          whileTap={{ scale: 0.98 }}
-          onClick={() => onViewClub(club)}
-          className="w-full py-3 bg-orange-500 hover:bg-orange-600 text-zinc-950 text-sm font-bold rounded-lg transition-colors"
+        <Link
+          href={`/clubs/${club.id}`}
+          className="block w-full py-3 text-center bg-primary hover:bg-primary/90 text-primary-foreground text-sm font-bold rounded-lg transition-colors"
         >
           View Club
-        </motion.button>
+        </Link>
       </div>
     </motion.article>
   );
@@ -266,12 +204,9 @@ function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: numbe
 
 export default function ClubsPage() {
   const { user } = useAuth();
-  const { showToast } = useToast();
   const [clubs, setClubs] = useState<Club[]>([]);
-
-  const handleViewClub = useCallback((club: Club) => {
-    showToast(`${club.name} club pages are coming soon`, 'info');
-  }, [showToast]);
+  const [fetchFailed, setFetchFailed] = useState(false);
+  const [configMissing, setConfigMissing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRegion, setSelectedRegion] = useState('All Regions');
@@ -307,11 +242,14 @@ export default function ClubsPage() {
   useEffect(() => {
     async function fetchClubs() {
       if (!supabase || !isSupabaseConfigured()) {
-        setClubs(placeholderClubs);
+        setClubs([]);
+        setConfigMissing(true);
+        setFetchFailed(false);
         setIsLoading(false);
         return;
       }
 
+      setConfigMissing(false);
       try {
         const { data, error } = await supabase
           .from('clubs')
@@ -321,10 +259,14 @@ export default function ClubsPage() {
           .order('created_at', { ascending: false });
 
         if (error) throw error;
-        setClubs(data?.length ? data : placeholderClubs);
+        setFetchFailed(false);
+        setClubs(
+          data?.length ? (data as Record<string, unknown>[]).map((row) => normalizeClubFromDb(row)) : []
+        );
       } catch (err) {
         console.error('Error fetching clubs:', err);
-        setClubs(placeholderClubs);
+        setFetchFailed(true);
+        setClubs([]);
       } finally {
         setIsLoading(false);
       }
@@ -381,32 +323,35 @@ export default function ClubsPage() {
   }, [filteredClubs, selectedRegion]);
 
   return (
-    <div className="min-h-screen bg-black">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="sticky top-0 z-50 glass border-b border-zinc-800 safe-top">
+      <header className="sticky top-0 z-50 glass border-b border-border safe-top">
         <div className="px-4 py-3">
-          <div className="flex items-center justify-between mb-3">
-            <h1 className="text-xl font-bold text-white">Clubs</h1>
-            {user && (
-              <Link
-                href="/clubs/create"
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-zinc-950 text-sm font-semibold transition-colors"
-              >
-                <Plus size={16} />
-                Create
-              </Link>
-            )}
+          <div className="flex items-center justify-between gap-2 mb-3">
+            <h1 className="text-xl font-bold text-foreground shrink-0">Clubs</h1>
+            <Link
+              href="/clubs/create"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground text-sm font-semibold transition-colors shrink-0"
+            >
+              <Plus size={16} />
+              Create club
+            </Link>
           </div>
+          {!user && (
+            <p className="text-[11px] text-muted-foreground mb-2 -mt-1">
+              Sign in with Google when prompted — then you&apos;ll land on the form to register your org.
+            </p>
+          )}
 
           {/* Location status */}
           {isLoadingLocation && (
-            <div className="flex items-center gap-1.5 mb-2 text-[11px] text-zinc-500">
+            <div className="flex items-center gap-1.5 mb-2 text-[11px] text-muted-foreground">
               <Loader2 size={11} className="animate-spin text-orange-500" />
               Finding nearby clubs...
             </div>
           )}
           {userLocation && !isLoadingLocation && (
-            <div className="flex items-center gap-1.5 mb-2 text-[11px] text-zinc-500">
+            <div className="flex items-center gap-1.5 mb-2 text-[11px] text-muted-foreground">
               <Navigation size={11} className="text-orange-500" />
               Sorted by distance from you
             </div>
@@ -414,13 +359,13 @@ export default function ClubsPage() {
 
           {/* Search Bar */}
           <div className="relative mb-3">
-            <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
+            <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <input
               type="text"
               placeholder="Search clubs..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-orange-500 transition-colors"
+              className="w-full pl-10 pr-4 py-2.5 bg-card border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-colors"
             />
           </div>
 
@@ -428,7 +373,7 @@ export default function ClubsPage() {
           <div className="relative">
             <button
               onClick={() => setShowRegionDropdown(!showRegionDropdown)}
-              className="flex items-center justify-between w-full px-3 py-2 bg-zinc-800 border border-zinc-700 text-sm text-zinc-300"
+              className="flex items-center justify-between w-full px-3 py-2 bg-card border border-border text-sm text-foreground"
             >
               <div className="flex items-center gap-2">
                 <MapPin size={16} className="text-orange-500" />
@@ -443,7 +388,7 @@ export default function ClubsPage() {
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
-                  className="absolute top-full left-0 right-0 mt-1 bg-zinc-800 border border-zinc-700 z-20 max-h-48 overflow-y-auto"
+                  className="absolute top-full left-0 right-0 mt-1 bg-card border border-border z-20 max-h-48 overflow-y-auto"
                 >
                   {regions.map((region) => (
                     <button
@@ -454,8 +399,8 @@ export default function ClubsPage() {
                       }}
                       className={`block w-full px-3 py-2 text-left text-sm transition-colors ${
                         selectedRegion === region
-                          ? 'bg-orange-500/20 text-orange-400'
-                          : 'text-zinc-300 hover:bg-zinc-700'
+                          ? 'bg-primary/15 text-primary'
+                          : 'text-foreground hover:bg-muted'
                       }`}
                     >
                       {region}
@@ -487,18 +432,24 @@ export default function ClubsPage() {
               animate={{ opacity: 1, y: 0 }}
               className="text-center py-12"
             >
-              <Users size={48} className="mx-auto text-zinc-700 mb-4" />
-              <h3 className="text-lg font-semibold text-zinc-400 mb-2">No clubs found</h3>
-              <p className="text-sm text-zinc-600 mb-6">
-                {searchQuery ? 'Try a different search term' : 'Be the first to start a club in this area'}
+              <Users size={48} className="mx-auto text-muted-foreground mb-4" />
+              <h3 className="text-lg font-semibold text-foreground mb-2">No clubs found</h3>
+              <p className="text-sm text-muted-foreground mb-6">
+                {searchQuery
+                  ? 'Try a different search term'
+                  : fetchFailed
+                    ? 'Could not load clubs. Check your connection and refresh the page.'
+                    : configMissing
+                      ? 'Database is not configured for this build — clubs from Supabase will show here once connected.'
+                      : 'Be the first to register a club in this directory.'}
               </p>
-              {user && !searchQuery && (
+              {!searchQuery && (
                 <Link
                   href="/clubs/create"
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-zinc-950 text-sm font-semibold transition-colors"
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground text-sm font-semibold transition-colors"
                 >
                   <Plus size={16} />
-                  Create Club
+                  Create club
                 </Link>
               )}
             </motion.div>
@@ -511,14 +462,14 @@ export default function ClubsPage() {
               {Object.entries(groupedClubs).map(([region, regionClubs]) => (
                 <div key={region} className="mb-6">
                   {selectedRegion === 'All Regions' && (
-                    <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+                    <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
                       <MapPin size={14} className="text-orange-500" />
                       {region}
                     </h2>
                   )}
                   <div className="grid grid-cols-1 gap-4">
                     {regionClubs.map((club, index) => (
-                      <ClubPosterCard key={club.id} club={club} index={index} onViewClub={handleViewClub} />
+                      <ClubPosterCard key={club.id} club={club} index={index} />
                     ))}
                   </div>
                 </div>

@@ -6,6 +6,16 @@ import { createBrowserSupabaseClient } from '@/utils/supabase/client'
 
 const supabase = createBrowserSupabaseClient()
 
+/** True when `avatar_url` points at our public `avatars` bucket (custom upload). */
+function isSupabaseHostedAvatar(
+  avatarUrl: string | null | undefined,
+  supabasePublicUrl: string | undefined,
+): boolean {
+  if (!avatarUrl || !supabasePublicUrl) return false
+  const base = supabasePublicUrl.replace(/\/$/, '')
+  return avatarUrl.includes(`${base}/storage/v1/object/public/avatars/`)
+}
+
 // profile is Record<string,unknown> but always contains at least { role?: string }
 interface AuthContextType {
   user: User | null
@@ -91,9 +101,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const avatar_url = (session.user.user_metadata?.avatar_url as string) || null
 
+      const supabasePublicUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+
       const { data: existing, error: selErr } = await supabase
         .from('users')
-        .select('id, sync_display_name_from_google')
+        .select('id, sync_display_name_from_google, avatar_url')
         .eq('id', userId)
         .maybeSingle()
 
@@ -108,16 +120,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           sync_display_name_from_google: false,
         })
         if (insErr?.code === '23505') {
-          const { error: raceUpd } = await supabase
+          const { data: raceRow } = await supabase
             .from('users')
-            .update({ email, avatar_url })
+            .select('avatar_url')
             .eq('id', userId)
+            .maybeSingle()
+          const raceAvatar = raceRow?.avatar_url ?? null
+          const racePatch: Record<string, unknown> = { email }
+          if (!isSupabaseHostedAvatar(raceAvatar, supabasePublicUrl)) {
+            racePatch.avatar_url = avatar_url
+          }
+          const { error: raceUpd } = await supabase.from('users').update(racePatch).eq('id', userId)
           if (raceUpd) console.warn('[Auth] profile race update:', raceUpd.message)
         } else if (insErr) {
           console.warn('[Auth] profile insert:', insErr.message)
         }
       } else {
-        const patch: Record<string, unknown> = { email, avatar_url }
+        const storedAvatar = (existing as { avatar_url?: string | null }).avatar_url ?? null
+        const customLocked = isSupabaseHostedAvatar(storedAvatar, supabasePublicUrl)
+
+        const patch: Record<string, unknown> = { email }
+        if (!customLocked) {
+          patch.avatar_url = avatar_url
+        }
         if (existing.sync_display_name_from_google === true) {
           patch.name = googleName
         }

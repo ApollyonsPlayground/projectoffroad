@@ -15,6 +15,8 @@ const allowedDevOrigins =
 const nextConfig: NextConfig = {
   output: 'standalone',
   trailingSlash: true,
+  /** Hide the corner dev / route indicator in development. */
+  devIndicators: false,
   turbopack: {},
   ...(allowedDevOrigins?.length ? { allowedDevOrigins } : {}),
   typescript: {

@@ -117,7 +117,10 @@ export default function PrivacyPage() {
               {SITE_SUPPORT_EMAIL}
             </a>
           </p>
-          <p className="text-gray-300">Mailing Address: [To be added]</p>
+          <p className="text-gray-300 mt-2">
+            For formal postal or regulatory correspondence, contact us at the email above; we will provide a mailing
+            address if your situation requires it.
+          </p>
         </div>
 
         <div className="mt-12 pt-8 border-t border-gray-800 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">

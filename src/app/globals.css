@@ -24,6 +24,7 @@
   --border: #3f3f46;
   --input: #27272a;
   --ring: #f97316;
+  --glass-bg: rgba(24, 24, 27, 0.82);
   
   /* Safety Orange Scale */
   --orange-50: #fff7ed;
@@ -56,6 +57,40 @@
   --extreme: #ef4444;
 }
 
+/* Profile theme: light (paper / white feel) */
+html[data-theme="light"] {
+  --background: #f4f4f5;
+  --foreground: #0c0c0e;
+  --card: #ffffff;
+  --card-foreground: #0c0c0e;
+  --popover: #ffffff;
+  --popover-foreground: #0c0c0e;
+  --secondary: #e4e4e7;
+  --secondary-foreground: #18181b;
+  --muted: #e4e4e7;
+  --muted-foreground: #52525b;
+  --border: #d4d4d8;
+  --input: #e4e4e7;
+  --glass-bg: rgba(255, 255, 255, 0.9);
+}
+
+/* Profile theme: blue (navy shell, still orange accents via links / buttons) */
+html[data-theme="blue"] {
+  --background: #0a1628;
+  --foreground: #e8f0ff;
+  --card: #132038;
+  --card-foreground: #e8f0ff;
+  --popover: #132038;
+  --popover-foreground: #e8f0ff;
+  --secondary: #1a2d4d;
+  --secondary-foreground: #e8f0ff;
+  --muted: #152842;
+  --muted-foreground: #94a8c9;
+  --border: #2a4a72;
+  --input: #1a2d4d;
+  --glass-bg: rgba(15, 28, 48, 0.88);
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
@@ -64,7 +99,7 @@
 
 html {
   scroll-behavior: smooth;
-  background-color: #000000;
+  background-color: var(--background);
   /* Safe area insets for mobile notches */
   padding-top: env(safe-area-inset-top);
   padding-bottom: env(safe-area-inset-bottom);
@@ -276,7 +311,7 @@ a:hover {
 
 /* Glass effect */
 .glass {
-  background: rgba(24, 24, 27, 0.8);
+  background: var(--glass-bg);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
 }

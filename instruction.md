@@ -151,6 +151,29 @@ Then open the native project in Xcode / Android Studio. The WebView loads your h
 
 `npm run cap:sync` runs `npx cap sync`.
 
+### Google Play (Android)
+
+The **`android/`** native project is in this repo (Capacitor). The shell loads your **hosted** Next app from `server.url` — you do **not** ship the full Next bundle inside the APK; the live site must stay up on that URL.
+
+1. **Point the WebView at production** (PowerShell from repo root):
+
+   ```powershell
+   $env:CAPACITOR_SERVER_URL='https://socaloffroaders.com/'
+   npm run cap:sync
+   ```
+
+   (Trailing slash is fine. Use your real production domain.)
+
+2. **Open Android Studio:** `npm run android:open` (or **File → Open** the `android/` folder).
+
+3. **Bump version for each Play upload:** edit `android/app/build.gradle` — `versionCode` (integer, must increase every release) and `versionName` (e.g. `1.0.1`).
+
+4. **Release signing:** **Build → Generate Signed App Bundle** → create or reuse a keystore → output **`.aab`**. **Back up the keystore + passwords** outside the repo; Play updates require the same key.
+
+5. **Play Console:** [Google Play Console](https://play.google.com/console) → **Create app** → fill store listing (short/full description, screenshots, feature graphic). **Privacy policy URL:** `https://socaloffroaders.com/privacy/`. Complete **Data safety** (e.g. account data, approximate location if you declare SOS/location), **Content rating** (IARC questionnaire), and **App access** (if sign-in is required for core paths, say so and provide a test account or video). Start with **Internal testing** → invite your peeps by email → promote to **Production** when ready.
+
+6. **Application ID:** `socaloffroaders.app` (from Capacitor) is the Play `applicationId` — keep it stable across releases.
+
 ### Physical phone over Wi‑Fi (quick test)
 
 1. **Same network:** Phone and PC on the same Wi‑Fi (or USB tether — PC may get a `172.*` address).
