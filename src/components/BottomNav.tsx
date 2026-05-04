@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter, usePathname } from 'next/navigation';
-import { Home, Map, Calendar, Users, User, MessageCircle } from 'lucide-react';
+import { Home, Map, Calendar, Users, User, MessageCircle, LayoutGrid } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
@@ -17,6 +17,7 @@ const NAV_ITEMS = [
   { href: '/clubs/',     label: 'Clubs',     icon: Users,         requiresAuth: false },
   { href: '/messages/',  label: 'Messages',  icon: MessageCircle, requiresAuth: true  },
   { href: '/profile/',   label: 'Profile',   icon: User,          requiresAuth: true  },
+  { href: '/menu/',      label: 'More',      icon: LayoutGrid,    requiresAuth: false },
 ];
 
 export default function BottomNav() {
@@ -100,10 +101,10 @@ export default function BottomNav() {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 w-full z-[100] bg-background/90 backdrop-blur-md border-t border-border touch-manipulation"
+      className="md:hidden fixed bottom-0 left-0 w-full z-[100] bg-background/90 backdrop-blur-md border-t border-border touch-manipulation"
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
     >
-      <div className="flex flex-row justify-around items-center pt-2.5 px-0.5 pb-2">
+      <div className="flex flex-row justify-around items-center pt-2.5 px-0.5 pb-2 overflow-x-auto scrollbar-hide gap-0.5">
         {NAV_ITEMS.map(({ href, label, icon: Icon, requiresAuth }) => {
           const pathNorm = (pathname.replace(/\/$/, '') || '/') as string;
           const hrefNorm = (href.replace(/\/$/, '') || '/') as string;

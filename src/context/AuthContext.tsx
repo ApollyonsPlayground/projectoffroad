@@ -188,8 +188,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // NEXT_PUBLIC_SITE_URL points at prod while testing on localhost.
     const origin = typeof window !== 'undefined' ? window.location.origin : ''
     const callbackPath = '/auth/callback/'
-
-    const redirectTo = origin ? `${origin}${callbackPath}` : callbackPath
+    let nextAfterLogin = '/feed/'
+    if (typeof window !== 'undefined') {
+      const raw = new URLSearchParams(window.location.search).get('next')
+      if (raw && raw.startsWith('/') && !raw.startsWith('//') && !raw.includes('://')) {
+        nextAfterLogin = raw.length > 2048 ? '/feed/' : raw
+      }
+    }
+    const qs = `next=${encodeURIComponent(nextAfterLogin)}`
+    const redirectTo = origin ? `${origin}${callbackPath}?${qs}` : `${callbackPath}?${qs}`
 
     let oauth: Awaited<ReturnType<typeof supabase.auth.signInWithOAuth>>;
     try {

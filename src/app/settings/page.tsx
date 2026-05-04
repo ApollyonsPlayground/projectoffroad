@@ -364,11 +364,11 @@ export default function SettingsPage() {
             <h2 className="text-white font-bold uppercase tracking-wide">Privacy</h2>
           </div>
           <div className="space-y-3">
-            <Link href="/privacy" className="flex items-center justify-between text-neutral-400 hover:text-white py-2">
+            <Link href="/privacy/" className="flex items-center justify-between text-neutral-400 hover:text-white py-2">
               <span>Privacy Policy</span>
               <span className="text-neutral-600">→</span>
             </Link>
-            <Link href="/terms" className="flex items-center justify-between text-neutral-400 hover:text-white py-2">
+            <Link href="/terms/" className="flex items-center justify-between text-neutral-400 hover:text-white py-2">
               <span>Terms of Service</span>
               <span className="text-neutral-600">→</span>
             </Link>

@@ -1,9 +1,9 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { supabase } from '@/lib/db/supabase'
+import { useAuth } from '@/context/AuthContext'
+import BottomNav from '@/components/BottomNav'
 import { resolvePublicDisplayName } from '@/lib/profileDisplay'
 
 interface SearchResult {
@@ -23,6 +23,7 @@ interface UserSearchRow {
 }
 
 export default function SearchPage() {
+  const { supabaseClient } = useAuth()
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<SearchResult[]>([])
   const [loading, setLoading] = useState(false)
@@ -45,13 +46,13 @@ export default function SearchPage() {
     setLoading(true)
     const results: SearchResult[] = []
 
-    if (!supabase) {
+    if (!supabaseClient) {
       setLoading(false)
       return
     }
 
     // Search runs
-    const { data: runs } = await supabase
+    const { data: runs } = await supabaseClient
       .from('runs')
       .select('id, title, club:clubs(name)')
       .ilike('title', `%${searchQuery}%`)
@@ -69,7 +70,7 @@ export default function SearchPage() {
     }
 
     // Search clubs
-    const { data: clubs } = await supabase
+    const { data: clubs } = await supabaseClient
       .from('clubs')
       .select('id, name, location')
       .ilike('name', `%${searchQuery}%`)
@@ -88,12 +89,12 @@ export default function SearchPage() {
 
     const like = `%${searchQuery.trim()}%`
     const [{ data: byName }, { data: byUsername }] = await Promise.all([
-      supabase
+      supabaseClient
         .from('users')
         .select('id, name, username, hide_display_name, email, location')
         .ilike('name', like)
         .limit(5),
-      supabase
+      supabaseClient
         .from('users')
         .select('id, name, username, hide_display_name, email, location')
         .ilike('username', like)
@@ -130,7 +131,7 @@ export default function SearchPage() {
     e.preventDefault()
     performSearch(query)
     // Update URL
-    window.history.pushState({}, '', `/search?q=${encodeURIComponent(query)}`)
+    window.history.pushState({}, '', `/search/?q=${encodeURIComponent(query)}`)
   }
 
   function getIcon(type: string) {
@@ -144,15 +145,19 @@ export default function SearchPage() {
 
   function getLink(type: string, id: string) {
     switch (type) {
-      case 'run': return `/runs/${id}`
-      case 'club': return `/clubs/${id}`
-      case 'user': return `/profile/${id}`
-      default: return '#'
+      case 'run':
+        return `/runs/${id}/`
+      case 'club':
+        return `/clubs/${id}/`
+      case 'user':
+        return `/profile/${id}/`
+      default:
+        return '#'
     }
   }
 
   return (
-    <div className="min-h-screen bg-gray-900">
+    <div className="min-h-screen bg-gray-900 pb-28">
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <h1 className="text-2xl font-bold text-white mb-6">Search</h1>
 
@@ -207,6 +212,8 @@ export default function SearchPage() {
           </div>
         )}
       </div>
+
+      <BottomNav />
     </div>
   )
 }

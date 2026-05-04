@@ -8,6 +8,7 @@ import { ToastProvider } from "@/components/Toast";
 import ClientGlobalSOS from "@/components/ClientGlobalSOS";
 import { AdminLauncher } from "@/components/admin/AdminLauncher";
 import DisclaimerModal from "@/components/DisclaimerModal";
+import { DesktopNavbar } from "@/components/DesktopNavbar";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -49,6 +50,7 @@ export default function RootLayout({
           <ThemeSync />
           <ToastProvider>
             <ViewTransitions>
+              <DesktopNavbar />
               {children}
             </ViewTransitions>
             <DisclaimerModal />

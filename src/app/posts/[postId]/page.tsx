@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import BottomNav from '@/components/BottomNav';
 
 /** Deep links land here until a dedicated post thread exists. */
 export default function PostDeepLinkPage() {
@@ -14,8 +15,9 @@ export default function PostDeepLinkPage() {
   }, [postId, router]);
 
   return (
-    <div className="min-h-screen bg-black flex items-center justify-center">
+    <div className="min-h-screen bg-black flex flex-col items-center justify-center pb-28">
       <p className="text-zinc-500 text-sm">Opening feed…</p>
+      <BottomNav />
     </div>
   );
 }

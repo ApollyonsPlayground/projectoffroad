@@ -30,6 +30,7 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import Link from 'next/link';
+import BottomNav from '@/components/BottomNav';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/Toast';
 import { snapshotPublicIdentity } from '@/lib/profileDisplay';
@@ -174,7 +175,7 @@ function runStagingDirectionsUrl(run: RunDetail): string | null {
 export default function RunDetailPage() {
   const { runId } = useParams<{ runId: string }>();
   const router = useRouter();
-  const { user, supabaseClient } = useAuth();
+  const { user, profile, supabaseClient } = useAuth();
   const { showToast } = useToast();
 
   const [run, setRun] = useState<RunDetail | null>(null);
@@ -651,7 +652,7 @@ export default function RunDetailPage() {
   const hasDirections = !!(trailDirectionsUrl || stagingDirectionsUrl);
 
   return (
-    <div className="min-h-screen bg-black pb-10">
+    <div className="min-h-screen bg-black pb-28">
       {/* ── Back header ─────────────────────────────────────────────────── */}
       <header className="sticky top-0 z-50 bg-black/90 backdrop-blur-xl border-b border-zinc-900 safe-top">
         <div className="px-4 py-3 max-w-md mx-auto flex items-center gap-3">
@@ -1337,6 +1338,8 @@ export default function RunDetailPage() {
         </div>
 
       </main>
+
+      <BottomNav />
     </div>
   );
 }

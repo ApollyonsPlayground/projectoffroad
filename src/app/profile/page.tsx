@@ -636,7 +636,7 @@ export default function ProfilePage() {
               Edit
             </Link>
             <Link
-              href="/settings"
+              href="/settings/"
               className="p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center text-zinc-500 hover:text-white transition-colors touch-manipulation"
             >
               <Settings size={20} />
