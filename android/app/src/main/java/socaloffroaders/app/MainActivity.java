@@ -1,4 +1,4 @@
-package socaloffroaders.app;
+package com.socaloffroaders.app;
 
 import com.getcapacitor.BridgeActivity;
 

@@ -2,6 +2,6 @@
 <resources>
     <string name="app_name">SoCalOffroaders</string>
     <string name="title_activity_main">SoCalOffroaders</string>
-    <string name="package_name">socaloffroaders.app</string>
-    <string name="custom_url_scheme">socaloffroaders.app</string>
+    <string name="package_name">com.socaloffroaders.app</string>
+    <string name="custom_url_scheme">com.socaloffroaders.app</string>
 </resources>

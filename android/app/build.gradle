@@ -1,10 +1,10 @@
 apply plugin: 'com.android.application'
 
 android {
-    namespace = "socaloffroaders.app"
+    namespace = "com.socaloffroaders.app"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "socaloffroaders.app"
+        applicationId "com.socaloffroaders.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

@@ -9,7 +9,7 @@ const serverUrl =
   process.env.CAPACITOR_SERVER_URL?.trim() || 'https://socaloffroaders.com/';
 
 const config: CapacitorConfig = {
-  appId: 'socaloffroaders.app',
+  appId: 'com.socaloffroaders.app',
   appName: 'SoCalOffroaders',
   webDir: 'public',
   server: {
