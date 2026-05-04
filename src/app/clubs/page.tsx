@@ -234,11 +234,6 @@ export default function ClubsPage() {
     );
   }, []);
 
-  // Try to get location on mount
-  useEffect(() => {
-    requestLocation();
-  }, [requestLocation]);
-
   useEffect(() => {
     async function fetchClubs() {
       if (!supabase || !isSupabaseConfigured()) {
@@ -355,6 +350,16 @@ export default function ClubsPage() {
               <Navigation size={11} className="text-orange-500" />
               Sorted by distance from you
             </div>
+          )}
+          {!userLocation && !isLoadingLocation && (
+            <button
+              type="button"
+              onClick={() => requestLocation()}
+              className="w-full mb-2 flex items-center justify-center gap-2 px-3 py-2 bg-card border border-border text-[12px] text-foreground hover:bg-muted transition-colors"
+            >
+              <Navigation size={14} className="text-orange-500" />
+              Use my location to sort nearby clubs
+            </button>
           )}
 
           {/* Search Bar */}

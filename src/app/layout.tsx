@@ -5,7 +5,6 @@ import { AuthProvider } from "@/context/AuthContext";
 import { ThemeSync } from "@/components/ThemeSync";
 import { ViewTransitions } from "@/components/ViewTransitions";
 import { ToastProvider } from "@/components/Toast";
-import ClientGlobalSOS from "@/components/ClientGlobalSOS";
 import { AdminLauncher } from "@/components/admin/AdminLauncher";
 import DisclaimerModal from "@/components/DisclaimerModal";
 import { DesktopNavbar } from "@/components/DesktopNavbar";
@@ -54,7 +53,6 @@ export default function RootLayout({
               {children}
             </ViewTransitions>
             <DisclaimerModal />
-            <ClientGlobalSOS />
             <AdminLauncher />
           </ToastProvider>
         </AuthProvider>
