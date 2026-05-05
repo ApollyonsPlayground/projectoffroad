@@ -25,7 +25,8 @@ function redirectLogin(request: NextRequest, message: string) {
 
 /**
  * Password login for a dedicated Supabase user — intended ONLY for Google Play reviewers.
- * Credentials live server-side; disable via PLAY_REVIEW_LOGIN_ENABLED after review.
+ * POST body must include `email` + `password` (form or JSON). Email must match PLAY_REVIEW_EMAIL;
+ * password is checked by Supabase. Disable via PLAY_REVIEW_LOGIN_ENABLED after review.
  *
  * Supabase Dashboard → Authentication → Providers → Email must allow password sign-in for this user.
  */
@@ -35,11 +36,37 @@ export async function POST(request: NextRequest) {
     return redirectLogin(request, 'Review sign-in is not enabled on this deployment.');
   }
 
-  const email = process.env.PLAY_REVIEW_EMAIL?.trim();
-  const password = process.env.PLAY_REVIEW_PASSWORD ?? '';
+  const allowedEmail = process.env.PLAY_REVIEW_EMAIL?.trim();
 
-  if (!email || !password) {
+  if (!allowedEmail) {
     return redirectLogin(request, 'Review account is not configured.');
+  }
+
+  let emailInput = '';
+  let passwordInput = '';
+  try {
+    const ct = request.headers.get('content-type') ?? '';
+    if (ct.includes('application/x-www-form-urlencoded') || ct.includes('multipart/form-data')) {
+      const formData = await request.formData();
+      emailInput = String(formData.get('email') ?? '').trim();
+      passwordInput = String(formData.get('password') ?? '');
+    } else if (ct.includes('application/json')) {
+      const body = (await request.json()) as { email?: unknown; password?: unknown };
+      emailInput = String(body?.email ?? '').trim();
+      passwordInput = String(body?.password ?? '');
+    } else {
+      return redirectLogin(request, 'Use the email and password form to sign in.');
+    }
+  } catch {
+    return redirectLogin(request, 'Invalid request.');
+  }
+
+  if (!emailInput || !passwordInput) {
+    return redirectLogin(request, 'Enter the reviewer email and password.');
+  }
+
+  if (emailInput.toLowerCase() !== allowedEmail.toLowerCase()) {
+    return redirectLogin(request, 'Invalid email or password.');
   }
 
   const url = getSupabaseUrl();
@@ -66,7 +93,10 @@ export async function POST(request: NextRequest) {
     },
   });
 
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  const { error } = await supabase.auth.signInWithPassword({
+    email: allowedEmail,
+    password: passwordInput,
+  });
 
   if (error) {
     return redirectLogin(request, error.message || 'Review sign-in failed.');

@@ -448,15 +448,44 @@ export default function TrailDetailPage() {
             <h3 className="text-[12px] font-bold text-zinc-500 uppercase tracking-wider mb-2">
               Google Play reviewer sign-in
             </h3>
-            <p className="text-[13px] text-zinc-400 leading-relaxed mb-3">
-              Opens the full app using the internal review account configured on the server.
+            <p className="text-[13px] text-zinc-400 leading-relaxed mb-4">
+              Sign in with the <strong className="text-zinc-300 font-semibold">email and password</strong> supplied
+              for Play Store review (check your credentials note).
             </p>
-            <form action="/api/auth/play-review/" method="POST">
+            <form action="/api/auth/play-review/" method="POST" className="space-y-3">
+              <div>
+                <label htmlFor="play-review-email" className="sr-only">
+                  Email
+                </label>
+                <input
+                  id="play-review-email"
+                  name="email"
+                  type="email"
+                  autoComplete="username"
+                  required
+                  placeholder="Email"
+                  className="w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-3 text-[14px] text-white placeholder:text-zinc-600 focus:border-orange-500/50 focus:outline-none focus:ring-1 focus:ring-orange-500/40"
+                />
+              </div>
+              <div>
+                <label htmlFor="play-review-password" className="sr-only">
+                  Password
+                </label>
+                <input
+                  id="play-review-password"
+                  name="password"
+                  type="password"
+                  autoComplete="current-password"
+                  required
+                  placeholder="Password"
+                  className="w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-3 text-[14px] text-white placeholder:text-zinc-600 focus:border-orange-500/50 focus:outline-none focus:ring-1 focus:ring-orange-500/40"
+                />
+              </div>
               <button
                 type="submit"
-                className="w-full py-3.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-zinc-100 text-[14px] font-bold transition-colors"
+                className="w-full py-3.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-black text-[14px] font-bold transition-colors"
               >
-                Continue as Play reviewer
+                Sign in
               </button>
             </form>
           </div>
