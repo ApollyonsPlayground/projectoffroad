@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import {
@@ -31,6 +31,16 @@ import { useSavedTrailIds } from '@/lib/hooks/useSavedTrailIds';
 
 type Trail = ExplorerTrail;
 
+const PLAY_REVIEW_UI_ENABLED =
+  typeof process.env.NEXT_PUBLIC_PLAY_REVIEW_GATEWAY === 'string' &&
+  process.env.NEXT_PUBLIC_PLAY_REVIEW_GATEWAY.trim() === 'true';
+
+function isGiantRockTrail(trail: Trail): boolean {
+  const slug = trail.id?.toLowerCase?.() ?? '';
+  const name = trail.name?.toLowerCase?.() ?? '';
+  return slug === 'giant-rock' || name.includes('giant rock');
+}
+
 interface TrailTripNoteRow {
   id: string;
   body: string;
@@ -41,6 +51,11 @@ interface TrailTripNoteRow {
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
+
+/** Matches DB values like "Open", "OPEN", " open ". */
+function trailStatusIsOpen(status: string | undefined): boolean {
+  return status?.trim().toLowerCase() === 'open';
+}
 
 function difficultyColorTier(tier: DifficultyTier) {
   if (tier === 'Easy') return 'bg-green-500/15 text-green-400 border-green-500/30';
@@ -78,6 +93,26 @@ export default function TrailDetailPage() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [tripNotes, setTripNotes] = useState<TrailTripNoteRow[]>([]);
+  const playReviewTapResetRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const playReviewTapCountRef = useRef(0);
+  const playReviewUnlockToastShownRef = useRef(false);
+  const [playReviewUnlocked, setPlayReviewUnlocked] = useState(false);
+
+  useEffect(() => {
+    return () => {
+      if (playReviewTapResetRef.current) clearTimeout(playReviewTapResetRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    playReviewTapCountRef.current = 0;
+    playReviewUnlockToastShownRef.current = false;
+    setPlayReviewUnlocked(false);
+    if (playReviewTapResetRef.current) {
+      clearTimeout(playReviewTapResetRef.current);
+      playReviewTapResetRef.current = null;
+    }
+  }, [trail?.id]);
 
   useEffect(() => {
     if (!id || typeof id !== 'string') return;
@@ -193,6 +228,33 @@ export default function TrailDetailPage() {
     }
   }, [trail, showToast]);
 
+  const handlePlayReviewOpenBadgeTap = useCallback(() => {
+    const t = trail;
+    if (
+      !PLAY_REVIEW_UI_ENABLED ||
+      !t ||
+      !isGiantRockTrail(t) ||
+      !trailStatusIsOpen(t.status)
+    ) {
+      return;
+    }
+    if (playReviewTapResetRef.current) clearTimeout(playReviewTapResetRef.current);
+    playReviewTapResetRef.current = setTimeout(() => {
+      playReviewTapCountRef.current = 0;
+      playReviewTapResetRef.current = null;
+    }, 4500);
+
+    playReviewTapCountRef.current += 1;
+    if (playReviewTapCountRef.current >= 7) {
+      playReviewTapCountRef.current = 0;
+      setPlayReviewUnlocked(true);
+      if (!playReviewUnlockToastShownRef.current) {
+        playReviewUnlockToastShownRef.current = true;
+        showToast('Reviewer sign-in unlocked', 'success');
+      }
+    }
+  }, [trail, showToast]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-black flex flex-col items-center justify-center gap-4 px-4">
@@ -230,6 +292,49 @@ export default function TrailDetailPage() {
   }
 
   const diffClass = difficultyColorTier(trail.difficultyLabel);
+
+  const renderVerifiedChip = () =>
+    trail.isVerified ? (
+      <span className="inline-flex items-center gap-1 px-2 py-1 text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 rounded-full">
+        <BadgeCheck size={12} />
+        Verified
+      </span>
+    ) : null;
+
+  const renderTrailStatusPill = () => {
+    if (!trail.status) return null;
+    const open = trailStatusIsOpen(trail.status);
+    const tapTarget = PLAY_REVIEW_UI_ENABLED && isGiantRockTrail(trail) && open;
+    const base = 'px-2.5 py-1 text-[11px] font-bold uppercase rounded-full border ';
+    const cls = tapTarget
+      ? `${base} bg-red-500/15 text-red-400 border-red-500/50 cursor-pointer select-none touch-manipulation active:opacity-80`
+      : open
+        ? `${base} bg-green-500/15 text-green-400 border-green-500/30`
+        : `${base} bg-red-500/15 text-red-400 border-red-500/30`;
+    return (
+      <span
+        className={cls}
+        onClick={tapTarget ? handlePlayReviewOpenBadgeTap : undefined}
+        role={tapTarget ? 'button' : undefined}
+        tabIndex={tapTarget ? 0 : undefined}
+        onKeyDown={
+          tapTarget
+            ? (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  handlePlayReviewOpenBadgeTap();
+                }
+              }
+            : undefined
+        }
+        aria-label={
+          tapTarget ? 'Trail status Open — tap seven times for Play reviewer sign-in' : undefined
+        }
+      >
+        {trail.status}
+      </span>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-black">
@@ -277,24 +382,17 @@ export default function TrailDetailPage() {
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
             <div className="absolute top-3 left-3 right-3 flex flex-wrap items-start justify-end gap-2">
-              {trail.isVerified && (
-                <span className="inline-flex items-center gap-1 px-2 py-1 text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 rounded-full">
-                  <BadgeCheck size={12} />
-                  Verified
-                </span>
-              )}
-              {trail.status && (
-                <span className={`px-2.5 py-1 text-[11px] font-bold uppercase rounded-full border ${
-                  trail.status === 'Open' ? 'bg-green-500/15 text-green-400 border-green-500/30' : 'bg-red-500/15 text-red-400 border-red-500/30'
-                }`}>
-                  {trail.status}
-                </span>
-              )}
+              {renderVerifiedChip()}
+              {renderTrailStatusPill()}
             </div>
           </div>
         ) : (
-          <div className="h-36 bg-zinc-950 border-b border-zinc-900 flex items-center justify-center">
+          <div className="relative h-36 bg-zinc-950 border-b border-zinc-900 flex items-center justify-center">
             <MapPin size={28} className="text-zinc-800" />
+            <div className="absolute top-3 left-3 right-3 flex flex-wrap items-start justify-end gap-2">
+              {renderVerifiedChip()}
+              {renderTrailStatusPill()}
+            </div>
           </div>
         )}
 
@@ -344,6 +442,25 @@ export default function TrailDetailPage() {
           <h3 className="text-[12px] font-bold text-zinc-500 uppercase tracking-wider mb-2">About this Trail</h3>
           <p className="text-[14px] text-zinc-300 leading-relaxed">{trail.description}</p>
         </div>
+
+        {playReviewUnlocked && PLAY_REVIEW_UI_ENABLED && isGiantRockTrail(trail) && (
+          <div className="px-4 py-4 border-b border-zinc-900">
+            <h3 className="text-[12px] font-bold text-zinc-500 uppercase tracking-wider mb-2">
+              Google Play reviewer sign-in
+            </h3>
+            <p className="text-[13px] text-zinc-400 leading-relaxed mb-3">
+              Opens the full app using the internal review account configured on the server.
+            </p>
+            <form action="/api/auth/play-review/" method="POST">
+              <button
+                type="submit"
+                className="w-full py-3.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-zinc-100 text-[14px] font-bold transition-colors"
+              >
+                Continue as Play reviewer
+              </button>
+            </form>
+          </div>
+        )}
 
         {/* Trip notes from completed runs */}
         {tripNotes.length > 0 && (

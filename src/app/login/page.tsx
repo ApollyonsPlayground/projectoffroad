@@ -1,38 +1,15 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Loader2 } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { useToast } from '@/components/Toast'
 
-const PLAY_REVIEW_UI_ENABLED =
-  typeof process.env.NEXT_PUBLIC_PLAY_REVIEW_GATEWAY === 'string' &&
-  process.env.NEXT_PUBLIC_PLAY_REVIEW_GATEWAY.trim() === 'true'
-
 export default function LoginPage() {
   const [googleLoading, setGoogleLoading] = useState(false)
   const { signInWithGoogle } = useAuth()
   const { showToast } = useToast()
-
-  const [reviewUnlocked, setReviewUnlocked] = useState(false)
-  const subtitleTapResetRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const subtitleTapCountRef = useRef(0)
-
-  const handleSubtitleTap = useCallback(() => {
-    if (!PLAY_REVIEW_UI_ENABLED || reviewUnlocked) return
-    if (subtitleTapResetRef.current) clearTimeout(subtitleTapResetRef.current)
-    subtitleTapCountRef.current += 1
-    if (subtitleTapCountRef.current >= 7) {
-      subtitleTapCountRef.current = 0
-      setReviewUnlocked(true)
-      showToast('Review access unlocked — use the button below.', 'info')
-      return
-    }
-    subtitleTapResetRef.current = setTimeout(() => {
-      subtitleTapCountRef.current = 0
-    }, 4500)
-  }, [reviewUnlocked, showToast])
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
@@ -73,21 +50,7 @@ export default function LoginPage() {
             <span className="font-black text-white text-[28px] tracking-tight leading-none">
               SoCal<span className="text-orange-500">Offroaders</span>
             </span>
-            <p
-              role={PLAY_REVIEW_UI_ENABLED ? 'button' : undefined}
-              tabIndex={PLAY_REVIEW_UI_ENABLED ? 0 : undefined}
-              onClick={() => handleSubtitleTap()}
-              onKeyDown={(e) => {
-                if (!PLAY_REVIEW_UI_ENABLED) return
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault()
-                  handleSubtitleTap()
-                }
-              }}
-              className={`text-zinc-500 text-[13px] text-center leading-snug max-w-[220px] ${
-                PLAY_REVIEW_UI_ENABLED ? 'cursor-default select-none' : ''
-              }`}
-            >
+            <p className="text-zinc-500 text-[13px] text-center leading-snug max-w-[220px]">
               Official Google Authentication Required for Trail Access.
             </p>
           </div>
@@ -120,25 +83,6 @@ export default function LoginPage() {
           <p className="text-[11px] text-zinc-700 text-center max-w-[240px] leading-relaxed">
             By continuing you agree to our community guidelines. Your Google account is the only sign-in method.
           </p>
-
-          {PLAY_REVIEW_UI_ENABLED && reviewUnlocked && (
-            <div className="w-full rounded-2xl border border-zinc-800 bg-zinc-950/80 px-4 py-4 space-y-3">
-              <p className="text-[11px] text-zinc-500 leading-relaxed text-center">
-                Google Play review access — signs into an internal test account configured on the server.
-              </p>
-              <form action="/api/auth/play-review/" method="POST" className="w-full">
-                <button
-                  type="submit"
-                  className="w-full py-3 rounded-xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-200 text-[13px] font-bold transition-colors"
-                >
-                  Continue as Play reviewer
-                </button>
-              </form>
-              <p className="text-[10px] text-zinc-600 text-center leading-snug">
-                Disable review login after store approval (server env). Normal riders still use Google above.
-              </p>
-            </div>
-          )}
         </div>
 
       </div>
