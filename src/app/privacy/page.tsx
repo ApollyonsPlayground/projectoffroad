@@ -95,12 +95,20 @@ export default function PrivacyPage() {
               {SITE_SUPPORT_EMAIL}
             </a>
           </p>
+          <p className="text-gray-300 mt-3">
+            <strong className="text-white">Delete your account online:</strong> signed-in users can permanently delete
+            their account and associated personal data from{' '}
+            <Link href="/account/delete/" className="text-amber-400 hover:underline">
+              Account deletion (delete account &amp; data)
+            </Link>
+            . Use this URL in app-store consoles when a web link is required.
+          </p>
 
           <h2 className="text-white mt-8">8. Data Security</h2>
           <p className="text-gray-300">We implement reasonable technical measures appropriate to our size and risk, including encryption in transit (HTTPS/TLS), authentication via our providers, and access controls on production systems. No method of electronic storage or transmission over the internet is 100% secure. We cannot guarantee absolute security, but we are committed to protecting your data.</p>
           <p className="text-gray-300 mt-2">In the event of a data breach that affects your personal data, we will notify you and relevant authorities as required by applicable law.</p>
 
-          <h2 className="text-white mt-8">9. Children's Privacy</h2>
+          <h2 className="text-white mt-8">9. Children&apos;s Privacy</h2>
           <p className="text-gray-300">Our platform is not intended for individuals under 18 years of age. We do not knowingly collect, use, or share personal data from children. If we become aware that we have collected data from a child without parental consent, we will delete it promptly.</p>
 
           <h2 className="text-white mt-8">10. International Data Transfers</h2>

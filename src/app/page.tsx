@@ -6,6 +6,7 @@ const PUBLIC_SITE =
   process.env.NEXT_PUBLIC_SITE_URL?.trim().replace(/\/$/, '') || 'https://socaloffroaders.com';
 
 const PRIVACY_URL = `${PUBLIC_SITE}/privacy/`;
+const ACCOUNT_DELETE_URL = `${PUBLIC_SITE}/account/delete/`;
 
 export const metadata: Metadata = {
   title: 'SoCal Offroaders | Southern California off-road community',
@@ -191,6 +192,19 @@ export default function PublicHomePage() {
           >
             Open privacy policy
           </Link>
+          <p className="text-zinc-400 text-[13px] leading-relaxed mt-6 mb-2">
+            <strong className="text-zinc-200">Account &amp; data deletion</strong> (required URL for Google Play and similar stores —
+            copy exactly):
+          </p>
+          <p className="font-mono text-sm text-white break-all mb-4 bg-black/50 rounded-lg px-3 py-2 border border-zinc-800">
+            {ACCOUNT_DELETE_URL}
+          </p>
+          <Link
+            href="/account/delete/"
+            className="inline-flex items-center justify-center px-5 py-3 rounded-xl border border-zinc-600 text-zinc-100 text-sm font-bold hover:border-orange-500/50 hover:text-white transition-colors"
+          >
+            Open delete-account page
+          </Link>
         </section>
 
         <footer className="pt-8 border-t border-zinc-900 text-[12px] text-zinc-600 flex flex-wrap gap-x-4 gap-y-2">
@@ -205,6 +219,9 @@ export default function PublicHomePage() {
           </Link>
           <Link href={PRIVACY_URL} className="hover:text-zinc-400">
             Privacy
+          </Link>
+          <Link href="/account/delete/" className="hover:text-zinc-400">
+            Delete account
           </Link>
         </footer>
       </main>

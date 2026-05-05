@@ -209,6 +209,13 @@ export default function SettingsPage() {
                 <span>Community guidelines</span>
                 <span className="text-neutral-600">→</span>
               </Link>
+              <Link
+                href="/account/delete/"
+                className="flex items-center justify-between text-red-400/90 hover:text-red-300 py-2 border-t border-neutral-800 mt-2 pt-3"
+              >
+                <span>Delete account &amp; data</span>
+                <span className="text-neutral-600">→</span>
+              </Link>
             </div>
           )}
         </div>
