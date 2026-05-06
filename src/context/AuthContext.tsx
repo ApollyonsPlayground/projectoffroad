@@ -4,6 +4,9 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 import type { User, SupabaseClient } from '@supabase/supabase-js'
 import { createBrowserSupabaseClient } from '@/utils/supabase/client'
 import { ensureStoragePublicObjectUrl } from '@/lib/supabase/storagePublicUrl'
+import { isCapacitorNative } from '@/utils/capacitator/isNative'
+import { App as CapacitorApp } from '@capacitor/app'
+import { Browser } from '@capacitor/browser'
 
 const supabase = createBrowserSupabaseClient()
 
@@ -45,6 +48,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return
     }
 
+    // Capacitor native: complete OAuth PKCE via deep link in the same app storage context.
+    // This avoids "PKCE code verifier not found in storage" which happens when auth
+    // was initiated in the WebView but completed in a separate browser context.
+    let removeUrlOpen: (() => void) | null = null
+    if (isCapacitorNative()) {
+      const sub = CapacitorApp.addListener('appUrlOpen', async ({ url }) => {
+        try {
+          const u = new URL(url)
+          const code = u.searchParams.get('code')
+          if (!code) return
+
+          // Exchange in-app (needs the PKCE verifier stored by signInWithOAuth).
+          const { error } = await supabase.auth.exchangeCodeForSession(code)
+          await Browser.close().catch(() => {})
+
+          if (error) {
+            console.warn('[Auth] exchangeCodeForSession:', error.message)
+            return
+          }
+
+          // If caller included `next`, go there; otherwise default to /feed/.
+          const next = u.searchParams.get('next')
+          const dest =
+            next && next.startsWith('/') && !next.startsWith('//') && !next.includes('://')
+              ? next
+              : '/feed/'
+          window.location.assign(dest)
+        } catch (e) {
+          console.warn('[Auth] appUrlOpen parse:', e)
+        }
+      })
+      removeUrlOpen = () => sub.remove()
+    }
+
     // LAN / phone dev: first cookie read + profile can exceed 8s; avoid false "signed out".
     const SESSION_BOOT_MS = process.env.NODE_ENV === 'development' ? 30000 : 15000
     type GetSessionResult = Awaited<ReturnType<typeof supabase.auth.getSession>>
@@ -76,7 +113,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     })
 
-    return () => subscription.unsubscribe()
+    return () => {
+      subscription.unsubscribe()
+      if (removeUrlOpen) removeUrlOpen()
+    }
   }, [])
 
   async function fetchProfile(userId: string) {
@@ -196,7 +236,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     }
     const qs = `next=${encodeURIComponent(nextAfterLogin)}`
-    const redirectTo = origin ? `${origin}${callbackPath}?${qs}` : `${callbackPath}?${qs}`
+    const native = isCapacitorNative()
+    // Native apps must deep-link back into the app so PKCE state stays in-app.
+    const redirectTo = native
+      ? `com.socaloffroaders.app://auth/callback?${qs}`
+      : origin
+        ? `${origin}${callbackPath}?${qs}`
+        : `${callbackPath}?${qs}`
 
     let oauth: Awaited<ReturnType<typeof supabase.auth.signInWithOAuth>>;
     try {
@@ -236,7 +282,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     if (data?.url && typeof window !== 'undefined') {
-      window.location.assign(data.url)
+      if (native) {
+        await Browser.open({
+          url: data.url,
+          presentationStyle: 'popover',
+        })
+      } else {
+        window.location.assign(data.url)
+      }
       return { error: null }
     }
 
