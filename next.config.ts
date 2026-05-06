@@ -5,6 +5,8 @@ import withPWA from "next-pwa";
 const allowedDevOrigins =
   process.env.NODE_ENV === "development"
     ? [
+        // Android emulator host alias (device → host machine).
+        "10.0.2.2",
         "192.168.1.73",
         ...(process.env.NEXT_ALLOWED_DEV_ORIGINS?.split(",")
           .map((h) => h.trim())

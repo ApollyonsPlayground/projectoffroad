@@ -4,6 +4,7 @@ import { createClient } from '@supabase/supabase-js';
 import { getSupabaseUrl, getSupabaseAnonKey } from '@/utils/supabase/env';
 import { supabaseCookieOptions } from '@/utils/supabase/cookieOptions';
 import { isCapacitorNative } from '@/utils/capacitator/isNative';
+import { capacitorAuthStorage } from '@/utils/supabase/capacitorStorage';
 
 /** Browser client: cookie-backed session (pairs with root `middleware.ts`). */
 export function createBrowserSupabaseClient(): SupabaseClient | null {
@@ -21,6 +22,7 @@ export function createBrowserSupabaseClient(): SupabaseClient | null {
           persistSession: true,
           autoRefreshToken: true,
           detectSessionInUrl: false,
+          storage: capacitorAuthStorage,
         },
       });
     }

@@ -237,9 +237,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     const qs = `next=${encodeURIComponent(nextAfterLogin)}`
     const native = isCapacitorNative()
-    // Native apps must deep-link back into the app so PKCE state stays in-app.
+    // Native apps: route the provider back to the WEBSITE callback with `native=1`,
+    // then the website immediately bounces into the app deep link. This is more reliable
+    // than asking the provider to deep-link directly (some flows ignore redirectTo).
     const redirectTo = native
-      ? `com.socaloffroaders.app://auth/callback?${qs}`
+      ? origin
+        ? `${origin}${callbackPath}?native=1&${qs}`
+        : `${callbackPath}?native=1&${qs}`
       : origin
         ? `${origin}${callbackPath}?${qs}`
         : `${callbackPath}?${qs}`
