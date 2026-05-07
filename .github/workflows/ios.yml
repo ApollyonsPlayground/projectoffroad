@@ -1,8 +1,8 @@
 # iOS native shell — sync Capacitor + Xcode build on GitHub macOS runners.
 # WebView loads production by default (capacitor.config.ts → https://socaloffroaders.com/).
 #
-# Capacitor 8: `cap add ios` defaults to Swift Package Manager (no Podfile). This workflow
-# uses CocoaPods (`--packagemanager CocoaPods`) so `pod install` + App.xcworkspace match CI.
+# Capacitor 8: plain `cap add ios` = SPM only (no Podfile). This workflow always regenerates
+# `ios/` with CocoaPods. Actions runs the YAML from the COMMIT you build — push changes here!
 #
 # If you only see a “Node.js 20 / checkout@v4 deprecated” banner: expand EACH step above
 # “Process completed with exit code 1” — the real error is in the first red ❌ step.
@@ -69,14 +69,12 @@ jobs:
       - name: Install JS dependencies
         run: npm ci
 
-      - name: Scaffold iOS (CocoaPods — required for pod install)
+      - name: Scaffold iOS (CocoaPods — clean tree every run)
         run: |
           set -euxo pipefail
-          if [[ ! -f ios/App/Podfile ]]; then
-            echo "Capacitor 8 defaults to SPM (no Podfile). Recreating ios/ with CocoaPods..."
-            rm -rf ios
-            npx cap add ios --packagemanager CocoaPods
-          fi
+          rm -rf ios
+          npx cap add ios --packagemanager cocoapods
+          ls -la ios/App
           test -f ios/App/Podfile
 
       - name: Capacitor sync (iOS)
