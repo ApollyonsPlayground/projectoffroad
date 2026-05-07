@@ -4,8 +4,8 @@
 # Capacitor 8: `cap add ios` defaults to Swift Package Manager (SPM), so there is no Podfile.
 # This workflow builds the SPM Xcode project directly (no CocoaPods).
 #
-# If you only see a “Node.js 20 / checkout@v4 deprecated” banner: expand EACH step above
-# “Process completed with exit code 1” — the real error is in the first red ❌ step.
+# IMPORTANT — GitHub “Re-run failed jobs” reuses the ORIGINAL commit (SHA frozen).
+# To pick up new pushes: Actions → this workflow → “Run workflow” (green button), not Rerun.
 
 name: iOS (Capacitor)
 
@@ -43,6 +43,13 @@ jobs:
         shell: bash
 
     steps:
+      - name: Commit this run targets (before checkout)
+        run: |
+          echo "event_name=${{ github.event_name }}"
+          echo "workflow_sha=${{ github.sha }}"
+          echo "workflow_ref=${{ github.ref }}"
+          echo "If workflow_sha is an old hash like 111b435..., do NOT use Re-run — click Run workflow instead."
+
       # v5+ runs Actions composite code on Node 24; avoids “checkout@v4 deprecated” noise.
       - name: Checkout
         uses: actions/checkout@v5
