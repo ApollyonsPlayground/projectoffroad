@@ -26,6 +26,9 @@ concurrency:
   cancel-in-progress: true
 
 env:
+  # GitHub Actions: run checkout/setup-node on Node 24 (Node 20 runner deprecation).
+  # https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
   NODE_VERSION: '22'
 
 jobs:
@@ -35,7 +38,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       # Pin only if you need a specific SDK; otherwise runner default Xcode is fine.
       - name: Xcode (stable)
@@ -44,7 +47,7 @@ jobs:
           xcode-version: latest-stable
 
       - name: Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
@@ -67,7 +70,14 @@ jobs:
         working-directory: ios/App
         run: pod install --repo-update
 
-      - name: Build for iOS Simulator (unsigned smoke test)
+      - name: Xcode workspace / schemes (debug)
+        working-directory: ios/App
+        run: xcodebuild -workspace App.xcworkspace -list
+
+      - name: List available simulators (debug)
+        run: xcrun simctl list devices available | head -60
+
+      - name: Build for iOS Simulator (smoke test)
         working-directory: ios/App
         run: |
           set -o pipefail
@@ -78,9 +88,8 @@ jobs:
             -sdk iphonesimulator \
             -destination 'generic/platform=iOS Simulator' \
             -derivedDataPath "$RUNNER_TEMP/DerivedData" \
-            CODE_SIGN_IDENTITY='' \
+            CODE_SIGN_IDENTITY='-' \
             CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO \
             build
 
       # ── Optional: signed Release archive (set workflow input + repo secrets) ────────
