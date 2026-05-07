@@ -24,6 +24,8 @@ concurrency:
 
 permissions:
   contents: read
+  # Needed for actions/upload-artifact (omit only if repo default already grants it).
+  actions: write
 
 # Composite Actions JS runtime: opt into Node 24 (GitHub Actions deprecation).
 # https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
@@ -108,3 +110,17 @@ jobs:
             CODE_SIGN_IDENTITY='-' \
             CODE_SIGNING_REQUIRED=NO \
             build
+
+      # Compiled Simulator output lives under DerivedData — NOT under ios/App/App (that’s mostly sources).
+      - name: Show build products (debug)
+        if: success()
+        run: |
+          ls -la "${RUNNER_TEMP}/DerivedData/Build/Products/Debug-iphonesimulator" || true
+
+      - name: Upload Simulator .app (artifact)
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-simulator-debug
+          path: ${{ runner.temp }}/DerivedData/Build/Products/Debug-iphonesimulator/
+          if-no-files-found: warn
