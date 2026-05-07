@@ -1,12 +1,8 @@
 # iOS native shell — sync Capacitor + Xcode build on GitHub macOS runners.
-# Your WebView loads production by default (capacitor.config.ts → https://socaloffroaders.com/).
+# WebView loads production by default (capacitor.config.ts → https://socaloffroaders.com/).
 #
-# Triggers:
-#   • workflow_dispatch — manual “Run workflow” (recommended while iterating).
-#   • push — optional; comment out if you don’t want minutes burned on every push.
-#
-# Simulator build = no Apple signing secrets (good smoke test).
-# App Store .ipa = needs certificates + provisioning profile or App Store Connect API key (add later).
+# If you only see a “Node.js 20 / checkout@v4 deprecated” banner: expand EACH step above
+# “Process completed with exit code 1” — the real error is in the first red ❌ step.
 
 name: iOS (Capacitor)
 
@@ -18,48 +14,62 @@ on:
         required: false
         default: false
         type: boolean
-  # push:
-  #   branches: [socal-off-roaders-app]
 
 concurrency:
   group: ios-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
+# Composite Actions JS runtime: opt into Node 24 (GitHub Actions deprecation).
+# https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
 env:
-  # GitHub Actions: run checkout/setup-node on Node 24 (Node 20 runner deprecation).
-  # https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
   NODE_VERSION: '22'
 
 jobs:
   ios-build:
-    runs-on: macos-14
+    runs-on: macos-latest
     timeout-minutes: 45
-    # Ensure composite JS actions see Node 24 even if workflow-level env quirks occur.
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
+    defaults:
+      run:
+        shell: bash
 
-      # Runner already ships Xcode; avoids third-party action failures / Node 20 wrappers.
+    steps:
+      # v5+ runs Actions composite code on Node 24; avoids “checkout@v4 deprecated” noise.
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Confirm workflow file on runner (debug)
+        run: |
+          set -euxo pipefail
+          echo "GITHUB_REF=$GITHUB_REF SHA=$GITHUB_SHA"
+          test -f .github/workflows/ios.yml
+          echo "--- action pins in ios.yml ---"
+          grep -n "uses: actions/" .github/workflows/ios.yml || true
+          echo "--- head of ios.yml ---"
+          sed -n '1,85p' .github/workflows/ios.yml
+
       - name: Xcode version
         run: xcodebuild -version
 
       - name: Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v5
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
-      # Production remote URL — do not point CI at localhost unless you add adb reverse etc.
       - name: Install JS dependencies
         run: npm ci
 
       - name: Scaffold iOS project if missing
         run: |
-          if [ ! -f ios/App/Podfile ]; then
+          set -euxo pipefail
+          if [[ ! -f ios/App/Podfile ]]; then
             echo "Adding Capacitor iOS platform (first run)..."
             npx cap add ios
           fi
@@ -71,17 +81,17 @@ jobs:
         working-directory: ios/App
         run: pod install --repo-update
 
-      - name: Xcode workspace / schemes (debug)
+      - name: Xcode workspace / schemes
         working-directory: ios/App
         run: xcodebuild -workspace App.xcworkspace -list
 
-      - name: List available simulators (debug)
+      - name: List simulators (debug)
         run: xcrun simctl list devices available | head -60
 
       - name: Build for iOS Simulator (smoke test)
         working-directory: ios/App
         run: |
-          set -o pipefail
+          set -euxo pipefail
           xcodebuild \
             -workspace App.xcworkspace \
             -scheme App \
@@ -92,41 +102,3 @@ jobs:
             CODE_SIGN_IDENTITY='-' \
             CODE_SIGNING_REQUIRED=NO \
             build
-
-      # ── Optional: signed Release archive (set workflow input + repo secrets) ────────
-      # Required secrets (example naming — adjust to match your Apple setup):
-      #   BUILD_CERTIFICATE_BASE64   — base64 of .p12 distribution cert
-      #   P12_PASSWORD               — .p12 password
-      #   BUILD_PROVISION_PROFILE_BASE64 — base64 of App Store provisioning profile
-      #   KEYCHAIN_PASSWORD          — temp keychain password (any random string)
-      #
-      # - name: Import signing assets
-      #   if: ${{ inputs.sign_archive == true }}
-      #   env:
-      #     BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
-      #     P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
-      #     BUILD_PROVISION_PROFILE_BASE64: ${{ secrets.BUILD_PROVISION_PROFILE_BASE64 }}
-      #     KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
-      #   run: |
-      #     CERT_PATH=$RUNNER_TEMP/dist.p12
-      #     PP_PATH=$RUNNER_TEMP/app.mobileprovision
-      #     KEYCHAIN_PATH=$RUNNER_TEMP/signing.keychain-db
-      #     echo -n "$BUILD_CERTIFICATE_BASE64" | base64 --decode -o "$CERT_PATH"
-      #     echo -n "$BUILD_PROVISION_PROFILE_BASE64" | base64 --decode -o "$PP_PATH"
-      #     security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
-      #     security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
-      #     security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
-      #     security import "$CERT_PATH" -P "$P12_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
-      #     security list-keychain -d user -s "$KEYCHAIN_PATH"
-      #     mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-      #     cp "$PP_PATH" ~/Library/MobileDevice/Provisioning\ Profiles/
-      #
-      # - name: Archive (Release)
-      #   if: ${{ inputs.sign_archive == true }}
-      #   working-directory: ios/App
-      #   run: |
-      #     xcodebuild -workspace App.xcworkspace -scheme App -configuration Release \
-      #       -destination 'generic/platform=iOS' \
-      #       -archivePath "$RUNNER_TEMP/App.xcarchive" archive
-      #
-      # Then export .ipa with xcodebuild -exportArchive or upload via Xcode Cloud / Transporter.
