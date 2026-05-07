@@ -23,6 +23,9 @@ export default function Footer() {
             <Link href="/guidelines" className="text-gray-400 hover:text-amber-500 transition">
               Guidelines
             </Link>
+            <Link href="/child-safety" className="text-gray-400 hover:text-amber-500 transition">
+              Child safety
+            </Link>
           </div>
         </div>
         

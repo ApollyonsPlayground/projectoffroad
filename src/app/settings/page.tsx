@@ -379,6 +379,13 @@ export default function SettingsPage() {
               <span>Terms of Service</span>
               <span className="text-neutral-600">→</span>
             </Link>
+            <Link
+              href="/child-safety/"
+              className="flex items-center justify-between text-neutral-400 hover:text-white py-2"
+            >
+              <span>Child safety standards (CSAE)</span>
+              <span className="text-neutral-600">→</span>
+            </Link>
           </div>
         </div>
 
