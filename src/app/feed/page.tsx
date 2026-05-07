@@ -163,8 +163,10 @@ function NewPostDrawer({ open, onClose, onPosted }: {
           setUploadProgress('idle');
           return;
         }
+        // If moderation is not configured, do not hide the post from other users.
+        // Unsafe images return 422 and are blocked above.
         if (scanJson.skipped) {
-          moderationStatus = 'pending_no_engine';
+          moderationStatus = 'approved';
         }
       }
 
@@ -2086,7 +2088,9 @@ export default function HomePage() {
       const rawPosts: any[] = (postsResult.data ?? []).filter((p: any) => {
         if (p.hidden === true) return false;
         const st = String(p.moderation_status ?? 'approved').trim().toLowerCase();
-        if (!st || st === 'approved') return true;
+        // `pending_no_engine` is a non-blocking state when moderation is not configured.
+        // We still show these posts publicly; actual blocked content returns 422 and never gets inserted.
+        if (!st || st === 'approved' || st === 'pending_no_engine') return true;
         if (modBypass) return true;
         if (viewerId && String(p.user_id) === String(viewerId)) return true;
         return false;
