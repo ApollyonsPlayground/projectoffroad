@@ -1,5 +1,9 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
+import {
+  cookieSecureFromMiddlewareUrl,
+  supabaseCookieOptions,
+} from '@/utils/supabase/cookieOptions';
 
 function supabaseKey(): string {
   return (
@@ -20,6 +24,7 @@ export async function middleware(request: NextRequest) {
   }
 
   const supabase = createServerClient(url, key, {
+    cookieOptions: supabaseCookieOptions(cookieSecureFromMiddlewareUrl(request.nextUrl)),
     cookies: {
       getAll() {
         return request.cookies.getAll();

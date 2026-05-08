@@ -13,6 +13,7 @@ import {
   Users,
   Info,
   Search,
+  Radio,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/Toast';
@@ -131,6 +132,7 @@ const EMPTY = {
   club_id: '',
   trail_id: '',
   vehicle_requirements: '',
+  comms_note: '',
 };
 
 type HostRunFormState = typeof EMPTY;
@@ -177,7 +179,8 @@ function isDraftWorthSaving(snapshot: {
     form.trail_id ||
     form.club_id ||
     form.max_participants.trim() ||
-    form.vehicle_requirements.trim()
+    form.vehicle_requirements.trim() ||
+    form.comms_note.trim()
   ) {
     return true;
   }
@@ -220,6 +223,7 @@ function parseHostRunDraft(raw: string | null): StoredHostRunDraft | null {
         club_id: String(f.club_id ?? ''),
         trail_id: String(f.trail_id ?? ''),
         vehicle_requirements: String(f.vehicle_requirements ?? ''),
+        comms_note: String(f.comms_note ?? ''),
       },
       mode: o.mode === 'user_submitted' ? 'user_submitted' : 'club_official',
       disclaimerAck: Boolean(o.disclaimerAck),
@@ -614,6 +618,7 @@ export function HostRunWizard({ variant = 'drawer', onSuccess, onCancel }: Props
         difficulty: DIFFICULTY_FOR_DB[form.difficulty as (typeof DIFFICULTIES)[number]] ?? form.difficulty,
         trail_id: form.trail_id || null,
         vehicle_requirements: form.vehicle_requirements.trim() || null,
+        comms_note: form.comms_note.trim() || null,
         host_id: user.id,
         status: 'upcoming',
         run_source: mode,
@@ -649,7 +654,8 @@ export function HostRunWizard({ variant = 'drawer', onSuccess, onCancel }: Props
           error.message?.includes('user_acknowledged') ||
           error.message?.includes('host_id') ||
           error.message?.includes('meetup_latitude') ||
-          error.message?.includes('meetup_longitude')
+          error.message?.includes('meetup_longitude') ||
+          error.message?.includes('comms_note')
         ) {
           showToast(
             'Database needs the latest migrations (runs workflow + meetup coordinates). Run npm run db:push.',
@@ -1015,6 +1021,25 @@ export function HostRunWizard({ variant = 'drawer', onSuccess, onCancel }: Props
           value={form.vehicle_requirements}
           onChange={set('vehicle_requirements')}
         />
+      </div>
+
+      {/* Radio / comms — GMRS, FRS, tone (local trail nets) */}
+      <div>
+        <label className={labelClass}>
+          <Radio size={12} className="inline mr-1 opacity-90" />
+          Comms / radio (optional)
+        </label>
+        <input
+          className={inputClass}
+          placeholder="e.g. GMRS ch 22 · tone 67.0 · call sign or net name"
+          value={form.comms_note}
+          onChange={set('comms_note')}
+          autoComplete="off"
+          maxLength={300}
+        />
+        <p className="mt-1.5 text-[11px] text-zinc-500 leading-snug">
+          Shown on the run card so everyone tunes the same channel before rollout — not a rating or leaderboard.
+        </p>
       </div>
 
       {/* Club (official + staff: optional Staff verified; official + member: required verified; community: optional) */}

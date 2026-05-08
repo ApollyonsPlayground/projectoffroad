@@ -3,8 +3,23 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 import type { User, SupabaseClient } from '@supabase/supabase-js'
 import { createBrowserSupabaseClient } from '@/utils/supabase/client'
+import { ensureStoragePublicObjectUrl } from '@/lib/supabase/storagePublicUrl'
+import { isCapacitorNative } from '@/utils/capacitator/isNative'
+import { App as CapacitorApp } from '@capacitor/app'
+import { Browser } from '@capacitor/browser'
 
 const supabase = createBrowserSupabaseClient()
+
+/**
+ * True when `avatar_url` is an object in our Storage `avatars` bucket (profile upload).
+ * We match on the path, not the hostname: OAuth sync used to overwrite uploads whenever
+ * NEXT_PUBLIC_SUPABASE_URL didn’t exactly match the URL returned by `getPublicUrl`.
+ */
+function isAppManagedProfilePhoto(avatarUrl: string | null | undefined): boolean {
+  if (!avatarUrl || typeof avatarUrl !== 'string') return false
+  const normalized = ensureStoragePublicObjectUrl(avatarUrl.trim()) || avatarUrl.trim()
+  return normalized.includes('/storage/v1/object/public/avatars/')
+}
 
 // profile is Record<string,unknown> but always contains at least { role?: string }
 interface AuthContextType {
@@ -33,61 +48,160 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return
     }
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null)
-      if (session?.user) {
-        fetchProfile(session.user.id)
-      } else {
+    // Capacitor native: complete OAuth PKCE via deep link in the same app storage context.
+    // This avoids "PKCE code verifier not found in storage" which happens when auth
+    // was initiated in the WebView but completed in a separate browser context.
+    let removeUrlOpen: (() => void) | null = null
+    if (isCapacitorNative()) {
+      const sub = CapacitorApp.addListener('appUrlOpen', async ({ url }) => {
+        try {
+          const u = new URL(url)
+          const code = u.searchParams.get('code')
+          if (!code) return
+
+          // Exchange in-app (needs the PKCE verifier stored by signInWithOAuth).
+          const { error } = await supabase.auth.exchangeCodeForSession(code)
+          await Browser.close().catch(() => {})
+
+          if (error) {
+            console.warn('[Auth] exchangeCodeForSession:', error.message)
+            return
+          }
+
+          // If caller included `next`, go there; otherwise default to /feed/.
+          const next = u.searchParams.get('next')
+          const dest =
+            next && next.startsWith('/') && !next.startsWith('//') && !next.includes('://')
+              ? next
+              : '/feed/'
+          window.location.assign(dest)
+        } catch (e) {
+          console.warn('[Auth] appUrlOpen parse:', e)
+        }
+      })
+      removeUrlOpen = () => sub.remove()
+    }
+
+    // LAN / phone dev: first cookie read + profile can exceed 8s; avoid false "signed out".
+    const SESSION_BOOT_MS = process.env.NODE_ENV === 'development' ? 30000 : 15000
+    type GetSessionResult = Awaited<ReturnType<typeof supabase.auth.getSession>>
+    const sessionBoot = new Promise<GetSessionResult>((resolve) =>
+      setTimeout(() => resolve({ data: { session: null }, error: null }), SESSION_BOOT_MS)
+    )
+
+    Promise.race([supabase.auth.getSession(), sessionBoot])
+      .then(({ data: { session } }) => {
+        setUser(session?.user ?? null)
+        if (session?.user) {
+          void fetchProfile(session.user.id)
+        } else {
+          setLoading(false)
+        }
+      })
+      .catch((err) => {
+        console.warn('[Auth] getSession:', err)
         setLoading(false)
-      }
-    })
+      })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null)
       if (session?.user) {
-        fetchProfile(session.user.id)
+        void fetchProfile(session.user.id)
       } else {
         setProfile(null)
         setLoading(false)
       }
     })
 
-    return () => subscription.unsubscribe()
+    return () => {
+      subscription.unsubscribe()
+      if (removeUrlOpen) removeUrlOpen()
+    }
   }, [])
 
   async function fetchProfile(userId: string) {
-    if (!supabase) return
-    // Upsert: ensure user record exists with data from Google session
-    const session = (await supabase.auth.getSession()).data?.session
-    if (session?.user) {
+    if (!supabase) {
+      setLoading(false)
+      return
+    }
+    try {
+      const session = (await supabase.auth.getSession()).data?.session
+      if (!session?.user) {
+        setProfile(null)
+        return
+      }
+
       const email =
         session.user.email?.trim() ||
         `${userId.replace(/-/g, '')}@oauth.placeholder.local`
 
-      // Omit `role` on upsert so existing owner/admin rows are not reset to 'user'.
-      const { error: upsertError } = await supabase.from('users').upsert(
-        {
+      const googleName =
+        (session.user.user_metadata?.full_name as string) ||
+        (session.user.user_metadata?.name as string) ||
+        session.user.email?.split('@')[0] ||
+        'Rider'
+
+      const avatar_url = (session.user.user_metadata?.avatar_url as string) || null
+
+      const { data: existing, error: selErr } = await supabase
+        .from('users')
+        .select('id, sync_display_name_from_google, avatar_url')
+        .eq('id', userId)
+        .maybeSingle()
+
+      if (selErr) console.warn('[Auth] profile select:', selErr.message)
+
+      if (!existing) {
+        const { error: insErr } = await supabase.from('users').insert({
           id: userId,
           email,
-          name:
-            (session.user.user_metadata?.full_name as string) ||
-            (session.user.user_metadata?.name as string) ||
-            session.user.email?.split('@')[0] ||
-            'Rider',
-          avatar_url: (session.user.user_metadata?.avatar_url as string) || null,
-        },
-        { onConflict: 'id' }
-      )
-      if (upsertError) console.warn('[Auth] profile upsert:', upsertError.message)
+          name: googleName,
+          avatar_url,
+          sync_display_name_from_google: false,
+        })
+        if (insErr?.code === '23505') {
+          const { data: raceRow } = await supabase
+            .from('users')
+            .select('avatar_url')
+            .eq('id', userId)
+            .maybeSingle()
+          const raceAvatar = raceRow?.avatar_url ?? null
+          const racePatch: Record<string, unknown> = { email }
+          if (!isAppManagedProfilePhoto(raceAvatar)) {
+            racePatch.avatar_url = avatar_url
+          }
+          const { error: raceUpd } = await supabase.from('users').update(racePatch).eq('id', userId)
+          if (raceUpd) console.warn('[Auth] profile race update:', raceUpd.message)
+        } else if (insErr) {
+          console.warn('[Auth] profile insert:', insErr.message)
+        }
+      } else {
+        const storedAvatar = (existing as { avatar_url?: string | null }).avatar_url ?? null
+        const customLocked = isAppManagedProfilePhoto(storedAvatar)
+
+        const patch: Record<string, unknown> = { email }
+        if (!customLocked) {
+          patch.avatar_url = avatar_url
+        }
+        if (existing.sync_display_name_from_google === true) {
+          patch.name = googleName
+        }
+        const { error: updErr } = await supabase.from('users').update(patch).eq('id', userId)
+        if (updErr) console.warn('[Auth] profile update:', updErr.message)
+      }
+
+      // maybeSingle: avoids 406 when row still missing after a failed upsert
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle()
+      if (!error && data) setProfile(data)
+    } catch (e) {
+      console.warn('[Auth] fetchProfile:', e)
+    } finally {
+      setLoading(false)
     }
-    // maybeSingle: avoids 406 when row still missing after a failed upsert
-    const { data, error } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', userId)
-      .maybeSingle()
-    if (!error && data) setProfile(data)
-    setLoading(false)
   }
 
   async function signOut() {
@@ -114,30 +228,79 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // NEXT_PUBLIC_SITE_URL points at prod while testing on localhost.
     const origin = typeof window !== 'undefined' ? window.location.origin : ''
     const callbackPath = '/auth/callback/'
+    let nextAfterLogin = '/feed/'
+    if (typeof window !== 'undefined') {
+      const raw = new URLSearchParams(window.location.search).get('next')
+      if (raw && raw.startsWith('/') && !raw.startsWith('//') && !raw.includes('://')) {
+        nextAfterLogin = raw.length > 2048 ? '/feed/' : raw
+      }
+    }
+    const qs = `next=${encodeURIComponent(nextAfterLogin)}`
+    const native = isCapacitorNative()
+    // Native apps: route the provider back to the WEBSITE callback with `native=1`,
+    // then the website immediately bounces into the app deep link. This is more reliable
+    // than asking the provider to deep-link directly (some flows ignore redirectTo).
+    const redirectTo = native
+      ? origin
+        ? `${origin}${callbackPath}?native=1&${qs}`
+        : `${callbackPath}?native=1&${qs}`
+      : origin
+        ? `${origin}${callbackPath}?${qs}`
+        : `${callbackPath}?${qs}`
 
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: origin ? `${origin}${callbackPath}` : callbackPath,
-      },
-    })
-
-    if (!error) return { error: null }
-
-    const raw = error.message ?? ''
-    const providerDisabled =
-      raw.toLowerCase().includes('provider is not enabled') ||
-      raw.toLowerCase().includes('unsupported provider') ||
-      (error as { code?: string }).code === 'validation_failed'
-
-    if (providerDisabled) {
+    let oauth: Awaited<ReturnType<typeof supabase.auth.signInWithOAuth>>;
+    try {
+      oauth = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo,
+          // Full top-level navigation avoids some mobile browsers blocking the
+          // library’s default redirect when it runs right after an async gap.
+          skipBrowserRedirect: true,
+        },
+      })
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e)
       return {
-        error:
-          'Google sign-in is disabled in Supabase. Dashboard → Authentication → Providers → Google: enable it, add Client ID/Secret, and in Google Cloud set redirect URI to https://YOUR_REF.supabase.co/auth/v1/callback — see instruction.md.',
+        error: `Could not reach Supabase (${msg}). Open /api/health/supabase on this site; confirm the project is active in the Supabase dashboard and Vercel env has NEXT_PUBLIC_SUPABASE_URL + anon/publishable key.`,
       }
     }
 
-    return { error: raw || null }
+    const { data, error } = oauth
+
+    if (error) {
+      const raw = error.message ?? ''
+      const providerDisabled =
+        raw.toLowerCase().includes('provider is not enabled') ||
+        raw.toLowerCase().includes('unsupported provider') ||
+        (error as { code?: string }).code === 'validation_failed'
+
+      if (providerDisabled) {
+        return {
+          error:
+            'Google sign-in is disabled in Supabase. Dashboard → Authentication → Providers → Google: enable it, add Client ID/Secret, and in Google Cloud set redirect URI to https://YOUR_REF.supabase.co/auth/v1/callback — see instruction.md.',
+        }
+      }
+
+      return { error: raw || null }
+    }
+
+    if (data?.url && typeof window !== 'undefined') {
+      if (native) {
+        await Browser.open({
+          url: data.url,
+          presentationStyle: 'popover',
+        })
+      } else {
+        window.location.assign(data.url)
+      }
+      return { error: null }
+    }
+
+    return {
+      error:
+        'Could not start Google sign-in (empty auth URL). Try Safari/Chrome directly (not an in-app browser), or disable strict tracking/ad blockers for this site.',
+    }
   }
 
   return (

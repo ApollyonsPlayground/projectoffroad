@@ -1,0 +1,126 @@
+# iOS native shell — sync Capacitor + Xcode build on GitHub macOS runners.
+# WebView loads production by default (capacitor.config.ts → https://socaloffroaders.com/).
+#
+# Capacitor 8: `cap add ios` defaults to Swift Package Manager (SPM), so there is no Podfile.
+# This workflow builds the SPM Xcode project directly (no CocoaPods).
+#
+# IMPORTANT — GitHub “Re-run failed jobs” reuses the ORIGINAL commit (SHA frozen).
+# To pick up new pushes: Actions → this workflow → “Run workflow” (green button), not Rerun.
+
+name: iOS (Capacitor)
+
+on:
+  workflow_dispatch:
+    inputs:
+      sign_archive:
+        description: 'Run signed Release archive (requires signing secrets below)'
+        required: false
+        default: false
+        type: boolean
+
+concurrency:
+  group: ios-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  # Needed for actions/upload-artifact (omit only if repo default already grants it).
+  actions: write
+
+# Composite Actions JS runtime: opt into Node 24 (GitHub Actions deprecation).
+# https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  NODE_VERSION: '22'
+
+jobs:
+  ios-build:
+    runs-on: macos-latest
+    timeout-minutes: 45
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Commit this run targets (before checkout)
+        run: |
+          echo "event_name=${{ github.event_name }}"
+          echo "workflow_sha=${{ github.sha }}"
+          echo "workflow_ref=${{ github.ref }}"
+          echo "If workflow_sha is an old hash like 111b435..., do NOT use Re-run — click Run workflow instead."
+
+      # v5+ runs Actions composite code on Node 24; avoids “checkout@v4 deprecated” noise.
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Confirm workflow file on runner (debug)
+        run: |
+          set -euxo pipefail
+          echo "GITHUB_REF=$GITHUB_REF SHA=$GITHUB_SHA"
+          test -f .github/workflows/ios.yml
+          echo "--- action pins in ios.yml ---"
+          grep -n "uses: actions/" .github/workflows/ios.yml || true
+          echo "--- head of ios.yml ---"
+          sed -n '1,85p' .github/workflows/ios.yml
+
+      - name: Xcode version
+        run: xcodebuild -version
+
+      - name: Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install JS dependencies
+        run: npm ci
+
+      - name: Scaffold iOS (SPM — clean tree every run)
+        run: |
+          set -euxo pipefail
+          rm -rf ios
+          npx cap add ios
+          ls -la ios/App
+          test -d ios/App/App.xcodeproj
+
+      - name: Capacitor sync (iOS)
+        run: npx cap sync ios
+
+      - name: Xcode project / schemes
+        working-directory: ios/App
+        run: xcodebuild -project App.xcodeproj -list
+
+      - name: List simulators (debug)
+        run: xcrun simctl list devices available | head -60
+
+      - name: Build for iOS Simulator (smoke test)
+        working-directory: ios/App
+        run: |
+          set -euxo pipefail
+          xcodebuild \
+            -project App.xcodeproj \
+            -scheme App \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath "$RUNNER_TEMP/DerivedData" \
+            CODE_SIGN_IDENTITY='-' \
+            CODE_SIGNING_REQUIRED=NO \
+            build
+
+      # Compiled Simulator output lives under DerivedData — NOT under ios/App/App (that’s mostly sources).
+      - name: Show build products (debug)
+        if: success()
+        run: |
+          ls -la "${RUNNER_TEMP}/DerivedData/Build/Products/Debug-iphonesimulator" || true
+
+      - name: Upload Simulator .app (artifact)
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-simulator-debug
+          path: ${{ runner.temp }}/DerivedData/Build/Products/Debug-iphonesimulator/
+          if-no-files-found: warn

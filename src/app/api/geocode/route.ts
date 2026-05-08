@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
 
     const res = await fetch(url.toString(), {
       headers: {
-        'User-Agent': 'SoCalOffroaders-HostRunWizard/1.0 (+https://socaloffroaders.org)',
+        'User-Agent': 'SoCalOffroaders-HostRunWizard/1.0 (+https://socaloffroaders.com)',
         'Accept-Language': 'en',
       },
       cache: 'no-store',

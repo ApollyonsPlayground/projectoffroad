@@ -1,10 +1,12 @@
+import { SITE_SUPPORT_EMAIL } from '@/lib/siteContact';
+
 /**
- * Optional funnel so club leaders know how to reach you for the verified badge.
- * Set NEXT_PUBLIC_CLUB_VERIFICATION_EMAIL in .env.local (same address you monitor).
+ * Club verification requests. Override with NEXT_PUBLIC_CLUB_VERIFICATION_EMAIL if needed;
+ * otherwise defaults to the primary site inbox.
  */
-export function getClubVerificationEmail(): string | null {
+export function getClubVerificationEmail(): string {
   const raw = process.env.NEXT_PUBLIC_CLUB_VERIFICATION_EMAIL?.trim();
-  return raw || null;
+  return raw || SITE_SUPPORT_EMAIL;
 }
 
 export function buildClubVerificationMailto(opts?: {
@@ -12,9 +14,8 @@ export function buildClubVerificationMailto(opts?: {
   clubSlug?: string;
   /** Extra line from the requester */
   note?: string;
-}): string | null {
+}): string {
   const to = getClubVerificationEmail();
-  if (!to) return null;
   const subject = opts?.clubName
     ? `Club verification: ${opts.clubName}`
     : 'Club verification request — SoCalOffroaders';
@@ -28,5 +29,5 @@ export function buildClubVerificationMailto(opts?: {
     'Thanks,',
   ].filter(Boolean) as string[];
   const body = lines.join('\n');
-  return `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  return `mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 }

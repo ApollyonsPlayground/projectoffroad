@@ -27,6 +27,7 @@ export interface Vehicle {
   year: number
   make: string
   model: string
+  trim?: string
   modifications?: string
   photo_url?: string
   is_primary: boolean

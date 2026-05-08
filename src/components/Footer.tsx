@@ -17,8 +17,17 @@ export default function Footer() {
             <Link href="/privacy" className="text-gray-400 hover:text-amber-500 transition">
               Privacy
             </Link>
+            <Link href="/support/" className="text-gray-400 hover:text-amber-500 transition">
+              Support
+            </Link>
+            <Link href="/account/delete/" className="text-gray-400 hover:text-amber-500 transition">
+              Delete account
+            </Link>
             <Link href="/guidelines" className="text-gray-400 hover:text-amber-500 transition">
               Guidelines
+            </Link>
+            <Link href="/child-safety" className="text-gray-400 hover:text-amber-500 transition">
+              Child safety
             </Link>
           </div>
         </div>

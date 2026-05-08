@@ -26,6 +26,7 @@ CREATE TABLE vehicles (
   year INTEGER NOT NULL,
   make TEXT NOT NULL,
   model TEXT NOT NULL,
+  trim TEXT,
   modifications TEXT,
   photo_url TEXT,
   is_primary BOOLEAN DEFAULT false,

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -28,10 +28,26 @@ import {
   Trash2,
   ChevronRight,
   ExternalLink,
+  Radio,
+  StickyNote,
 } from 'lucide-react';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
+import BottomNav from '@/components/BottomNav';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/Toast';
+import { snapshotPublicIdentity } from '@/lib/profileDisplay';
+import type { RunLiveMapParticipant } from '@/components/RunLiveMap';
+import { RUN_GROUP_CHAT_PRESETS } from '@/lib/runs/chatPresets';
+
+const RunLiveMap = dynamic(() => import('@/components/RunLiveMap'), {
+  ssr: false,
+  loading: () => (
+    <div className="h-[min(320px,55dvh)] flex items-center justify-center bg-zinc-900 border border-zinc-800 rounded-2xl">
+      <Loader2 className="animate-spin text-orange-500" size={24} />
+    </div>
+  ),
+});
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -54,6 +70,7 @@ interface RunDetail {
   difficulty: string;
   max_participants: number | null;
   vehicle_requirements: string | null;
+  comms_note: string | null;
   status: string;
   host_id: string | null;
   club_id: string | null;
@@ -98,6 +115,15 @@ interface RunChatMessage {
   content: string;
   created_at: string;
   users?: { name: string | null; avatar_url: string | null } | null;
+}
+
+interface RunReflectionRow {
+  id: string;
+  user_id: string;
+  body: string;
+  created_at: string;
+  updated_at: string;
+  users?: { name: string | null } | null;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -173,7 +199,7 @@ function runStagingDirectionsUrl(run: RunDetail): string | null {
 export default function RunDetailPage() {
   const { runId } = useParams<{ runId: string }>();
   const router = useRouter();
-  const { user, supabaseClient } = useAuth();
+  const { user, profile, supabaseClient } = useAuth();
   const { showToast } = useToast();
 
   const [run, setRun] = useState<RunDetail | null>(null);
@@ -192,9 +218,15 @@ export default function RunDetailPage() {
 
   // SOS state
   const [sosSending, setSosSending] = useState(false);
+  const [sosCancelId, setSosCancelId] = useState<string | null>(null);
   const [sosConfirmOpen, setSosConfirmOpen] = useState(false);
   const [activeAlerts, setActiveAlerts] = useState<RunAlert[]>([]);
   const [dismissedAlerts, setDismissedAlerts] = useState<Set<string>>(new Set());
+
+  const [runReflections, setRunReflections] = useState<RunReflectionRow[]>([]);
+  const [reflectionBody, setReflectionBody] = useState('');
+  const [reflectionSaving, setReflectionSaving] = useState(false);
+  const reflectionTouchedRef = useRef(false);
 
   const fetchDetail = useCallback(async () => {
     if (!supabaseClient || !runId) return;
@@ -203,9 +235,9 @@ export default function RunDetailPage() {
     try {
       const runSelectAttempts = [
         '*',
-        'id, title, description, date, meetup_location, meetup_latitude, meetup_longitude, difficulty, max_participants, vehicle_requirements, status, host_id, club_id, trail_id, run_source, user_acknowledged_disclaimer_at, created_at',
-        'id, title, description, date, meetup_location, difficulty, max_participants, vehicle_requirements, status, host_id, club_id, trail_id, run_source, created_at, club:clubs(name), trail:trails(name, difficulty)',
-        'id, title, description, date, meetup_location, meetup_latitude, meetup_longitude, difficulty, max_participants, vehicle_requirements, status, host_id, club_id, trail_id, run_source, user_acknowledged_disclaimer_at, created_at, club:clubs(name, logo), trail:trails(name, difficulty, latitude, longitude, coordinates)',
+        'id, title, description, date, meetup_location, meetup_latitude, meetup_longitude, difficulty, max_participants, vehicle_requirements, comms_note, status, host_id, club_id, trail_id, run_source, user_acknowledged_disclaimer_at, created_at',
+        'id, title, description, date, meetup_location, difficulty, max_participants, vehicle_requirements, comms_note, status, host_id, club_id, trail_id, run_source, created_at, club:clubs(name), trail:trails(name, difficulty)',
+        'id, title, description, date, meetup_location, meetup_latitude, meetup_longitude, difficulty, max_participants, vehicle_requirements, comms_note, status, host_id, club_id, trail_id, run_source, user_acknowledged_disclaimer_at, created_at, club:clubs(name, logo), trail:trails(name, difficulty, latitude, longitude, coordinates)',
       ];
 
       let runPayload: unknown = null;
@@ -250,6 +282,41 @@ export default function RunDetailPage() {
 
   useEffect(() => { fetchDetail(); }, [fetchDetail]);
 
+  useEffect(() => {
+    reflectionTouchedRef.current = false;
+    setReflectionBody('');
+    setRunReflections([]);
+  }, [runId]);
+
+  useEffect(() => {
+    if (!supabaseClient || !runId || !run || run.status !== 'completed') return;
+
+    let cancelled = false;
+    void (async () => {
+      const attempts = ['id, body, created_at, updated_at, user_id, users(name)', 'id, body, created_at, updated_at, user_id'];
+      for (const sel of attempts) {
+        const { data, error } = await supabaseClient
+          .from('run_reflections')
+          .select(sel)
+          .eq('run_id', runId)
+          .order('created_at', { ascending: false });
+        if (!error && data != null && !cancelled) {
+          const rows = data as RunReflectionRow[];
+          setRunReflections(rows);
+          const mine = user ? rows.find((r) => r.user_id === user.id) : undefined;
+          if (!reflectionTouchedRef.current) {
+            setReflectionBody(mine?.body ?? '');
+          }
+          break;
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [supabaseClient, runId, run?.id, run?.status, user?.id]);
+
   // ── RSVP ────────────────────────────────────────────────────────────────────
   const handleRsvp = async () => {
     if (!user) { showToast('Sign in to join a run', 'info'); return; }
@@ -265,7 +332,10 @@ export default function RunDetailPage() {
           .from('run_participants')
           .delete()
           .match({ run_id: run.id, user_id: user.id });
-        if (error) throw error;
+        if (error) {
+          showToast(error.message || 'Could not leave run', 'error');
+          return;
+        }
         setJoined(false);
         setParticipants((prev) => prev.filter((p) => p.user_id !== user.id));
         showToast('Left the run', 'info');
@@ -273,7 +343,10 @@ export default function RunDetailPage() {
         const { error } = await supabaseClient
           .from('run_participants')
           .insert({ run_id: run.id, user_id: user.id, rsvp_status: 'going' });
-        if (error && error.code !== '23505') throw error;
+        if (error && error.code !== '23505') {
+          showToast(error.message || 'Could not join run', 'error');
+          return;
+        }
         setJoined(true);
         setParticipants((prev) => [
           ...prev,
@@ -289,8 +362,6 @@ export default function RunDetailPage() {
         ]);
         showToast(`You're in for "${run.title}"!`, 'success');
       }
-    } catch {
-      showToast('Could not update RSVP', 'error');
     } finally {
       setJoining(false);
     }
@@ -389,7 +460,7 @@ export default function RunDetailPage() {
         if (data && data.length > 0) setActiveAlerts(data as RunAlert[]);
       });
 
-    // Subscribe to new SOS alerts in realtime
+    // Subscribe to new SOS alerts + cancellations (DELETE) in realtime
     const channel = supabaseClient
       .channel(`sos-alerts-${runId}`)
       .on(
@@ -405,6 +476,26 @@ export default function RunDetailPage() {
           setActiveAlerts((prev) => [alert, ...prev]);
         }
       )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'sos_alerts',
+          filter: `run_id=eq.${runId}`,
+        },
+        (payload) => {
+          const oldRow = payload.old as { id?: string };
+          if (oldRow?.id) {
+            setActiveAlerts((prev) => prev.filter((a) => a.id !== oldRow.id));
+            setDismissedAlerts((prev) => {
+              const next = new Set(prev);
+              next.delete(oldRow.id!);
+              return next;
+            });
+          }
+        }
+      )
       .subscribe();
 
     return () => { supabaseClient.removeChannel(channel); };
@@ -416,10 +507,7 @@ export default function RunDetailPage() {
     setSosSending(true);
     setSosConfirmOpen(false);
 
-    const userName =
-      (user.user_metadata?.full_name as string) ||
-      user.email?.split('@')[0] ||
-      'A rider';
+    const userName = snapshotPublicIdentity(profile ?? undefined, user);
 
     try {
       // Grab browser GPS
@@ -464,6 +552,26 @@ export default function RunDetailPage() {
       }
     } finally {
       setSosSending(false);
+    }
+  };
+
+  const handleCancelOwnSOS = async (alertId: string) => {
+    if (!supabaseClient || !user) return;
+    setSosCancelId(alertId);
+    try {
+      const { error } = await supabaseClient.from('sos_alerts').delete().eq('id', alertId).eq('user_id', user.id);
+      if (error) throw error;
+      setActiveAlerts((prev) => prev.filter((a) => a.id !== alertId));
+      setDismissedAlerts((prev) => {
+        const next = new Set(prev);
+        next.delete(alertId);
+        return next;
+      });
+      showToast('SOS alert cancelled for everyone on this run.', 'success');
+    } catch {
+      showToast('Could not cancel SOS. Try again.', 'error');
+    } finally {
+      setSosCancelId(null);
     }
   };
 
@@ -552,9 +660,9 @@ export default function RunDetailPage() {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatMessages.length]);
 
-  const handleSendChat = async () => {
+  const handleSendChat = async (directText?: string) => {
     if (!supabaseClient || !run || !user || !canUseRunChat) return;
-    const text = chatInput.trim();
+    const text = (directText ?? chatInput).trim();
     if (!text) return;
     setChatSending(true);
     try {
@@ -564,7 +672,7 @@ export default function RunDetailPage() {
         .select('id, content, created_at, user_id')
         .single();
       if (error) throw error;
-      setChatInput('');
+      if (directText == null) setChatInput('');
       const row = enrichChatRow(data as RunChatMessage);
       setChatMessages((prev) => {
         if (prev.some((m) => m.id === row.id)) return prev;
@@ -574,6 +682,44 @@ export default function RunDetailPage() {
       showToast('Could not send message', 'error');
     } finally {
       setChatSending(false);
+    }
+  };
+
+  const handleSaveReflection = async () => {
+    if (!supabaseClient || !run || !user) return;
+    if (run.status !== 'completed') return;
+    const canWrite = joined || user.id === run.host_id;
+    if (!canWrite) {
+      showToast('Only riders who went on this run can add a trip note', 'info');
+      return;
+    }
+    const body = reflectionBody.trim();
+    if (!body) {
+      showToast('Write a short note about how the run went', 'info');
+      return;
+    }
+    if (body.length > 4000) {
+      showToast('Keep it under 4000 characters', 'info');
+      return;
+    }
+    setReflectionSaving(true);
+    try {
+      const { error } = await supabaseClient.from('run_reflections').upsert(
+        { run_id: run.id, user_id: user.id, body },
+        { onConflict: 'run_id,user_id' }
+      );
+      if (error) throw error;
+      showToast('Trip note saved', 'success');
+      const { data: again } = await supabaseClient
+        .from('run_reflections')
+        .select('id, body, created_at, updated_at, user_id, users(name)')
+        .eq('run_id', run.id)
+        .order('created_at', { ascending: false });
+      if (again) setRunReflections(again as RunReflectionRow[]);
+    } catch {
+      showToast('Could not save trip note — try again after migrations are applied', 'error');
+    } finally {
+      setReflectionSaving(false);
     }
   };
 
@@ -607,8 +753,30 @@ export default function RunDetailPage() {
   const stagingDirectionsUrl = runStagingDirectionsUrl(run);
   const hasDirections = !!(trailDirectionsUrl || stagingDirectionsUrl);
 
+  const liveMapReference =
+    (() => {
+      const lat = run.meetup_latitude != null ? Number(run.meetup_latitude) : NaN;
+      const lng = run.meetup_longitude != null ? Number(run.meetup_longitude) : NaN;
+      if (!Number.isNaN(lat) && !Number.isNaN(lng)) return { lat, lng };
+      return coordsFromTrailEmbed(run.trail);
+    })();
+
+  const liveMapParticipants = useMemo((): RunLiveMapParticipant[] => {
+    const base: RunLiveMapParticipant[] = participants.map((p) => ({
+      user_id: p.user_id,
+      users: p.users ? { name: p.users.name } : null,
+    }));
+    if (run.host_id && !participants.some((p) => p.user_id === run.host_id)) {
+      base.push({
+        user_id: run.host_id,
+        users: { name: hostProfile?.name ?? 'Organizer' },
+      });
+    }
+    return base;
+  }, [participants, run.host_id, hostProfile?.name]);
+
   return (
-    <div className="min-h-screen bg-black pb-10">
+    <div className="min-h-screen bg-black pb-28">
       {/* ── Back header ─────────────────────────────────────────────────── */}
       <header className="sticky top-0 z-50 bg-black/90 backdrop-blur-xl border-b border-zinc-900 safe-top">
         <div className="px-4 py-3 max-w-md mx-auto flex items-center gap-3">
@@ -822,6 +990,16 @@ export default function RunDetailPage() {
                   <span className="text-zinc-300">{run.vehicle_requirements}</span>
                 </div>
               )}
+
+              {run.comms_note && String(run.comms_note).trim() && (
+                <div className="flex items-start gap-2.5 text-[14px]">
+                  <Radio size={15} className="text-cyan-400 flex-shrink-0 mt-0.5" />
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-bold uppercase text-zinc-500 mb-0.5">Comms / radio</p>
+                    <span className="text-zinc-200 leading-snug break-words">{run.comms_note}</span>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </motion.div>
@@ -894,10 +1072,28 @@ export default function RunDetailPage() {
           )}
         </motion.div>
 
+        {/* ── Live map (active run — host + joined riders) ───────────────── */}
+        {run.status === 'active' && canUseRunChat && supabaseClient && (
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.06 }}
+          >
+            <RunLiveMap
+              supabaseClient={supabaseClient}
+              runId={run.id}
+              user={user}
+              participants={liveMapParticipants}
+              referencePoint={liveMapReference}
+              onToast={showToast}
+            />
+          </motion.div>
+        )}
+
         {/* ── Live SOS Alerts ───────────────────────────────────────────── */}
         <AnimatePresence>
           {activeAlerts
-            .filter((a) => !dismissedAlerts.has(a.id))
+            .filter((a) => a.user_id === user?.id || !dismissedAlerts.has(a.id))
             .map((alert) => (
               <motion.div
                 key={alert.id}
@@ -918,13 +1114,20 @@ export default function RunDetailPage() {
                       </p>
                     </div>
                   </div>
-                  <button
-                    onClick={() => setDismissedAlerts((prev) => new Set([...prev, alert.id]))}
-                    className="text-zinc-500 hover:text-zinc-300 transition-colors flex-shrink-0"
-                    aria-label="Dismiss alert"
-                  >
-                    <X size={16} />
-                  </button>
+                  {alert.user_id === user?.id ? (
+                    <span className="text-[11px] font-bold text-red-300/80 uppercase tracking-wide flex-shrink-0">
+                      Your alert
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setDismissedAlerts((prev) => new Set([...prev, alert.id]))}
+                      className="text-zinc-500 hover:text-zinc-300 transition-colors flex-shrink-0"
+                      aria-label="Dismiss alert"
+                    >
+                      <X size={16} />
+                    </button>
+                  )}
                 </div>
 
                 <p className="text-[13px] text-red-200/90 leading-relaxed mb-3">
@@ -936,11 +1139,25 @@ export default function RunDetailPage() {
                     href={`https://www.google.com/maps/dir/?api=1&destination=${alert.latitude},${alert.longitude}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center justify-center gap-2 w-full py-2.5 bg-red-500 hover:bg-red-600 text-white text-[13px] font-black rounded-xl transition-colors"
+                    className="flex items-center justify-center gap-2 w-full py-2.5 bg-red-500 hover:bg-red-600 text-white text-[13px] font-black rounded-xl transition-colors mb-2"
                   >
                     <Navigation size={14} />
                     Navigate to Stranded Rider
                   </a>
+                )}
+
+                {alert.user_id === user?.id && (
+                  <button
+                    type="button"
+                    disabled={sosCancelId === alert.id}
+                    onClick={() => void handleCancelOwnSOS(alert.id)}
+                    className="flex items-center justify-center gap-2 w-full py-2.5 border border-red-400/50 bg-red-950/40 hover:bg-red-950/70 text-red-200 text-[13px] font-black rounded-xl transition-colors disabled:opacity-50"
+                  >
+                    {sosCancelId === alert.id ? (
+                      <Loader2 size={14} className="animate-spin" />
+                    ) : null}
+                    Cancel SOS for everyone
+                  </button>
                 )}
               </motion.div>
             ))}
@@ -1002,31 +1219,46 @@ export default function RunDetailPage() {
               )}
               <div ref={chatEndRef} />
             </div>
-            <div className="flex gap-2 p-3 border-t border-zinc-800 bg-black/20">
-              <input
-                type="text"
-                value={chatInput}
-                onChange={(e) => setChatInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    void handleSendChat();
-                  }
-                }}
-                placeholder="Message the group…"
-                className="flex-1 min-w-0 bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-[14px] text-white placeholder:text-zinc-600 focus:outline-none focus:border-orange-500/50"
-                maxLength={2000}
-                aria-label="Group message"
-              />
-              <button
-                type="button"
-                onClick={() => void handleSendChat()}
-                disabled={chatSending || !chatInput.trim()}
-                className="flex-shrink-0 w-11 h-11 flex items-center justify-center rounded-xl bg-orange-500 hover:bg-orange-600 text-black disabled:bg-zinc-800 disabled:text-zinc-600 transition-colors"
-                aria-label="Send message"
-              >
-                {chatSending ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
-              </button>
+            <div className="border-t border-zinc-800 bg-black/20 p-2 space-y-2">
+              <div className="flex gap-1.5 overflow-x-auto pb-0.5 -mx-1 px-1 scrollbar-thin">
+                {RUN_GROUP_CHAT_PRESETS.map((preset) => (
+                  <button
+                    key={preset}
+                    type="button"
+                    onClick={() => void handleSendChat(preset)}
+                    disabled={chatSending}
+                    className="flex-shrink-0 max-w-[min(240px,78vw)] text-left text-[11px] font-semibold text-zinc-200 bg-zinc-800/90 hover:bg-zinc-700 border border-zinc-700/80 rounded-lg px-2.5 py-1.5 leading-snug transition-colors disabled:opacity-50"
+                  >
+                    {preset}
+                  </button>
+                ))}
+              </div>
+              <div className="flex gap-2 px-1 pb-1">
+                <input
+                  type="text"
+                  value={chatInput}
+                  onChange={(e) => setChatInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      void handleSendChat();
+                    }
+                  }}
+                  placeholder="Message the group…"
+                  className="flex-1 min-w-0 bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-[14px] text-white placeholder:text-zinc-600 focus:outline-none focus:border-orange-500/50"
+                  maxLength={2000}
+                  aria-label="Group message"
+                />
+                <button
+                  type="button"
+                  onClick={() => void handleSendChat()}
+                  disabled={chatSending || !chatInput.trim()}
+                  className="flex-shrink-0 w-11 h-11 flex items-center justify-center rounded-xl bg-orange-500 hover:bg-orange-600 text-black disabled:bg-zinc-800 disabled:text-zinc-600 transition-colors"
+                  aria-label="Send message"
+                >
+                  {chatSending ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
+                </button>
+              </div>
             </div>
           </motion.div>
         )}
@@ -1264,6 +1496,84 @@ export default function RunDetailPage() {
           )}
         </motion.div>
 
+        {/* ── Trip notes (completed runs — text only, no ratings) ───────── */}
+        {run.status === 'completed' && (
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.11 }}
+            className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden"
+          >
+            <div className="flex items-center gap-2 px-4 py-3 border-b border-zinc-800/60">
+              <StickyNote size={15} className="text-orange-500 flex-shrink-0" />
+              <div className="min-w-0">
+                <p className="text-[13px] font-bold text-white leading-none">Trip notes</p>
+                <p className="text-[11px] text-zinc-500 mt-1">
+                  Short write-ups from people who were on this run — helpful for the next group. No scores or leaderboards.
+                </p>
+              </div>
+            </div>
+            <div className="px-4 py-4 space-y-4">
+              {runReflections.length === 0 ? (
+                <p className="text-[13px] text-zinc-600 text-center py-2">
+                  No notes yet{user && (joined || isHost) ? ' — add yours below.' : '.'}
+                </p>
+              ) : (
+                <ul className="space-y-3">
+                  {runReflections.map((r) => (
+                    <li
+                      key={r.id}
+                      className="rounded-xl border border-zinc-800 bg-zinc-950/50 px-3 py-3"
+                    >
+                      <p className="text-[11px] text-zinc-500 mb-1.5">
+                        {(r.users?.name ?? participants.find((p) => p.user_id === r.user_id)?.users?.name) ?? 'Rider'}
+                        <span className="text-zinc-600 mx-1">·</span>
+                        {new Date(r.created_at).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric',
+                        })}
+                        {r.updated_at !== r.created_at && (
+                          <span className="text-zinc-600"> · edited</span>
+                        )}
+                      </p>
+                      <p className="text-[14px] text-zinc-200 leading-relaxed whitespace-pre-wrap">{r.body}</p>
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              {user && (joined || isHost) && (
+                <div className="space-y-2 pt-1 border-t border-zinc-800/80">
+                  <label className="text-[11px] font-bold uppercase text-zinc-500 tracking-wide">
+                    Your note
+                  </label>
+                  <textarea
+                    value={reflectionBody}
+                    onChange={(e) => {
+                      reflectionTouchedRef.current = true;
+                      setReflectionBody(e.target.value);
+                    }}
+                    placeholder="How were trail conditions, pacing, and the convoy? Anything the next crew should know."
+                    rows={4}
+                    maxLength={4000}
+                    className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-[14px] text-white placeholder:text-zinc-600 focus:outline-none focus:border-orange-500/50 resize-y min-h-[100px]"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => void handleSaveReflection()}
+                    disabled={reflectionSaving || !reflectionBody.trim()}
+                    className="w-full flex items-center justify-center gap-2 py-3 bg-orange-500 hover:bg-orange-600 disabled:bg-zinc-800 text-black disabled:text-zinc-500 text-[14px] font-bold rounded-xl transition-colors"
+                  >
+                    {reflectionSaving ? <Loader2 size={16} className="animate-spin" /> : null}
+                    {reflectionSaving ? 'Saving…' : 'Save trip note'}
+                  </button>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+
         {/* ── Safety reminder ───────────────────────────────────────────── */}
         <div className="flex items-start gap-2.5 px-3 py-3 bg-orange-500/8 border border-orange-500/20 rounded-xl">
           <AlertTriangle size={14} className="text-orange-500 flex-shrink-0 mt-0.5" />
@@ -1273,6 +1583,8 @@ export default function RunDetailPage() {
         </div>
 
       </main>
+
+      <BottomNav />
     </div>
   );
 }

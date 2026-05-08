@@ -12,11 +12,7 @@ function Skeleton({ className = '' }: { className?: string }) {
 // Post skeleton - Instagram style with shimmer
 export function PostSkeleton() {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="bg-black border-b border-zinc-900 mb-0"
-    >
+    <div className="bg-black border-b border-zinc-900 mb-0">
       {/* Header skeleton */}
       <div className="flex items-center justify-between p-3 border-b border-zinc-800">
         <div className="flex items-center gap-3">
@@ -59,7 +55,7 @@ export function PostSkeleton() {
         {/* Timestamp */}
         <Skeleton className="w-24 h-3" />
       </div>
-    </motion.div>
+    </div>
   );
 }
 
@@ -68,14 +64,9 @@ export function FeedSkeleton({ count = 3 }: { count?: number }) {
   return (
     <div className="space-y-4">
       {Array.from({ length: count }).map((_, i) => (
-        <motion.div
-          key={i}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: i * 0.1 }}
-        >
+        <div key={i}>
           <PostSkeleton />
-        </motion.div>
+        </div>
       ))}
     </div>
   );

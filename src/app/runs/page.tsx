@@ -15,6 +15,7 @@ import {
   X,
   Flag,
   Shield,
+  Radio,
 } from 'lucide-react';
 
 import Link from 'next/link';
@@ -38,6 +39,7 @@ interface Run {
   difficulty: string;
   max_participants: number | null;
   vehicle_requirements?: string | null;
+  comms_note?: string | null;
   status: string;
   club_id?: string | null;
   trail_id?: string | null;
@@ -261,6 +263,12 @@ function RunCard({
               {isFull && ' · Full'}
             </span>
           </div>
+          {run.comms_note && String(run.comms_note).trim() && (
+            <div className="flex items-start gap-2 text-[13px]">
+              <Radio size={13} className="text-cyan-400 flex-shrink-0 mt-0.5" />
+              <span className="text-zinc-300 leading-snug break-words">{run.comms_note}</span>
+            </div>
+          )}
         </div>
 
         {/* Actions */}
@@ -468,7 +476,10 @@ export default function RunsPage() {
           .from('run_participants')
           .delete()
           .match({ run_id: run.id, user_id: user.id });
-        if (error) throw error;
+        if (error) {
+          showToast(error.message || 'Could not leave run', 'error');
+          return;
+        }
         setJoinedRunIds((prev) => { const next = new Set(prev); next.delete(run.id); return next; });
         setParticipantCounts((prev) => ({ ...prev, [run.id]: Math.max(0, (prev[run.id] ?? 1) - 1) }));
         showToast('You have left the run', 'info');
@@ -476,13 +487,14 @@ export default function RunsPage() {
         const { error } = await supabaseClient
           .from('run_participants')
           .insert({ run_id: run.id, user_id: user.id, rsvp_status: 'going' });
-        if (error && error.code !== '23505') throw error;
+        if (error && error.code !== '23505') {
+          showToast(error.message || 'Could not join run', 'error');
+          return;
+        }
         setJoinedRunIds((prev) => new Set([...prev, run.id]));
         setParticipantCounts((prev) => ({ ...prev, [run.id]: (prev[run.id] ?? 0) + 1 }));
         showToast(`You're in for "${run.title}"!`, 'success');
       }
-    } catch {
-      showToast('Could not update RSVP', 'error');
     } finally {
       setJoiningId(null);
     }
