@@ -7,10 +7,11 @@ import { MessageCircle, ArrowLeft, User, Search } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
 import BottomNav from '@/components/BottomNav';
+import { resolvePublicDisplayName } from '@/lib/profileDisplay';
 
 interface OtherParticipant {
   id: string;
-  name: string | null;
+  display_name: string;
   avatar_url: string | null;
 }
 
@@ -41,7 +42,10 @@ export default function MessagesPage() {
   const [search, setSearch] = useState('');
 
   const fetchConversations = useCallback(async () => {
-    if (!supabaseClient || !user) return;
+    if (!supabaseClient || !user) {
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
     try {
       // Get all conversations this user participates in
@@ -85,7 +89,7 @@ export default function MessagesPage() {
       if (otherUserIds.length > 0) {
         const { data: userRows } = await supabaseClient
           .from('users')
-          .select('id, name, avatar_url')
+          .select('id, name, avatar_url, username, hide_display_name, email')
           .in('id', otherUserIds);
         (userRows ?? []).forEach((u: any) => { otherUserMap[u.id] = u; });
       }
@@ -103,7 +107,13 @@ export default function MessagesPage() {
           last_message_at: c.last_message_at ?? null,
           other_participant: {
             id: otherUserId,
-            name: otherUser?.name ?? 'Unknown Rider',
+            display_name: resolvePublicDisplayName({
+              id: otherUserId,
+              name: otherUser?.name ?? null,
+              username: otherUser?.username ?? null,
+              hide_display_name: otherUser?.hide_display_name ?? null,
+              email: otherUser?.email ?? null,
+            }),
             avatar_url: otherUser?.avatar_url ?? null,
           },
           unread: !(isReadMap[c.id] ?? true),
@@ -122,12 +132,12 @@ export default function MessagesPage() {
 
   // Redirect unauthenticated users
   useEffect(() => {
-    if (!authLoading && !user) router.replace('/login');
+    if (!authLoading && !user) router.replace('/login/');
   }, [authLoading, user, router]);
 
   const filtered = conversations.filter((c) =>
     search === '' ||
-    (c.other_participant.name ?? '').toLowerCase().includes(search.toLowerCase()) ||
+    (c.other_participant.display_name ?? '').toLowerCase().includes(search.toLowerCase()) ||
     (c.last_message_content ?? '').toLowerCase().includes(search.toLowerCase())
   );
 
@@ -209,7 +219,7 @@ export default function MessagesPage() {
                       {conv.other_participant.avatar_url ? (
                         <img
                           src={conv.other_participant.avatar_url}
-                          alt={conv.other_participant.name ?? 'Rider'}
+                          alt={conv.other_participant.display_name}
                           className="w-full h-full object-cover"
                         />
                       ) : (
@@ -228,7 +238,7 @@ export default function MessagesPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2">
                       <span className={`text-[14px] leading-none ${conv.unread ? 'font-black text-white' : 'font-semibold text-white'}`}>
-                        {conv.other_participant.name ?? 'Rider'}
+                        {conv.other_participant.display_name}
                       </span>
                       <span className="text-[11px] text-zinc-600 flex-shrink-0">
                         {timeAgo(conv.last_message_at)}

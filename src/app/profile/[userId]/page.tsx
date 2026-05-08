@@ -2,15 +2,18 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Grid3X3, Bookmark, Heart, Repeat2, BadgeCheck, Loader2, MessageCircle } from 'lucide-react';
+import { ArrowLeft, Grid3X3, Bookmark, Heart, Repeat2, BadgeCheck, Loader2, MessageCircle, Ban, UserPlus, UserMinus } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import BottomNav from '@/components/BottomNav';
+import { useToast } from '@/components/Toast';
+import { resolveOwnProfileDisplayName, resolvePublicDisplayName } from '@/lib/profileDisplay';
 import {
   fetchLikedPostIdsRecent,
   fetchPostsByIds,
   fetchSavedPostIdsRecent,
 } from '@/lib/supabase/resilientSocial';
+import { ensureStoragePublicObjectUrl } from '@/lib/supabase/storagePublicUrl';
 
 type Tab = 'posts' | 'reposts' | 'liked' | 'favorites';
 
@@ -23,22 +26,16 @@ interface PostRow {
 }
 
 function normalizePostRow(p: Record<string, unknown>): PostRow {
+  const raw = (p.image_url as string) ?? undefined;
   return {
     id: String(p.id),
-    image_url: (p.image_url as string) ?? undefined,
+    image_url: raw
+      ? ensureStoragePublicObjectUrl(raw) || raw
+      : undefined,
     body: String(p.body ?? p.content ?? p.caption ?? ''),
     created_at: String(p.created_at ?? ''),
     repost_of_id: (p.repost_of_id as string | null | undefined) ?? null,
   };
-}
-
-function timeAgo(iso: string | null | undefined) {
-  if (!iso) return '';
-  const secs = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
-  if (secs < 60) return 'just now';
-  if (secs < 3600) return `${Math.floor(secs / 60)}m`;
-  if (secs < 86400) return `${Math.floor(secs / 3600)}h`;
-  return `${Math.floor(secs / 86400)}d`;
 }
 
 function PostGrid({ posts }: { posts: PostRow[] }) {
@@ -46,7 +43,11 @@ function PostGrid({ posts }: { posts: PostRow[] }) {
   return (
     <div className="grid grid-cols-3 gap-0.5">
       {posts.map((p) => (
-        <div key={p.id} className="aspect-square bg-zinc-900 overflow-hidden relative">
+        <Link
+          key={p.id}
+          href={`/posts/${p.id}`}
+          className="aspect-square bg-zinc-900 overflow-hidden relative block focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500"
+        >
           {p.image_url ? (
             <img src={p.image_url} alt="" className="w-full h-full object-cover" loading="lazy" />
           ) : (
@@ -54,7 +55,7 @@ function PostGrid({ posts }: { posts: PostRow[] }) {
               <p className="text-zinc-500 text-[10px] text-center leading-tight line-clamp-4">{p.body}</p>
             </div>
           )}
-        </div>
+        </Link>
       ))}
     </div>
   );
@@ -65,6 +66,7 @@ export default function UserProfilePage() {
   const userId = params?.userId as string;
   const { supabaseClient, user } = useAuth();
   const router = useRouter();
+  const { showToast } = useToast();
   const [messagingLoading, setMessagingLoading] = useState(false);
 
   const [profile, setProfile] = useState<any>(null);
@@ -77,6 +79,15 @@ export default function UserProfilePage() {
   const [liked, setLiked] = useState<PostRow[]>([]);
   const [favorites, setFavorites] = useState<PostRow[]>([]);
   const [tabLoading, setTabLoading] = useState(false);
+
+  const [postsCount, setPostsCount] = useState(0);
+  const [followersCount, setFollowersCount] = useState(0);
+  const [followingCount, setFollowingCount] = useState(0);
+  const [isFollowing, setIsFollowing] = useState(false);
+  /** none | i_blocked | they_blocked */
+  const [blockRelation, setBlockRelation] = useState<'none' | 'i_blocked' | 'they_blocked'>('none');
+  const [followBusy, setFollowBusy] = useState(false);
+  const [blockBusy, setBlockBusy] = useState(false);
 
   // Fetch profile
   useEffect(() => {
@@ -93,6 +104,141 @@ export default function UserProfilePage() {
         setIsLoading(false);
       });
   }, [userId, supabaseClient]);
+
+  useEffect(() => {
+    if (!supabaseClient || !userId || isLoading || error) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const [postsRes, folRes, ingRes] = await Promise.all([
+          supabaseClient
+            .from('posts')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', userId)
+            .is('repost_of_id', null),
+          supabaseClient.from('follows').select('*', { count: 'exact', head: true }).eq('following_id', userId),
+          supabaseClient.from('follows').select('*', { count: 'exact', head: true }).eq('follower_id', userId),
+        ]);
+        if (cancelled) return;
+        setPostsCount(postsRes.count ?? 0);
+        setFollowersCount(folRes.count ?? 0);
+        setFollowingCount(ingRes.count ?? 0);
+      } catch {
+        if (!cancelled) {
+          setPostsCount(0);
+          setFollowersCount(0);
+          setFollowingCount(0);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [supabaseClient, userId, isLoading, error]);
+
+  useEffect(() => {
+    if (!supabaseClient || !user || !userId || user.id === userId) {
+      setIsFollowing(false);
+      setBlockRelation('none');
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      try {
+        const { data: row } = await supabaseClient
+          .from('follows')
+          .select('id')
+          .eq('follower_id', user.id)
+          .eq('following_id', userId)
+          .maybeSingle();
+        if (cancelled) return;
+        setIsFollowing(!!row);
+
+        const [a, b] = await Promise.all([
+          supabaseClient.from('user_blocks').select('id').eq('blocker_id', user.id).eq('blocked_id', userId).maybeSingle(),
+          supabaseClient.from('user_blocks').select('id').eq('blocker_id', userId).eq('blocked_id', user.id).maybeSingle(),
+        ]);
+        if (cancelled) return;
+        const ib = !!a.data;
+        const tb = !!b.data;
+        if (ib) setBlockRelation('i_blocked');
+        else if (tb) setBlockRelation('they_blocked');
+        else setBlockRelation('none');
+      } catch {
+        if (!cancelled) {
+          setIsFollowing(false);
+          setBlockRelation('none');
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [supabaseClient, user, userId]);
+
+  const toggleFollow = useCallback(async () => {
+    if (!user || !supabaseClient || user.id === userId || blockRelation !== 'none') return;
+    setFollowBusy(true);
+    try {
+      if (isFollowing) {
+        const { error: delErr } = await supabaseClient
+          .from('follows')
+          .delete()
+          .eq('follower_id', user.id)
+          .eq('following_id', userId);
+        if (delErr) throw delErr;
+        setIsFollowing(false);
+        setFollowersCount((c) => Math.max(0, c - 1));
+      } else {
+        const { error: insErr } = await supabaseClient
+          .from('follows')
+          .insert({ follower_id: user.id, following_id: userId });
+        if (insErr) throw insErr;
+        setIsFollowing(true);
+        setFollowersCount((c) => c + 1);
+      }
+    } catch {
+      showToast('Could not update follow', 'error');
+    } finally {
+      setFollowBusy(false);
+    }
+  }, [user, supabaseClient, userId, isFollowing, blockRelation, showToast]);
+
+  const toggleBlock = useCallback(async () => {
+    if (!user || !supabaseClient || user.id === userId) return;
+    setBlockBusy(true);
+    try {
+      if (blockRelation === 'i_blocked') {
+        const { error: delErr } = await supabaseClient
+          .from('user_blocks')
+          .delete()
+          .eq('blocker_id', user.id)
+          .eq('blocked_id', userId);
+        if (delErr) throw delErr;
+        const { data: tbRow } = await supabaseClient
+          .from('user_blocks')
+          .select('id')
+          .eq('blocker_id', userId)
+          .eq('blocked_id', user.id)
+          .maybeSingle();
+        setBlockRelation(tbRow ? 'they_blocked' : 'none');
+        showToast('Unblocked', 'success');
+      } else {
+        const { error: insErr } = await supabaseClient
+          .from('user_blocks')
+          .insert({ blocker_id: user.id, blocked_id: userId });
+        if (insErr) throw insErr;
+        if (isFollowing) setFollowersCount((c) => Math.max(0, c - 1));
+        setIsFollowing(false);
+        setBlockRelation('i_blocked');
+        showToast('Blocked', 'success');
+      }
+    } catch {
+      showToast('Could not update block', 'error');
+    } finally {
+      setBlockBusy(false);
+    }
+  }, [user, supabaseClient, userId, blockRelation, isFollowing, showToast]);
 
   const fetchTab = useCallback(async (tab: Tab) => {
     if (!supabaseClient || !userId) return;
@@ -142,6 +288,14 @@ export default function UserProfilePage() {
 
   const handleMessage = useCallback(async () => {
     if (!user || !supabaseClient || !userId) return;
+    if (profile?.dm_allow_from === 'nobody') {
+      showToast('This user is not accepting messages.', 'info');
+      return;
+    }
+    if (blockRelation !== 'none') {
+      showToast('Messaging is unavailable between these accounts.', 'info');
+      return;
+    }
     setMessagingLoading(true);
     try {
       // Find existing conversation between these two users
@@ -165,32 +319,44 @@ export default function UserProfilePage() {
       }
 
       if (existingConvId) {
-        router.push(`/messages/${existingConvId}`);
+        router.push(`/messages/${existingConvId}/`);
         return;
       }
 
-      // Create a new conversation
+      // Create a new conversation (created_by required for RLS + RETURNING before participants exist)
       const { data: newConv, error: convErr } = await supabaseClient
         .from('conversations')
-        .insert({ last_message_content: null, last_message_at: new Date().toISOString() })
+        .insert({
+          created_by: user.id,
+          last_message_content: null,
+          last_message_at: new Date().toISOString(),
+        })
         .select()
         .single();
 
       if (convErr || !newConv) throw convErr ?? new Error('Failed to create conversation');
 
-      // Add both participants
-      await supabaseClient.from('conversation_participants').insert([
-        { conversation_id: newConv.id, user_id: user.id, is_read: true },
-        { conversation_id: newConv.id, user_id: userId, is_read: true },
-      ]);
+      // Two inserts so RLS can see the first row before adding the other user
+      const { error: p1 } = await supabaseClient.from('conversation_participants').insert({
+        conversation_id: newConv.id,
+        user_id: user.id,
+        is_read: true,
+      });
+      if (p1) throw p1;
+      const { error: p2 } = await supabaseClient.from('conversation_participants').insert({
+        conversation_id: newConv.id,
+        user_id: userId,
+        is_read: true,
+      });
+      if (p2) throw p2;
 
-      router.push(`/messages/${newConv.id}`);
+      router.push(`/messages/${newConv.id}/`);
     } catch {
-      // Silently fail — user stays on profile page
+      showToast('Could not open messages. If this keeps happening, ask an admin to apply DB migrations.', 'error');
     } finally {
       setMessagingLoading(false);
     }
-  }, [user, supabaseClient, userId, router]);
+  }, [user, supabaseClient, userId, router, profile, blockRelation, showToast]);
 
   useEffect(() => {
     if (!isLoading && !error) fetchTab(activeTab);
@@ -210,7 +376,7 @@ export default function UserProfilePage() {
       <div className="min-h-screen bg-black flex flex-col items-center justify-center px-6 gap-6">
         <h2 className="text-[22px] font-black text-white">Profile Not Found</h2>
         <p className="text-zinc-500 text-[14px]">{error ?? 'This user does not exist.'}</p>
-        <Link href="/" className="px-5 py-3 bg-orange-500 text-black font-bold rounded-xl text-[14px]">
+        <Link href="/feed/" className="px-5 py-3 bg-orange-500 text-black font-bold rounded-xl text-[14px]">
           Back to Feed
         </Link>
         <BottomNav />
@@ -235,16 +401,28 @@ export default function UserProfilePage() {
     favorites: 'No saved posts yet.',
   };
 
-  const memberDisplayName =
-    String(profile?.name ?? '').trim() ||
-    String(profile?.email ?? '').split('@')[0] ||
-    'Rider';
+  const viewerSelf = Boolean(user && userId && user.id === userId);
+  const memberDisplayName = viewerSelf
+    ? resolveOwnProfileDisplayName({
+        id: userId,
+        name: profile?.name as string | undefined,
+        username: profile?.username as string | undefined,
+        hide_display_name: profile?.hide_display_name as boolean | undefined,
+        email: user?.email ?? (profile?.email as string | undefined) ?? null,
+      })
+    : resolvePublicDisplayName({
+        id: userId,
+        name: profile?.name as string | undefined,
+        username: profile?.username as string | undefined,
+        hide_display_name: profile?.hide_display_name as boolean | undefined,
+        email: profile?.email as string | undefined,
+      });
 
   return (
     <div className="min-h-screen bg-black pb-24">
       {/* Sticky header */}
       <div className="sticky top-0 z-40 bg-black/90 backdrop-blur-md border-b border-zinc-900 px-4 py-3 flex items-center gap-3">
-        <Link href="/" className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-zinc-900 transition-colors">
+        <Link href="/feed/" className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-zinc-900 transition-colors">
           <ArrowLeft size={19} className="text-white" />
         </Link>
         <span className="text-[17px] font-black text-white leading-none">{memberDisplayName}</span>
@@ -278,19 +456,67 @@ export default function UserProfilePage() {
           <p className="text-zinc-400 text-[13px] leading-relaxed max-w-[260px]">{profile.bio}</p>
         )}
 
-        {/* Message button — only shown when viewing another user's profile */}
+        <div className="flex justify-around w-full max-w-xs mx-auto mt-4 pt-4 border-t border-zinc-900">
+          {[
+            { label: 'Posts', value: postsCount },
+            { label: 'Followers', value: followersCount },
+            { label: 'Following', value: followingCount },
+          ].map(({ label, value }) => (
+            <div key={label} className="text-center min-w-[72px]">
+              <p className="text-[17px] font-black text-white">{value}</p>
+              <p className="text-[10px] text-zinc-600 uppercase tracking-wider">{label}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Actions — other user's profile */}
         {user && user.id !== userId && (
-          <button
-            onClick={handleMessage}
-            disabled={messagingLoading}
-            className="flex items-center gap-2 px-5 py-2.5 bg-orange-500 hover:bg-orange-600 disabled:bg-zinc-800 disabled:text-zinc-500 text-black text-[13px] font-black rounded-xl transition-colors mt-1"
-          >
-            {messagingLoading
-              ? <Loader2 size={15} className="animate-spin" />
-              : <MessageCircle size={15} strokeWidth={2.5} />
-            }
-            {messagingLoading ? 'Opening...' : 'Message'}
-          </button>
+          <div className="flex flex-col gap-2 w-full max-w-xs mt-4">
+            <div className="flex gap-2 justify-center">
+              <button
+                type="button"
+                onClick={() => void toggleFollow()}
+                disabled={followBusy || blockRelation !== 'none'}
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-zinc-900 border border-zinc-700 text-white text-[13px] font-bold disabled:opacity-40"
+              >
+                {followBusy ? (
+                  <Loader2 size={15} className="animate-spin" />
+                ) : isFollowing ? (
+                  <>
+                    <UserMinus size={15} /> Following
+                  </>
+                ) : (
+                  <>
+                    <UserPlus size={15} /> Follow
+                  </>
+                )}
+              </button>
+              {profile?.dm_allow_from !== 'nobody' && blockRelation === 'none' && (
+                <button
+                  type="button"
+                  onClick={() => void handleMessage()}
+                  disabled={messagingLoading}
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-orange-500 hover:bg-orange-600 disabled:bg-zinc-800 disabled:text-zinc-500 text-black text-[13px] font-black rounded-xl transition-colors"
+                >
+                  {messagingLoading ? (
+                    <Loader2 size={15} className="animate-spin" />
+                  ) : (
+                    <MessageCircle size={15} strokeWidth={2.5} />
+                  )}
+                  {messagingLoading ? '…' : 'Message'}
+                </button>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => void toggleBlock()}
+              disabled={blockBusy || blockRelation === 'they_blocked'}
+              className="flex items-center justify-center gap-2 py-2 text-[12px] font-semibold text-zinc-500 hover:text-red-400 disabled:opacity-40"
+            >
+              {blockBusy ? <Loader2 size={14} className="animate-spin" /> : <Ban size={14} />}
+              {blockRelation === 'i_blocked' ? 'Unblock' : blockRelation === 'they_blocked' ? 'You are blocked' : 'Block'}
+            </button>
+          </div>
         )}
       </div>
 

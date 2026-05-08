@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { MapPin, Flag, Heart, MessageCircle, Share2, MoreHorizontal } from 'lucide-react';
 import Link from 'next/link';
 import { hapticMedium, hapticLight } from '@/hooks/useHaptics';
+import { ensureStoragePublicObjectUrl } from '@/lib/supabase/storagePublicUrl';
 
 interface RigPost {
   id: string;
@@ -77,7 +78,7 @@ export default function RigPostCard({ post }: RigPostCardProps) {
       {/* Image - Instagram style */}
       <div className="relative aspect-square bg-neutral-800 overflow-hidden">
         <img 
-          src={post.image_url} 
+          src={ensureStoragePublicObjectUrl(post.image_url) || post.image_url} 
           alt={post.caption}
           className="w-full h-full object-cover"
         />

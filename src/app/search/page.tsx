@@ -1,9 +1,10 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { supabase } from '@/lib/db/supabase'
+import { useAuth } from '@/context/AuthContext'
+import BottomNav from '@/components/BottomNav'
+import { resolvePublicDisplayName } from '@/lib/profileDisplay'
 
 interface SearchResult {
   type: 'run' | 'club' | 'user'
@@ -12,7 +13,17 @@ interface SearchResult {
   subtitle: string
 }
 
+interface UserSearchRow {
+  id: string
+  name: string | null
+  username: string | null
+  hide_display_name: boolean | null
+  email: string | null
+  location: string | null
+}
+
 export default function SearchPage() {
+  const { supabaseClient } = useAuth()
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<SearchResult[]>([])
   const [loading, setLoading] = useState(false)
@@ -35,13 +46,13 @@ export default function SearchPage() {
     setLoading(true)
     const results: SearchResult[] = []
 
-    if (!supabase) {
+    if (!supabaseClient) {
       setLoading(false)
       return
     }
 
     // Search runs
-    const { data: runs } = await supabase
+    const { data: runs } = await supabaseClient
       .from('runs')
       .select('id, title, club:clubs(name)')
       .ilike('title', `%${searchQuery}%`)
@@ -59,7 +70,7 @@ export default function SearchPage() {
     }
 
     // Search clubs
-    const { data: clubs } = await supabase
+    const { data: clubs } = await supabaseClient
       .from('clubs')
       .select('id, name, location')
       .ilike('name', `%${searchQuery}%`)
@@ -76,19 +87,37 @@ export default function SearchPage() {
       })
     }
 
-    // Search users
-    const { data: users } = await supabase
-      .from('users')
-      .select('id, name, location')
-      .ilike('name', `%${searchQuery}%`)
-      .limit(5)
-    
-    if (users) {
+    const like = `%${searchQuery.trim()}%`
+    const [{ data: byName }, { data: byUsername }] = await Promise.all([
+      supabaseClient
+        .from('users')
+        .select('id, name, username, hide_display_name, email, location')
+        .ilike('name', like)
+        .limit(5),
+      supabaseClient
+        .from('users')
+        .select('id, name, username, hide_display_name, email, location')
+        .ilike('username', like)
+        .limit(5),
+    ])
+    const userMap = new Map<string, UserSearchRow>()
+    ;[...(byName ?? []), ...(byUsername ?? [])].forEach((user) => {
+      if (user?.id) userMap.set(user.id, user)
+    })
+    const users = [...userMap.values()].slice(0, 5)
+
+    if (users.length) {
       users.forEach(user => {
         results.push({
           type: 'user',
           id: user.id,
-          title: user.name,
+          title: resolvePublicDisplayName({
+            id: user.id,
+            name: user.name,
+            username: user.username,
+            hide_display_name: user.hide_display_name,
+            email: user.email,
+          }),
           subtitle: user.location || ''
         })
       })
@@ -102,7 +131,7 @@ export default function SearchPage() {
     e.preventDefault()
     performSearch(query)
     // Update URL
-    window.history.pushState({}, '', `/search?q=${encodeURIComponent(query)}`)
+    window.history.pushState({}, '', `/search/?q=${encodeURIComponent(query)}`)
   }
 
   function getIcon(type: string) {
@@ -116,15 +145,19 @@ export default function SearchPage() {
 
   function getLink(type: string, id: string) {
     switch (type) {
-      case 'run': return `/runs/${id}`
-      case 'club': return `/clubs/${id}`
-      case 'user': return `/profile/${id}`
-      default: return '#'
+      case 'run':
+        return `/runs/${id}/`
+      case 'club':
+        return `/clubs/${id}/`
+      case 'user':
+        return `/profile/${id}/`
+      default:
+        return '#'
     }
   }
 
   return (
-    <div className="min-h-screen bg-gray-900">
+    <div className="min-h-screen bg-gray-900 pb-28">
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <h1 className="text-2xl font-bold text-white mb-6">Search</h1>
 
@@ -179,6 +212,8 @@ export default function SearchPage() {
           </div>
         )}
       </div>
+
+      <BottomNav />
     </div>
   )
 }

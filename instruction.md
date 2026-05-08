@@ -16,9 +16,13 @@ Copy [.env.example](.env.example) to `.env.local` and fill:
 
 **Vercel:** add the two `NEXT_PUBLIC_*` variables for Production and Preview. Add **`SUPABASE_SERVICE_ROLE_KEY`** for the admin API routes to work in production. Do **not** expose the service role key to the client.
 
+**If auth suddenly fails everywhere:** Open **`/api/health/supabase`** on that deployment (e.g. `https://yoursite.com/api/health/supabase`). It checks reachability of your project’s Auth service (`/auth/v1/health`). **`configured: false`** means env vars are missing on the server. **`ok: false`** with a 4xx/5xx often means the Supabase project is **paused** (free tier), **unhealthy**, or the URL is wrong — check the [Supabase dashboard](https://supabase.com/dashboard) and [status](https://status.supabase.com).
+
+**Browser console: `GET …/rest/v1/users?…select=… 400 (Bad Request)`** — PostgREST rejects the query when a **column in `select=` does not exist** on `public.users`. The app expects columns from newer migrations (e.g. `username`, `hide_display_name` in [`20260503240000_users_identity_privacy.sql`](supabase/migrations/20260503240000_users_identity_privacy.sql)). Run **`npm run db:link`** (pick the **same** project as `NEXT_PUBLIC_SUPABASE_URL`) then **`npm run db:push`**, or run the pending migration SQL in the Supabase **SQL Editor**.
+
 Restart `npm run dev` after changing `NEXT_PUBLIC_*` values.
 
-Optional: **`NEXT_PUBLIC_CLUB_VERIFICATION_EMAIL`** — inbox you check for club verification requests; drives the mailto + copy button on [clubs/create](src/app/clubs/create/page.tsx). Without it, the UI falls back to generic “contact the organizer” copy.
+Optional: **`NEXT_PUBLIC_CLUB_VERIFICATION_EMAIL`** — overrides the default **`socaloffroaders@socaloffroaders.com`** inbox for club verification mailto + copy on [clubs/create](src/app/clubs/create/page.tsx).
 
 ### Google sign-in (`Unsupported provider: provider is not enabled`)
 
@@ -29,15 +33,48 @@ Login uses **Google OAuth** via Supabase (`signInWithOAuth({ provider: 'google' 
    - `https://<YOUR_PROJECT_REF>.supabase.co/auth/v1/callback`
    (Copy **Project URL** host from Supabase **Settings** → **API** if unsure.)
 3. Paste **Client ID** and **Client Secret** into the Supabase Google provider form and **Save**.
+
+**Two different places (easy to mix up):** In **Google Cloud**, *Authorized redirect URIs* must include **only** the Supabase callback: `https://<PROJECT_REF>.supabase.co/auth/v1/callback`. Your **app** URLs (`https://yoursite.com/auth/callback/`, `http://192.168.x.x:3000/auth/callback/`, etc.) belong in **Supabase → Authentication → URL Configuration → Redirect URLs**, not as a substitute in Google. Google never sends the user straight to your domain first; it sends them to Supabase, which then redirects to your `redirectTo` URL with `?code=`.
+
 4. **Authentication** → **URL Configuration** → **Redirect URLs**: include the OAuth **callback** route this app uses (and your deployed origins). Examples:
    - `http://localhost:3000/auth/callback/`
    - `http://127.0.0.1:3000/auth/callback/`
-   - `https://your-deployment.vercel.app/auth/callback/`  
+   - `https://your-deployment.vercel.app/auth/callback/`
+   - `https://your-custom-domain.com/auth/callback/` (apex **or** `https://www.your-custom-domain.com/auth/callback/` if you serve both — each origin must be listed; path must end with **`/`** to match Next **`trailingSlash`**.)
+
    This repo exchanges the PKCE `code` in [`src/app/auth/callback/route.ts`](src/app/auth/callback/route.ts). You can also keep `http://localhost:3000/` listed if you like.
+
+**Custom domain (e.g. GoDaddy → Vercel):** At the registrar you only configure **DNS** (records Vercel shows when you add the domain to the Vercel project). There is **no** OAuth or Supabase setting inside GoDaddy itself. For production sign-in, add **`https://<your-domain>/auth/callback/`** to Supabase **Redirect URLs** as above, and ensure **Vercel → Environment Variables** includes the same **`NEXT_PUBLIC_SUPABASE_URL`** / keys for **Production** as you expect.
 
 **Tip:** Do **not** point `NEXT_PUBLIC_SITE_URL` at production while testing on localhost — OAuth uses the live browser origin for `redirectTo` so local sign-in stays on local.
 
+On **phones**, test sign-in in **Safari or Chrome**, not inside Instagram/TikTok/Facebook in-app browsers — those WebViews often break OAuth, cookies, or redirects.
+
 After step 4, retry **Continue with Google** on `/login`.
+
+### Google sign-in (`401` / `deleted_client`)
+
+Google returns **`deleted_client`** when the **Client ID** in Supabase no longer matches a valid **OAuth 2.0 Client ID** in Google Cloud (the credential was deleted, the GCP project was removed, or Supabase still has an old ID after you recreated credentials).
+
+1. **Google Cloud Console** (same Google account / org that owns the app) → **APIs & Services** → **Credentials**.
+2. Under **OAuth 2.0 Client IDs**, confirm the Web client you use for Supabase still exists. If it is missing, click **Create credentials** → **OAuth client ID** → type **Web application**.
+3. **Authorized redirect URIs** must include exactly: `https://<YOUR_SUPABASE_PROJECT_REF>.supabase.co/auth/v1/callback` (not your Vercel URL — that goes in Supabase **Redirect URLs** only).
+4. **Supabase** → **Authentication** → **Providers** → **Google** → paste the **new** Client ID and Client Secret → **Save**.
+
+**If you only “got a new secret”:** A **rotated secret** on the *same* OAuth client keeps the same **Client ID**. If you **deleted** the old OAuth client and **created a new** Web client, you get a **new Client ID and a new secret** — you must paste **both** into Supabase. Leaving the old **Client ID** (from the deleted client) while updating only the secret still produces **`deleted_client`**. The **Client ID** and **Client Secret** in Supabase must always be the pair shown together on that credential’s detail page in Google Cloud.
+
+### Google sign-in (`400` / `redirect_uri_mismatch`)
+
+This is **only** about **Google Cloud → your OAuth Web client → Authorized redirect URIs**. It is **not** about Supabase “Redirect URLs” and **not** about `http://localhost:3000/...` for this app’s Supabase flow.
+
+When you sign in from **localhost or production**, Google is still sent to **Supabase’s** callback, not your app first. That URI must match **character-for-character** one row in **Authorized redirect URIs**:
+
+1. In **Supabase** → **Settings** → **API**, copy **Project URL** (e.g. `https://abcdefghijk.supabase.co`).
+2. Your Google redirect URI is exactly: `https://abcdefghijk.supabase.co/auth/v1/callback` — use **your** host, **no** trailing slash, **https** only.
+3. In **Google Cloud** → **Credentials** → open the **same** Web client whose **Client ID** you pasted into **Supabase → Providers → Google** → under **Authorized redirect URIs**, add that exact line (and **Save** in Google).
+4. If you use **more than one Supabase project** (e.g. dev vs prod keys in different `.env` files), each project has a **different** `*.supabase.co` host — add **each** `https://<ref>.supabase.co/auth/v1/callback` to that OAuth client, or use separate Google OAuth clients per Supabase project and matching IDs/secrets in each Supabase project.
+
+`redirect_uri_mismatch` on localhost with **`deleted_client`** elsewhere usually means **two different OAuth clients or two Supabase refs** are mixed (e.g. `.env.local` points at project A but Google only lists project B’s callback, while production still references a deleted client).
 
 ### Supabase SSR (`@supabase/ssr`)
 
@@ -113,6 +150,52 @@ npx cap sync
 Then open the native project in Xcode / Android Studio. The WebView loads your hosted Next app; you do not need a separate static `out` export unless you choose that workflow later.
 
 `npm run cap:sync` runs `npx cap sync`.
+
+### Google Play (Android)
+
+The **`android/`** native project is in this repo (Capacitor). The shell loads your **hosted** Next app from `server.url` — you do **not** ship the full Next bundle inside the APK; the live site must stay up on that URL.
+
+1. **Point the WebView at production** (PowerShell from repo root):
+
+   ```powershell
+   $env:CAPACITOR_SERVER_URL='https://socaloffroaders.com/'
+   npm run cap:sync
+   ```
+
+   (Trailing slash is fine. Use your real production domain.)
+
+2. **Open Android Studio:** `npm run android:open` (or **File → Open** the `android/` folder).
+
+3. **Bump version for each Play upload:** edit `android/app/build.gradle` — `versionCode` (integer, must increase every release) and `versionName` (e.g. `1.0.1`).
+
+4. **Release signing:** **Build → Generate Signed App Bundle** → create or reuse a keystore → output **`.aab`**. **Back up the keystore + passwords** outside the repo; Play updates require the same key.
+
+5. **Play Console:** [Google Play Console](https://play.google.com/console) → **Create app** → fill store listing (short/full description, screenshots, feature graphic). **Privacy policy URL:** `https://socaloffroaders.com/privacy/`. Complete **Data safety** (e.g. account data, approximate location if you declare SOS/location), **Content rating** (IARC questionnaire), and **App access** (if sign-in is required for core paths, say so and provide a test account or video). Start with **Internal testing** → invite your peeps by email → promote to **Production** when ready.
+
+6. **Application ID:** `socaloffroaders.app` (from Capacitor) is the Play `applicationId` — keep it stable across releases.
+
+### Physical phone over Wi‑Fi (quick test)
+
+1. **Same network:** Phone and PC on the same Wi‑Fi (or USB tether — PC may get a `172.*` address).
+
+2. **Listen on all interfaces:** from the repo root run **`npm run dev:lan`** (same as `next dev --hostname 0.0.0.0 --port 3000`). Next may print **Network: `http://0.0.0.0:3000`** — that only means “listening everywhere”; **do not open `0.0.0.0` on your phone.** Use your real LAN IP instead (Windows: `ipconfig` → **IPv4 Address**, often `192.168.*.*`).
+
+3. **Firewall:** Allow inbound TCP **3000** on Windows if the phone cannot load the site.
+
+4. **Browser on phone:** Open **`http://YOUR_PC_IP:3000/`** (HTTP is fine for dev).
+
+5. **Google sign-in from the phone:** In Supabase **Authentication → URL Configuration → Redirect URLs**, add **`http://YOUR_PC_IP:3000/auth/callback/`** (same path your app uses; trailing slash matches your Next **`trailingSlash`** setting).
+
+**Capacitor Android pointing at your PC:** set your LAN URL then sync so the WebView loads dev instead of localhost (localhost inside the phone is the phone itself):
+
+```powershell
+$env:CAPACITOR_SERVER_URL='http://YOUR_PC_IP:3000/'
+npm run cap:sync
+```
+
+Then open the Android project in Android Studio and run on the device. Change **`YOUR_PC_IP`** whenever DHCP assigns a new address.
+
+**Easiest HTTPS path:** deploy a **Vercel preview** URL and set **`CAPACITOR_SERVER_URL`** to that URL — fewer firewall/OAuth redirect quirks.
 
 ## 6. Saved trails (community)
 

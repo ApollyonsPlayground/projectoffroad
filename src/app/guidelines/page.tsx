@@ -1,4 +1,5 @@
-import Link from 'next/link'
+import Link from 'next/link';
+import { SITE_SUPPORT_EMAIL } from '@/lib/siteContact';
 
 export default function GuidelinesPage() {
   return (
@@ -73,8 +74,10 @@ export default function GuidelinesPage() {
 
           <h2 className="text-white mt-8">📢 Reporting</h2>
           <p className="text-gray-300">
-            See something unsafe or inappropriate? Report it to the club organizer or contact us at 
-            support@socaloffroaders.app
+            See something unsafe or inappropriate? Report it to the club organizer or contact us at{' '}
+            <a className="text-amber-400 hover:underline" href={`mailto:${SITE_SUPPORT_EMAIL}`}>
+              {SITE_SUPPORT_EMAIL}
+            </a>
           </p>
         </div>
 

@@ -13,10 +13,18 @@ export default function LoginPage() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
-    if (params.get('error') !== 'auth_callback') return
-    const msg = params.get('message')
-    showToast(msg ? decodeURIComponent(msg) : 'Sign-in failed after Google redirect.', 'error')
-    window.history.replaceState({}, '', `${window.location.pathname}`)
+    const err = params.get('error')
+    if (err === 'auth_callback') {
+      const msg = params.get('message')
+      showToast(msg ? decodeURIComponent(msg) : 'Sign-in failed after Google redirect.', 'error')
+      window.history.replaceState({}, '', `${window.location.pathname}`)
+      return
+    }
+    if (err === 'play_review') {
+      const msg = params.get('message')
+      showToast(msg ? decodeURIComponent(msg) : 'Review sign-in failed.', 'error')
+      window.history.replaceState({}, '', `${window.location.pathname}`)
+    }
   }, [showToast])
 
   async function handleGoogle() {

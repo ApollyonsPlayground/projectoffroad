@@ -1,4 +1,5 @@
-import Link from 'next/link'
+import Link from 'next/link';
+import { SITE_SUPPORT_EMAIL } from '@/lib/siteContact';
 
 export default function TermsPage() {
   return (
@@ -96,7 +97,7 @@ export default function TermsPage() {
 
           <h2 className="text-white mt-8">10. DMCA & Copyright Policy</h2>
           <p className="text-gray-300">
-            We respect intellectual property rights. If you believe your copyrighted work has been infringed, please send a DMCA notice to support@projectoffroad.app with: (1) description of copyrighted work, (2) location of infringement, (3) your contact info, (4) a statement of good faith belief, (5) a statement of accuracy, (6) your signature.
+            We respect intellectual property rights. If you believe your copyrighted work has been infringed, please send a DMCA notice to {SITE_SUPPORT_EMAIL} with: (1) description of copyrighted work, (2) location of infringement, (3) your contact info, (4) a statement of good faith belief, (5) a statement of accuracy, (6) your signature.
           </p>
 
           <h2 className="text-white mt-8">11. Dispute Resolution & Arbitration</h2>
@@ -136,7 +137,12 @@ export default function TermsPage() {
 
           <h2 className="text-white mt-8">18. Contact Information</h2>
           <p className="text-gray-300">For questions about these Terms, contact us at:</p>
-          <p className="text-gray-300 mt-2">Email: support@projectoffroad.app</p>
+          <p className="text-gray-300 mt-2">
+            Email:{' '}
+            <a className="text-amber-400 hover:underline" href={`mailto:${SITE_SUPPORT_EMAIL}`}>
+              {SITE_SUPPORT_EMAIL}
+            </a>
+          </p>
         </div>
 
         <div className="mt-12 pt-8 border-t border-gray-800">

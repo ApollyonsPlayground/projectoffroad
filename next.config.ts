@@ -1,10 +1,26 @@
 import type { NextConfig } from "next";
 import withPWA from "next-pwa";
 
+/** LAN hostname(s) for `npm run dev:lan` — HMR/dev assets are cross-origin from IP vs localhost. */
+const allowedDevOrigins =
+  process.env.NODE_ENV === "development"
+    ? [
+        // Android emulator host alias (device → host machine).
+        "10.0.2.2",
+        "192.168.1.73",
+        ...(process.env.NEXT_ALLOWED_DEV_ORIGINS?.split(",")
+          .map((h) => h.trim())
+          .filter(Boolean) ?? []),
+      ]
+    : undefined;
+
 const nextConfig: NextConfig = {
   output: 'standalone',
   trailingSlash: true,
+  /** Hide the corner dev / route indicator in development. */
+  devIndicators: false,
   turbopack: {},
+  ...(allowedDevOrigins?.length ? { allowedDevOrigins } : {}),
   typescript: {
     ignoreBuildErrors: true,
   },

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useAuth } from '@/context/AuthContext'
-import { supabase } from '@/lib/db/supabase'
+import BottomNav from '@/components/BottomNav'
 
 interface Achievement {
   id: string
@@ -22,19 +22,19 @@ const DEFAULT_ACHIEVEMENTS = [
 ]
 
 export default function AchievementsPage() {
-  const { user, loading: authLoading } = useAuth()
+  const { user, loading: authLoading, supabaseClient } = useAuth()
   const [achievements, setAchievements] = useState<Achievement[]>(DEFAULT_ACHIEVEMENTS)
   const [userAchievements, setUserAchievements] = useState<string[]>([])
 
   useEffect(() => {
-    if (user) {
-      fetchUserAchievements()
+    if (user && supabaseClient) {
+      void fetchUserAchievements()
     }
-  }, [user])
+  }, [user, supabaseClient])
 
   async function fetchUserAchievements() {
-    if (!supabase) return
-    const { data } = await supabase
+    if (!supabaseClient) return
+    const { data } = await supabaseClient
       .from('user_achievements')
       .select('achievement_id, earned_at')
       .eq('user_id', user?.id)
@@ -72,7 +72,7 @@ export default function AchievementsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900">
+    <div className="min-h-screen bg-gray-900 pb-28">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <h1 className="text-2xl font-bold text-white mb-2">Achievements</h1>
         <p className="text-gray-400 mb-8">Earn badges by participating in the community</p>
@@ -118,6 +118,8 @@ export default function AchievementsPage() {
           </ul>
         </div>
       </div>
+
+      <BottomNav />
     </div>
   )
 }

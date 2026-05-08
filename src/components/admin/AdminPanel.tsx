@@ -22,6 +22,7 @@ import {
 import { motion } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/Toast';
+import { ensureStoragePublicObjectUrl } from '@/lib/supabase/storagePublicUrl';
 
 type Tab = 'overview' | 'clubs' | 'posts' | 'users';
 type ClubFilter = 'all' | 'verified' | 'pending';
@@ -133,7 +134,7 @@ export function AdminPanel({ variant, onCloseDrawer }: Props) {
   useEffect(() => {
     if (!authLoading && user && role !== null && !allowed) {
       showToast('Admin access only', 'error');
-      router.replace('/');
+      router.replace('/feed/');
     }
   }, [authLoading, user, allowed, role, router, showToast]);
 
@@ -261,7 +262,7 @@ export function AdminPanel({ variant, onCloseDrawer }: Props) {
       >
         <div className="max-w-lg mx-auto px-4 py-3 flex items-center gap-3">
           {variant === 'page' ? (
-            <Link href="/" className="p-2 -ml-2 text-zinc-400 hover:text-white touch-manipulation">
+            <Link href="/feed/" className="p-2 -ml-2 text-zinc-400 hover:text-white touch-manipulation">
               <ArrowLeft size={22} />
             </Link>
           ) : (
@@ -291,7 +292,7 @@ export function AdminPanel({ variant, onCloseDrawer }: Props) {
                 Full page <ExternalLink size={12} />
               </Link>
             )}
-            <Link href="/" className="text-[12px] font-semibold text-zinc-400 hover:text-white">
+            <Link href="/feed/" className="text-[12px] font-semibold text-zinc-400 hover:text-white">
               Home
             </Link>
           </div>
@@ -485,7 +486,11 @@ export function AdminPanel({ variant, onCloseDrawer }: Props) {
                 </div>
                 <p className="text-[14px] text-zinc-200 whitespace-pre-wrap break-words">{p.body}</p>
                 {p.image_url && (
-                  <img src={p.image_url} alt="" className="rounded-lg max-h-40 object-cover w-full border border-zinc-800" />
+                  <img
+                    src={ensureStoragePublicObjectUrl(p.image_url) || p.image_url}
+                    alt=""
+                    className="rounded-lg max-h-40 object-cover w-full border border-zinc-800"
+                  />
                 )}
                 <div className="flex gap-2 pt-2">
                   <button

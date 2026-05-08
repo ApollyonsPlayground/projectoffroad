@@ -2,6 +2,7 @@
 
 import { Calendar, MapPin, Camera, ExternalLink, Instagram } from 'lucide-react';
 import { useState } from 'react';
+import { SITE_SUPPORT_EMAIL } from '@/lib/siteContact';
 
 export default function SubmissionHub() {
   const [activeTab, setActiveTab] = useState<'events' | 'trail' | 'photos'>('events');
@@ -87,7 +88,7 @@ export default function SubmissionHub() {
               Know a great trail that should be on our list? Send us the details.
             </p>
             <a
-              href="mailto:caelumheyron@agentmail.to?subject=Trail%20Suggestion%20for%20SoCal%20Off-Roaders"
+              href={`mailto:${SITE_SUPPORT_EMAIL}?subject=${encodeURIComponent('Trail suggestion for SoCal Off-Roaders')}`}
               className="block w-full py-3 px-4 bg-stone-700 hover:bg-stone-600 text-stone-50 font-semibold rounded-lg transition-all text-center"
             >
               Suggest a Trail via Email
