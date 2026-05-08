@@ -62,7 +62,7 @@ Build for production:
 npm run build
 ```
 
-Deploy to Vercel or any Next.js hosting.
+See `docs/release.md` for the project’s **actual** deployment flow (GitLab → Vercel) and when you need a native rebuild for Android/iOS.
 
 ## PWA
 

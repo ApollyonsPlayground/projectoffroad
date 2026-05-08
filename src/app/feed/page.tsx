@@ -60,7 +60,8 @@ function NewPostDrawer({ open, onClose, onPosted }: {
   const { showToast } = useToast();
   const [body, setBody] = useState('');
   const [rig, setRig] = useState('');
-  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [mediaFile, setMediaFile] = useState<File | null>(null);
+  /** Always an image preview (for video we render a captured frame). */
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<'idle' | 'uploading' | 'inserting'>('idle');
@@ -76,24 +77,108 @@ function NewPostDrawer({ open, onClose, onPosted }: {
       // Reset on close
       setBody('');
       setRig('');
-      setImageFile(null);
+      setMediaFile(null);
       setImagePreview(null);
       setUploadProgress('idle');
     }
     return () => { document.body.style.overflow = ''; };
   }, [open]);
 
-  const handleImagePick = (e: React.ChangeEvent<HTMLInputElement>) => {
+  async function captureVideoFrameDataUrl(file: File, timeSeconds: number): Promise<string> {
+    const url = URL.createObjectURL(file);
+    try {
+      const v = document.createElement('video');
+      v.preload = 'metadata';
+      v.muted = true;
+      v.playsInline = true;
+      v.src = url;
+
+      await new Promise<void>((resolve, reject) => {
+        const onLoaded = () => resolve();
+        const onErr = () => reject(new Error('Could not read video'));
+        v.addEventListener('loadedmetadata', onLoaded, { once: true });
+        v.addEventListener('error', onErr, { once: true });
+      });
+
+      const target = Math.max(0, Math.min(timeSeconds, Math.max(0, (v.duration || 0) - 0.1)));
+      v.currentTime = target;
+      await new Promise<void>((resolve, reject) => {
+        const onSeeked = () => resolve();
+        const onErr = () => reject(new Error('Could not seek video'));
+        v.addEventListener('seeked', onSeeked, { once: true });
+        v.addEventListener('error', onErr, { once: true });
+      });
+
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, v.videoWidth || 1);
+      canvas.height = Math.max(1, v.videoHeight || 1);
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('Canvas unavailable');
+      ctx.drawImage(v, 0, 0, canvas.width, canvas.height);
+      return canvas.toDataURL('image/jpeg', 0.86);
+    } finally {
+      URL.revokeObjectURL(url);
+    }
+  }
+
+  function dataUrlToBlob(dataUrl: string): Blob {
+    const [head, body] = dataUrl.split(',');
+    const mime = /data:(.*?);base64/.exec(head)?.[1] ?? 'image/jpeg';
+    const bin = atob(body);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return new Blob([bytes], { type: mime });
+  }
+
+  const handleMediaPick = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 10 * 1024 * 1024) {
-      showToast('Image must be under 10 MB', 'error');
+
+    const isVideo = file.type.startsWith('video/');
+    const maxBytes = isVideo ? 50 * 1024 * 1024 : 10 * 1024 * 1024;
+    if (file.size > maxBytes) {
+      showToast(isVideo ? 'Video must be under 50 MB' : 'Image must be under 10 MB', 'error');
       return;
     }
-    setImageFile(file);
-    const reader = new FileReader();
-    reader.onload = (ev) => setImagePreview(ev.target?.result as string);
-    reader.readAsDataURL(file);
+
+    setMediaFile(file);
+
+    if (!isVideo) {
+      const reader = new FileReader();
+      reader.onload = (ev) => setImagePreview(ev.target?.result as string);
+      reader.readAsDataURL(file);
+      return;
+    }
+
+    try {
+      const url = URL.createObjectURL(file);
+      const v = document.createElement('video');
+      v.preload = 'metadata';
+      v.src = url;
+      await new Promise<void>((resolve, reject) => {
+        const onLoaded = () => resolve();
+        const onErr = () => reject(new Error('Could not read video'));
+        v.addEventListener('loadedmetadata', onLoaded, { once: true });
+        v.addEventListener('error', onErr, { once: true });
+      });
+      URL.revokeObjectURL(url);
+
+      if (Number.isFinite(v.duration) && v.duration > 30) {
+        showToast('Videos must be 30 seconds or shorter', 'error');
+        setMediaFile(null);
+        setImagePreview(null);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+        return;
+      }
+
+      const frame = await captureVideoFrameDataUrl(file, 0.1);
+      setImagePreview(frame);
+    } catch {
+      showToast('Could not read video', 'error');
+      setMediaFile(null);
+      setImagePreview(null);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
   };
 
   const handleSubmit = async () => {
@@ -105,8 +190,9 @@ function NewPostDrawer({ open, onClose, onPosted }: {
     }
 
     setIsSubmitting(true);
-      let imageUrl: string | null = null;
-      let moderationStatus = 'approved';
+    let imageUrl: string | null = null;
+    let moderationStatus = 'approved';
+    let postMedia: { type: 'image' | 'video'; bucket?: string; path?: string; thumbPath?: string } | null = null;
 
     try {
       const { data: sessionData } = await supabaseClient.auth.getSession();
@@ -114,32 +200,79 @@ function NewPostDrawer({ open, onClose, onPosted }: {
 
       // Upload first, then scan by public URL (small JSON) — avoids Vercel/Next 413 on large multipart bodies.
       let uploadedPath: string | null = null;
-      if (imageFile && supabaseClient) {
+      let uploadedVideoPath: string | null = null;
+      let uploadedVideoThumbPath: string | null = null;
+      if (mediaFile && supabaseClient) {
         setUploadProgress('uploading');
-        const ext = imageFile.name.split('.').pop();
-        const path = `${user.id}/${Date.now()}.${ext}`;
-        const { error: uploadError } = await supabaseClient.storage
-          .from('post-images')
-          .upload(path, imageFile, { upsert: true });
-        if (uploadError) throw uploadError;
-        uploadedPath = path;
-        const { data: urlData } = supabaseClient.storage.from('post-images').getPublicUrl(path);
-        imageUrl = urlData.publicUrl;
+        const isVideo = mediaFile.type.startsWith('video/');
+        const id = `${Date.now()}`;
+        if (!isVideo) {
+          const ext = mediaFile.name.split('.').pop();
+          const path = `${user.id}/${id}.${ext}`;
+          const { error: uploadError } = await supabaseClient.storage
+            .from('post-images')
+            .upload(path, mediaFile, { upsert: true });
+          if (uploadError) throw uploadError;
+          uploadedPath = path;
+          const { data: urlData } = supabaseClient.storage.from('post-images').getPublicUrl(path);
+          imageUrl = urlData.publicUrl;
+          postMedia = { type: 'image', bucket: 'post-images', path };
+        } else {
+          const ext = mediaFile.name.split('.').pop() || 'mp4';
+          const videoPath = `${user.id}/${id}/clip.${ext}`;
+          const { error: vErr } = await supabaseClient.storage
+            .from('post-media')
+            .upload(videoPath, mediaFile, { upsert: true, contentType: mediaFile.type });
+          if (vErr) throw vErr;
+          uploadedVideoPath = videoPath;
+
+          const frame0 = imagePreview ?? (await captureVideoFrameDataUrl(mediaFile, 0.1));
+          const thumbBlob = dataUrlToBlob(frame0);
+
+          const thumbPublicPath = `${user.id}/${id}-thumb.jpg`;
+          const { error: tErr } = await supabaseClient.storage
+            .from('post-images')
+            .upload(thumbPublicPath, thumbBlob, { upsert: true, contentType: 'image/jpeg' });
+          if (tErr) throw tErr;
+          uploadedPath = thumbPublicPath;
+          const { data: urlData } = supabaseClient.storage.from('post-images').getPublicUrl(thumbPublicPath);
+          imageUrl = urlData.publicUrl;
+
+          const thumbPrivatePath = `${user.id}/${id}/thumb.jpg`;
+          const { error: tpErr } = await supabaseClient.storage
+            .from('post-media')
+            .upload(thumbPrivatePath, thumbBlob, { upsert: true, contentType: 'image/jpeg' });
+          if (tpErr) throw tpErr;
+          uploadedVideoThumbPath = thumbPrivatePath;
+
+          postMedia = { type: 'video', bucket: 'post-media', path: videoPath, thumbPath: thumbPrivatePath };
+        }
       }
 
       if (imageUrl && accessToken) {
-        const scanRes = await fetch('/api/moderation/scan-image', {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ url: imageUrl }),
-        });
-        const scanJson = await scanRes.json().catch(() => ({}));
+        const scanOnce = async (url: string) => {
+          const scanRes = await fetch('/api/moderation/scan-image', {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ url }),
+          });
+          const scanJson = await scanRes.json().catch(() => ({}));
+          return { scanRes, scanJson };
+        };
+
+        const { scanRes, scanJson } = await scanOnce(imageUrl);
         if (scanRes.status === 422) {
           if (uploadedPath) {
             await supabaseClient.storage.from('post-images').remove([uploadedPath]);
+          }
+          if (uploadedVideoPath) {
+            await supabaseClient.storage.from('post-media').remove([uploadedVideoPath]);
+          }
+          if (uploadedVideoThumbPath) {
+            await supabaseClient.storage.from('post-media').remove([uploadedVideoThumbPath]);
           }
           const r = scanJson.reason as string | undefined;
           showToast(
@@ -158,11 +291,53 @@ function NewPostDrawer({ open, onClose, onPosted }: {
           if (uploadedPath) {
             await supabaseClient.storage.from('post-images').remove([uploadedPath]);
           }
+          if (uploadedVideoPath) {
+            await supabaseClient.storage.from('post-media').remove([uploadedVideoPath]);
+          }
+          if (uploadedVideoThumbPath) {
+            await supabaseClient.storage.from('post-media').remove([uploadedVideoThumbPath]);
+          }
           showToast(scanJson.error ?? 'Image check failed', 'error');
           setIsSubmitting(false);
           setUploadProgress('idle');
           return;
         }
+
+        if (mediaFile && mediaFile.type.startsWith('video/')) {
+          // Basic frame sampling moderation (best-effort).
+          const times = [10, 25];
+          for (const t of times) {
+            const frame = await captureVideoFrameDataUrl(mediaFile, t);
+            const blob = dataUrlToBlob(frame);
+            const tmpPath = `${user.id}/moderation/${Date.now()}-${Math.round(t * 1000)}.jpg`;
+            const { error: upErr } = await supabaseClient.storage
+              .from('post-images')
+              .upload(tmpPath, blob, { upsert: true, contentType: 'image/jpeg' });
+            if (upErr) throw upErr;
+            const { data: tmpUrl } = supabaseClient.storage.from('post-images').getPublicUrl(tmpPath);
+            const r2 = await scanOnce(tmpUrl.publicUrl);
+            await supabaseClient.storage.from('post-images').remove([tmpPath]);
+            if (r2.scanRes.status === 422) {
+              if (uploadedPath) await supabaseClient.storage.from('post-images').remove([uploadedPath]);
+              if (uploadedVideoPath) await supabaseClient.storage.from('post-media').remove([uploadedVideoPath]);
+              if (uploadedVideoThumbPath) await supabaseClient.storage.from('post-media').remove([uploadedVideoThumbPath]);
+              showToast('That video was blocked by the safety filter.', 'error');
+              setIsSubmitting(false);
+              setUploadProgress('idle');
+              return;
+            }
+            if (!r2.scanRes.ok) {
+              if (uploadedPath) await supabaseClient.storage.from('post-images').remove([uploadedPath]);
+              if (uploadedVideoPath) await supabaseClient.storage.from('post-media').remove([uploadedVideoPath]);
+              if (uploadedVideoThumbPath) await supabaseClient.storage.from('post-media').remove([uploadedVideoThumbPath]);
+              showToast(r2.scanJson.error ?? 'Video check failed', 'error');
+              setIsSubmitting(false);
+              setUploadProgress('idle');
+              return;
+            }
+          }
+        }
+
         // If moderation is not configured, do not hide the post from other users.
         // Unsafe images return 422 and are blocked above.
         if (scanJson.skipped) {
@@ -189,6 +364,13 @@ function NewPostDrawer({ open, onClose, onPosted }: {
         rig_name: rigVal,
         role: userRole,
       };
+      if (postMedia?.type === 'video') {
+        insertPayload.media_type = 'video';
+        insertPayload.media_bucket = postMedia.bucket ?? 'post-media';
+        insertPayload.media_path = postMedia.path ?? null;
+        insertPayload.thumbnail_path = postMedia.thumbPath ?? null;
+        insertPayload.processed_status = 'ready';
+      }
       if (moderationStatus !== 'approved') {
         insertPayload.moderation_status = moderationStatus;
       }
@@ -317,7 +499,7 @@ function NewPostDrawer({ open, onClose, onPosted }: {
                 <div className="relative mt-3 rounded-xl overflow-hidden border border-zinc-800">
                   <img src={imagePreview} alt="Preview" className="w-full max-h-56 object-cover" />
                   <button
-                    onClick={() => { setImageFile(null); setImagePreview(null); }}
+                    onClick={() => { setMediaFile(null); setImagePreview(null); }}
                     className="absolute top-2 right-2 p-1.5 bg-black/70 rounded-full text-zinc-300 hover:text-white"
                     aria-label="Remove image"
                   >
@@ -333,16 +515,20 @@ function NewPostDrawer({ open, onClose, onPosted }: {
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept="image/*"
+                  accept="image/*,video/*"
                   className="hidden"
-                  onChange={handleImagePick}
+                  onChange={(e) => void handleMediaPick(e)}
                 />
                 <button
                   onClick={() => fileInputRef.current?.click()}
                   className="flex items-center gap-2 text-[13px] text-zinc-500 hover:text-orange-400 transition-colors"
                 >
                   <ImageIcon size={18} strokeWidth={1.8} />
-                  <span>{imageFile ? imageFile.name.slice(0, 20) + (imageFile.name.length > 20 ? '…' : '') : 'Add Photo'}</span>
+                  <span>
+                    {mediaFile
+                      ? mediaFile.name.slice(0, 20) + (mediaFile.name.length > 20 ? '…' : '')
+                      : 'Add Photo/Video'}
+                  </span>
                 </button>
                 {uploadProgress !== 'idle' && (
                   <span className="text-[11px] text-orange-400 flex items-center gap-1">
@@ -387,6 +573,10 @@ interface Post {
   id: string;
   user_id: string;
   image_url?: string;
+  media_type?: string | null;
+  media_bucket?: string | null;
+  media_path?: string | null;
+  thumbnail_path?: string | null;
   body?: string;
   caption: string;
   rig_model?: string;
@@ -983,10 +1173,29 @@ function RigPostCard({ post, index }: {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [avatarError, setAvatarError] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [videoSignedUrl, setVideoSignedUrl] = useState<string | null>(null);
 
   useEffect(() => {
     setAvatarError(false);
   }, [post.avatar_url, post.id]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setVideoSignedUrl(null);
+    if (!supabaseClient) return;
+    if (String(post.media_type ?? '').toLowerCase() !== 'video') return;
+    const bucket = String(post.media_bucket ?? 'post-media');
+    const path = String(post.media_path ?? '').trim();
+    if (!path) return;
+    void (async () => {
+      const { data, error } = await supabaseClient.storage.from(bucket).createSignedUrl(path, 60 * 10);
+      if (cancelled) return;
+      if (!error && data?.signedUrl) setVideoSignedUrl(data.signedUrl);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [supabaseClient, post.id, post.media_type, post.media_bucket, post.media_path]);
 
   useEffect(() => {
     setRepostsCount(post.reposts_count ?? 0);
@@ -1553,7 +1762,30 @@ function RigPostCard({ post, index }: {
           </p>
 
           {/* Optional media — natural aspect ratio, NOT forced square */}
-          {post.image_url && (
+          {String(post.media_type ?? '').toLowerCase() === 'video' ? (
+            <div className="relative mb-3 rounded-xl overflow-hidden border border-zinc-800 bg-zinc-950">
+              {videoSignedUrl ? (
+                <video
+                  src={videoSignedUrl}
+                  className="w-full object-cover"
+                  playsInline
+                  loop
+                  muted
+                  controls
+                />
+              ) : post.image_url ? (
+                <img
+                  src={ensureStoragePublicObjectUrl(post.image_url) || post.image_url}
+                  alt={post.caption}
+                  className="w-full object-cover"
+                  loading="lazy"
+                  draggable={false}
+                />
+              ) : (
+                <div className="w-full h-56 bg-zinc-900 animate-pulse" aria-hidden />
+              )}
+            </div>
+          ) : post.image_url ? (
             <div className="relative mb-3 rounded-xl overflow-hidden border border-zinc-800 bg-zinc-950 group cursor-zoom-in">
               <img
                 src={ensureStoragePublicObjectUrl(post.image_url) || post.image_url}
@@ -1571,7 +1803,7 @@ function RigPostCard({ post, index }: {
                 <ZoomIn size={14} />
               </button>
             </div>
-          )}
+          ) : null}
 
           {/* Rig specs pill row */}
           {post.rig_specs && (
