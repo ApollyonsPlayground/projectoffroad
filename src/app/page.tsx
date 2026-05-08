@@ -217,6 +217,9 @@ export default function PublicHomePage() {
           <Link href="/child-safety/" className="hover:text-zinc-400">
             Child safety standards
           </Link>
+          <Link href="/support/" className="hover:text-zinc-400">
+            Support
+          </Link>
           <Link href="/feed/" className="hover:text-zinc-400">
             Community feed
           </Link>
