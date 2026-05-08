@@ -306,9 +306,10 @@ export function HostRunWizard({ variant = 'drawer', onSuccess, onCancel }: Props
         supabaseClient.from('users').select('role').eq('id', user.id).maybeSingle(),
         supabaseClient
           .from('club_members')
-          .select('club_id, role, clubs(id, name, verified)')
+          .select('club_id, role, status, clubs(id, name, verified)')
           .eq('user_id', user.id)
-          .in('role', ['owner', 'admin', 'leader']),
+          .eq('status', 'approved')
+          .in('role', ['owner', 'admin', 'officer', 'leader']),
         supabaseClient.from('trails').select('*'),
       ]);
 

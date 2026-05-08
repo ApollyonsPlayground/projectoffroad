@@ -35,6 +35,7 @@ interface Member {
   id: string;
   user_id: string;
   role: string;
+  status?: string;
   user?: { name: string; avatar_url: string };
 }
 
@@ -67,6 +68,7 @@ export default function ClubDetailPage() {
   const [loading, setLoading] = useState(true);
   const [joining, setJoining] = useState(false);
   const [isMember, setIsMember] = useState(false);
+  const [isPending, setIsPending] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
@@ -78,7 +80,11 @@ export default function ClubDetailPage() {
 
   useEffect(() => {
     if (user && members.length > 0) {
-      setIsMember(members.some((m) => m.user_id === user.id));
+      const myRows = members.filter((m) => m.user_id === user.id);
+      const approved = myRows.some((m) => String(m.status ?? '').toLowerCase() === 'approved');
+      const pending = myRows.some((m) => String(m.status ?? '').toLowerCase() === 'pending');
+      setIsMember(approved);
+      setIsPending(!approved && pending);
     }
   }, [user, members]);
 
@@ -128,12 +134,31 @@ export default function ClubDetailPage() {
       setJoining(false);
       return;
     }
-    const { error } = await supabase.from('club_members').insert({ club_id: clubId, user_id: user.id, role: 'member' });
+    // Membership is approval-based: user creates a pending request.
+    const { error } = await supabase
+      .from('club_members')
+      .insert({ club_id: clubId, user_id: user.id, role: 'member', status: 'pending' });
 
     setJoining(false);
     if (!error) {
-      setIsMember(true);
+      setIsPending(true);
       fetchMembers();
+    }
+  }
+
+  async function approveMember(memberId: string) {
+    if (!supabase || !clubId || !user || !club || user.id !== club.owner_id) return;
+    try {
+      const { error } = await supabase
+        .from('club_members')
+        .update({ status: 'approved', role: 'member' })
+        .eq('id', memberId)
+        .eq('club_id', clubId);
+      if (error) throw error;
+      showToast('Member approved', 'success');
+      fetchMembers();
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : 'Could not approve member', 'error');
     }
   }
 
@@ -255,10 +280,16 @@ export default function ClubDetailPage() {
           <button
             type="button"
             onClick={joinClub}
-            disabled={joining || isMember}
+            disabled={joining || isMember || isPending}
             className="mt-6 w-full py-3 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-lg transition disabled:opacity-50 disabled:bg-muted"
           >
-            {joining ? 'Joining...' : isMember ? '✓ Member' : 'Join Club'}
+            {joining
+              ? 'Requesting…'
+              : isMember
+                ? '✓ Member'
+                : isPending
+                  ? 'Request pending'
+                  : 'Request to join'}
           </button>
 
           {isClubOwner && (
@@ -273,6 +304,38 @@ export default function ClubDetailPage() {
             </button>
           )}
         </div>
+
+        {isClubOwner && (
+          <div className="rounded-xl border border-border bg-card overflow-hidden mb-6">
+            <div className="p-4 border-b border-border">
+              <h2 className="text-lg font-semibold text-foreground">Membership requests</h2>
+              <p className="text-xs text-muted-foreground mt-1">Approve pending join requests to allow members to host official club runs.</p>
+            </div>
+            <div className="p-4 space-y-3">
+              {members.filter((m) => String(m.status ?? '').toLowerCase() === 'pending').length === 0 ? (
+                <p className="text-sm text-muted-foreground">No pending requests.</p>
+              ) : (
+                members
+                  .filter((m) => String(m.status ?? '').toLowerCase() === 'pending')
+                  .map((m) => (
+                    <div key={m.id} className="flex items-center justify-between gap-3 rounded-lg border border-border bg-muted px-3 py-2">
+                      <div className="min-w-0">
+                        <p className="text-sm text-foreground font-medium truncate">{m.user?.name ?? 'Member'}</p>
+                        <p className="text-xs text-muted-foreground truncate">{m.user_id}</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => void approveMember(m.id)}
+                        className="shrink-0 px-3 py-1.5 rounded-md bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90"
+                      >
+                        Approve
+                      </button>
+                    </div>
+                  ))
+              )}
+            </div>
+          </div>
+        )}
 
         {clubId && (
           <ClubGarage
