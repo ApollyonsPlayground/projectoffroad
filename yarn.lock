@@ -482,9 +482,9 @@
     "@babel/helper-plugin-utils" "^7.28.6"
 
 "@babel/plugin-transform-modules-systemjs@^7.29.0":
-  version "7.29.0"
-  resolved "https://registry.npmjs.org/@babel/plugin-transform-modules-systemjs/-/plugin-transform-modules-systemjs-7.29.0.tgz"
-  integrity sha512-PrujnVFbOdUpw4UHiVwKvKRLMMic8+eC0CuNlxjsyZUiBjhFdPsewdXCkveh2KqBA9/waD0W1b4hXSOBQJezpQ==
+  version "7.29.4"
+  resolved "https://registry.npmjs.org/@babel/plugin-transform-modules-systemjs/-/plugin-transform-modules-systemjs-7.29.4.tgz"
+  integrity sha512-N7QmZ0xRZfjHOfZeQLJjwgX2zS9pdGHSVl/cjSGlo4dXMqvurfxXDMKY4RqEKzPozV78VMcd0lxyG13mlbKc4w==
   dependencies:
     "@babel/helper-module-transforms" "^7.28.6"
     "@babel/helper-plugin-utils" "^7.28.6"
@@ -1879,10 +1879,10 @@
     smol-toml "1.5.2"
     zod "3.22.4"
 
-"@vercel/python@6.36.0":
-  version "6.36.0"
-  resolved "https://registry.npmjs.org/@vercel/python/-/python-6.36.0.tgz"
-  integrity sha512-GLCX2JV2zfjGoSaANWi6gfL1z1IO02ulFhDOGYlOwBmVb1qQFLLssTnbN5uDO5heWm5Owi2/eqBG+l2E7TXiVQ==
+"@vercel/python@6.36.1":
+  version "6.36.1"
+  resolved "https://registry.npmjs.org/@vercel/python/-/python-6.36.1.tgz"
+  integrity sha512-N/vgn3G0k8MW3TgdYSCrKoe8vWI49vUjDZYl3dqPt7sSD8wwPalp2Us/0uwY/oUyI1pFdY0uHvR17HOuMhZEbg==
   dependencies:
     "@vercel/python-analysis" "0.11.0"
 
@@ -2520,9 +2520,9 @@ baseline-browser-mapping@^2.10.12, baseline-browser-mapping@^2.9.19:
   integrity sha512-1AaXxEPfXT+GvTBJFuy4yXVHWJBXa4OdbIebGN/wX5DlsIkU0+wzGnd2lOzokSk51d5LUmqjgBLRLlypLUqInQ==
 
 basic-ftp@^5.0.2:
-  version "5.3.0"
-  resolved "https://registry.npmjs.org/basic-ftp/-/basic-ftp-5.3.0.tgz"
-  integrity sha512-5K9eNNn7ywHPsYnFwjKgYH8Hf8B5emh7JKcPaVjjrMJFQQwGpwowEnZNEtHs7DfR7hCZsmaK3VA4HUK0YarT+w==
+  version "5.3.1"
+  resolved "https://registry.npmjs.org/basic-ftp/-/basic-ftp-5.3.1.tgz"
+  integrity sha512-bopVNp6ugyA150DDuZfPFdt1KZ5a94ZDiwX4hMgZDzF+GttD80lEy8kj98kbyhLXnPvhtIo93mdnLIjpCAeeOw==
 
 big-integer@1.6.x:
   version "1.6.52"
@@ -3620,9 +3620,9 @@ fast-levenshtein@^2.0.6:
   integrity sha512-DCXu6Ifhqcks7TZKY3Hxp3y6qphY5SJZmrWMDrKcERSOXWQdMhU9Ig/PYrzyw/ul9jOIyh0N4M0tbC5hodg8dw==
 
 fast-uri@^3.0.1:
-  version "3.1.0"
-  resolved "https://registry.npmjs.org/fast-uri/-/fast-uri-3.1.0.tgz"
-  integrity sha512-iPeeDKJSWf4IEOasVVrknXpaBV0IApz/gp7S2bb7Z4Lljbl2MGJRqInZiUrQwV16cpzw/D3S5j5Julj/gT52AA==
+  version "3.1.2"
+  resolved "https://registry.npmjs.org/fast-uri/-/fast-uri-3.1.2.tgz"
+  integrity sha512-rVjf7ArG3LTk+FS6Yw81V1DLuZl1bRbNrev6Tmd/9RaroeeRRJhAt7jg/6YFxbvAQXUCavSoZhPPj6oOx+5KjQ==
 
 fastq@^1.6.0:
   version "1.20.1"
@@ -4187,9 +4187,9 @@ internal-slot@^1.1.0:
     side-channel "^1.1.0"
 
 ip-address@^10.0.1:
-  version "10.1.0"
-  resolved "https://registry.npmjs.org/ip-address/-/ip-address-10.1.0.tgz"
-  integrity sha512-XXADHxXmvT9+CRxhXg56LJovE+bmWnEWB78LB83VZTprKTmaC5QfruXocxzTZ2Kl0DNwKuBdlIhjL8LeY8Sf8Q==
+  version "10.2.0"
+  resolved "https://registry.npmjs.org/ip-address/-/ip-address-10.2.0.tgz"
+  integrity sha512-/+S6j4E9AHvW9SWMSEY9Xfy66O5PWvVEJ08O0y5JGyEKQpojb0K0GKpz/v5HJ/G0vi3D2sjGK78119oXZeE0qA==
 
 is-array-buffer@^3.0.4, is-array-buffer@^3.0.5:
   version "3.0.5"
@@ -6424,9 +6424,9 @@ sucrase@^3.35.0:
     ts-interface-checker "^0.1.9"
 
 supabase@~2.98.0:
-  version "2.98.0"
-  resolved "https://registry.npmjs.org/supabase/-/supabase-2.98.0.tgz"
-  integrity sha512-1r56wzoi6SFj+i0XHqF9rSLrjaBSrs+t6xUWn3I+UVnO9nb5ITkmaLEeGgjf7naiBUDf9rtqyRoI+5hTrezZNg==
+  version "2.98.2"
+  resolved "https://registry.npmjs.org/supabase/-/supabase-2.98.2.tgz"
+  integrity sha512-COSz57JyuUGbj75GSGM5mmyz/behBiYSiJ4A9qJVVC/vNp9bYS+9RCTXBtEt8kgqDDYWZsOmzk+mPbIBdr9bPg==
   dependencies:
     bin-links "^6.0.0"
     https-proxy-agent "^9.0.0"
@@ -6903,9 +6903,9 @@ util-deprecate@^1.0.1, util-deprecate@^1.0.2:
   integrity sha512-EPD5q1uXyFxJpCrLnCc1nHnq3gOa6DZBocAIiI2TaSCA7VCJ1UJDMagCzIkXNsUYfD1daK//LTEQ8xiIbrHtcw==
 
 vercel@^52.0.0:
-  version "52.0.0"
-  resolved "https://registry.npmjs.org/vercel/-/vercel-52.0.0.tgz"
-  integrity sha512-yLQn/wrGWVjvoCKQJuqi+aZvy+yYNDY9tSWiq6sH3LlTZ8zdEIHS7hB07TTsYTLQQWb55rW0h5d05QPExMVcSA==
+  version "52.2.1"
+  resolved "https://registry.npmjs.org/vercel/-/vercel-52.2.1.tgz"
+  integrity sha512-/SabFfhZUp3uTqrCHzTZSPDFZU4cwKlCLF3McN9vrA5Gyk0ldvHruBqZNuFtW5Y3J8aSIiREzLxbmL3H8uTquw==
   dependencies:
     "@vercel/backends" "0.2.0"
     "@vercel/blob" "2.3.0"
@@ -6924,7 +6924,7 @@ vercel@^52.0.0:
     "@vercel/next" "4.16.8"
     "@vercel/node" "5.7.13"
     "@vercel/prepare-flags-definitions" "0.2.1"
-    "@vercel/python" "6.36.0"
+    "@vercel/python" "6.36.1"
     "@vercel/redwood" "2.4.12"
     "@vercel/remix-builder" "5.7.2"
     "@vercel/ruby" "2.3.2"
