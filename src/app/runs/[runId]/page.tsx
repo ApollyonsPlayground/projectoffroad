@@ -1018,11 +1018,12 @@ export default function RunDetailPage() {
             <button
               type="button"
               onClick={() => setEditOpen(true)}
-              className="w-8 h-8 flex items-center justify-center rounded-full bg-zinc-900 text-zinc-400 hover:text-white transition-colors flex-shrink-0"
+              className="min-h-[36px] px-3 rounded-xl bg-orange-500 text-black text-[12px] font-black hover:bg-orange-400 transition-colors flex items-center gap-1.5 flex-shrink-0"
               aria-label="Edit run"
               title="Edit run"
             >
-              <Pencil size={16} />
+              <Pencil size={14} />
+              Edit
             </button>
           )}
           <span className={`flex-shrink-0 px-2.5 py-1 text-[11px] font-black uppercase rounded-lg ${getStatusBadge(run.status)}`}>
