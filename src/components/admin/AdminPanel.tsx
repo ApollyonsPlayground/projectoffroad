@@ -226,6 +226,16 @@ export function AdminPanel({ variant, onCloseDrawer }: Props) {
         body: JSON.stringify({ verified }),
       });
       if (!res.ok) throw new Error(await fetchErrorMessage(res));
+
+      // Keep existing runs in sync: a club becoming verified should “upgrade” its runs
+      // from community to official; removing verification downgrades them.
+      // (Owners/admins are allowed to update runs via RLS policy.)
+      if (supabaseClient) {
+        await supabaseClient
+          .from('runs')
+          .update({ run_source: verified ? 'club_official' : 'user_submitted' })
+          .eq('club_id', id);
+      }
       showToast(verified ? 'Marked as verified club' : 'Marked as not verified', 'success');
       await loadClubs();
       await loadOverview();

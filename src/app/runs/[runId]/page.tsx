@@ -79,7 +79,7 @@ interface RunDetail {
   run_source: 'club_official' | 'user_submitted' | null;
   user_acknowledged_disclaimer_at: string | null;
   created_at: string;
-  club: { name: string; logo: string | null } | null;
+  club: { name: string; logo: string | null; verified?: boolean } | null;
   trail: RunTrailEmbed | null;
 }
 
@@ -297,7 +297,7 @@ export default function RunDetailPage() {
 
       const [clubRes, trailRes] = await Promise.all([
         clubKey && isLikelyUuid(clubKey)
-          ? supabaseClient.from('clubs').select('name, logo').eq('id', clubKey).maybeSingle()
+          ? supabaseClient.from('clubs').select('name, logo, verified').eq('id', clubKey).maybeSingle()
           : Promise.resolve({ data: null as null }),
         trailKey && isLikelyUuid(trailKey)
           ? supabaseClient.from('trails').select('*').eq('id', trailKey).maybeSingle()
@@ -306,10 +306,11 @@ export default function RunDetailPage() {
 
       let clubEmbed: RunDetail['club'] = null;
       if (clubRes.data && typeof clubRes.data === 'object') {
-        const c = clubRes.data as { name?: unknown; logo?: unknown };
+        const c = clubRes.data as { name?: unknown; logo?: unknown; verified?: unknown };
         clubEmbed = {
           name: String(c.name ?? 'Club'),
           logo: (c.logo as string | null) ?? null,
+          verified: Boolean(c.verified),
         };
       }
 
@@ -323,6 +324,10 @@ export default function RunDetailPage() {
         club: clubEmbed,
         trail: trailEmbed,
       };
+      // Ensure badge reflects current club verification (not just what the host chose at creation time).
+      if (clubEmbed && clubKey) {
+        loaded.run_source = clubEmbed.verified ? 'club_official' : 'user_submitted';
+      }
       setRun(loaded);
 
       const hid = loaded.host_id;

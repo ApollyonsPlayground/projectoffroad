@@ -47,7 +47,7 @@ interface Run {
   host_id?: string | null;
   host_display_name?: string | null;
   run_source?: 'club_official' | 'user_submitted' | null;
-  club?: { name: string; banner_image?: string | null } | null;
+  club?: { name: string; verified?: boolean; banner_image?: string | null } | null;
   trail?: { name: string; difficulty: string; photo_url?: string | null } | null;
 }
 
@@ -412,13 +412,17 @@ export default function RunsPage() {
       const clubIds = [
         ...new Set(fetchedRuns.map((r) => String(r.club_id ?? '').trim()).filter(Boolean)),
       ];
-      const clubById: Record<string, { name: string; banner_image: string | null }> = {};
+      const clubById: Record<string, { name: string; verified: boolean; banner_image: string | null }> = {};
       if (clubIds.length) {
-        const cr = await supabaseClient.from('clubs').select('id, name, banner_image').in('id', clubIds);
+        const cr = await supabaseClient
+          .from('clubs')
+          .select('id, name, verified, banner_image')
+          .in('id', clubIds);
         if (!cr.error && cr.data) {
-          for (const row of cr.data as { id: string; name: string | null; banner_image?: string | null }[]) {
+          for (const row of cr.data as { id: string; name: string | null; verified?: boolean | null; banner_image?: string | null }[]) {
             clubById[String(row.id)] = {
               name: String(row.name ?? 'Club').trim() || 'Club',
+              verified: Boolean(row.verified),
               banner_image:
                 row.banner_image != null && String(row.banner_image).trim()
                   ? String(row.banner_image).trim()
@@ -449,13 +453,14 @@ export default function RunsPage() {
 
         const cid = r.club_id ? String(r.club_id).trim() : '';
         const fromClubDb = cid ? clubById[cid] : undefined;
-        const embeddedClub = r.club as { name?: string; banner_image?: string | null } | null | undefined;
+        const embeddedClub = r.club as { name?: string; verified?: boolean; banner_image?: string | null } | null | undefined;
         const mergedClub =
           fromClubDb != null
-            ? { name: fromClubDb.name, banner_image: fromClubDb.banner_image }
+            ? { name: fromClubDb.name, verified: fromClubDb.verified, banner_image: fromClubDb.banner_image }
             : embeddedClub && embeddedClub.name
               ? {
                   name: String(embeddedClub.name),
+                  verified: Boolean(embeddedClub.verified),
                   banner_image:
                     embeddedClub.banner_image != null && String(embeddedClub.banner_image).trim()
                       ? String(embeddedClub.banner_image).trim()
@@ -465,6 +470,9 @@ export default function RunsPage() {
 
         return {
           ...r,
+          // If a club is verified now, its runs should display as official even if they were created
+          // before verification. (Admin verification also backfills DB, but this keeps UI correct regardless.)
+          run_source: cid && Boolean(fromClubDb?.verified ?? embeddedClub?.verified) ? 'club_official' : (r.run_source ?? null),
           trail: mergedTrail,
           club: mergedClub,
           host_display_name: r.host_id ? hostNameById[r.host_id] ?? null : null,
