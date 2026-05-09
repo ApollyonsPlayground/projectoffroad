@@ -424,6 +424,16 @@ export function AdminPanel({ variant, onCloseDrawer }: Props) {
                 </div>
               ))}
             </div>
+
+            <Link
+              href="/admin/monitoring"
+              className="block w-full text-left bg-zinc-900 border border-zinc-800 hover:border-orange-500/40 rounded-xl p-4 transition-colors"
+            >
+              <p className="font-bold text-white mb-1">Infrastructure monitoring</p>
+              <p className="text-[12px] text-zinc-500">
+                Vercel usage & deployments · Supabase disk & API analytics · Sightengine status
+              </p>
+            </Link>
             <button
               type="button"
               onClick={() => {
