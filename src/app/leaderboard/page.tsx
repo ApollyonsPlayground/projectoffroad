@@ -24,15 +24,34 @@ export default function LeaderboardPage() {
         setLoading(false);
         return;
       }
+
+      const excludedIds = new Set(
+        String(process.env.NEXT_PUBLIC_LEADERBOARD_EXCLUDE_USER_IDS ?? '')
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean)
+      );
+      const playReviewId = String(process.env.NEXT_PUBLIC_PLAY_REVIEW_USER_ID ?? '').trim();
+      if (playReviewId) excludedIds.add(playReviewId);
+
       const { data: users } = await supabaseClient
         .from('users')
-        .select('id, name, avatar_url')
+        .select('id, name, avatar_url, role')
         .order('created_at', { ascending: false })
         .limit(50);
 
       if (users) {
+        const filteredUsers = users.filter((u) => {
+          if (excludedIds.has(String(u.id))) return false;
+          const role = String((u as { role?: unknown }).role ?? '').toLowerCase().trim();
+          if (role === 'play_review' || role === 'review') return false;
+          const name = String(u.name ?? '').toLowerCase();
+          if (name.includes('play review') || name.includes('reviewer')) return false;
+          return true;
+        });
+
         const leadersWithCounts = await Promise.all(
-          users.map(async (u, index) => {
+          filteredUsers.map(async (u, index) => {
             const { count } = await supabaseClient
               .from('run_participants')
               .select('*', { count: 'exact', head: true })
