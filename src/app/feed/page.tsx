@@ -12,6 +12,7 @@ import {
   BadgeCheck,
   Mountain,
   Plus,
+  Sparkles,
   ZoomIn,
   X,
   Image as ImageIcon,
@@ -42,6 +43,7 @@ import {
   insertSavedPost,
 } from '@/lib/supabase/resilientSocial';
 import { mapDbTrailRow } from '@/lib/trails/mapDbTrail';
+import { OPEN_CAELUM_CHAT_EVENT } from '@/lib/caelum/constants';
 import {
   resolveOwnProfileDisplayName,
   resolvePublicDisplayName,
@@ -861,6 +863,50 @@ interface LiveRun {
   isLive: boolean;
 }
 
+function CaelumRunsStripChip() {
+  return (
+    <button
+      type="button"
+      onClick={() => window.dispatchEvent(new CustomEvent(OPEN_CAELUM_CHAT_EVENT))}
+      className="flex flex-col items-center gap-1.5 flex-shrink-0 select-none touch-manipulation"
+      aria-label="Ask Caelum"
+    >
+      <motion.div whileTap={{ scale: 0.91 }} className="relative">
+        <div className="relative w-[58px] h-[58px] rounded-full p-[2px] bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600 shadow-[0_6px_20px_-6px_rgba(249,115,22,0.45)]">
+          <div className="w-full h-full rounded-full overflow-hidden bg-zinc-950 flex items-center justify-center">
+            <Sparkles size={26} strokeWidth={2.2} className="text-orange-400" />
+          </div>
+        </div>
+        <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-emerald-500 ring-2 ring-zinc-950" aria-hidden />
+      </motion.div>
+      <span className="text-[9px] text-zinc-400 text-center font-semibold leading-tight max-w-[76px] w-[76px] line-clamp-2">
+        Ask Caelum
+      </span>
+    </button>
+  );
+}
+
+function RunsReelEmptyPlaceholder() {
+  return (
+    <div className="flex flex-col items-center gap-2.5 py-1 flex-shrink-0 text-center max-w-[260px] select-none">
+      <div className="relative">
+        <div className="w-[56px] h-[56px] rounded-2xl bg-gradient-to-br from-orange-500/30 via-orange-500/10 to-zinc-900 border border-orange-500/45 flex items-center justify-center shadow-[0_8px_28px_-8px_rgba(249,115,22,0.35)]">
+          <span className="text-orange-400 font-black text-[15px] tracking-tight">SO</span>
+        </div>
+        <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full bg-black border border-orange-500/60 text-[8px] font-black uppercase tracking-wider text-orange-400 whitespace-nowrap">
+          Coming soon
+        </span>
+      </div>
+      <div className="space-y-0.5">
+        <p className="text-[11px] font-black uppercase tracking-[0.14em] text-zinc-300">Runs reel</p>
+        <p className="text-[10px] text-zinc-500 leading-snug px-1">
+          Live & upcoming runs will show here — check back after the next trail day.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 function StoriesBar({ embedded = false }: { embedded?: boolean } = {}) {
   const { supabaseClient } = useAuth();
   const [liveRuns, setLiveRuns] = useState<LiveRun[]>([]);
@@ -946,26 +992,18 @@ function StoriesBar({ embedded = false }: { embedded?: boolean } = {}) {
         </div>
       )}
       <div
-        className={`flex gap-3 px-4 overflow-x-auto scrollbar-hide [overscroll-behavior-x:contain] touch-pan-x ${embedded ? 'py-2' : 'py-3'} ${liveRuns.length === 0 ? 'justify-center' : ''}`}
+        className={`flex gap-3 px-4 overflow-x-auto scrollbar-hide [overscroll-behavior-x:contain] touch-pan-x ${embedded ? 'py-2' : 'py-3'} ${liveRuns.length === 0 && !embedded ? 'justify-center' : 'justify-start'}`}
       >
+        {embedded ? <CaelumRunsStripChip /> : null}
 
         {liveRuns.length === 0 ? (
-          <div className="flex flex-col items-center gap-2.5 py-1 flex-shrink-0 text-center max-w-[260px] select-none">
-            <div className="relative">
-              <div className="w-[56px] h-[56px] rounded-2xl bg-gradient-to-br from-orange-500/30 via-orange-500/10 to-zinc-900 border border-orange-500/45 flex items-center justify-center shadow-[0_8px_28px_-8px_rgba(249,115,22,0.35)]">
-                <span className="text-orange-400 font-black text-[15px] tracking-tight">SO</span>
-              </div>
-              <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full bg-black border border-orange-500/60 text-[8px] font-black uppercase tracking-wider text-orange-400 whitespace-nowrap">
-                Coming soon
-              </span>
+          embedded ? (
+            <div className="flex flex-1 min-w-0 justify-center">
+              <RunsReelEmptyPlaceholder />
             </div>
-            <div className="space-y-0.5">
-              <p className="text-[11px] font-black uppercase tracking-[0.14em] text-zinc-300">Runs reel</p>
-              <p className="text-[10px] text-zinc-500 leading-snug px-1">
-                Live & upcoming runs will show here — check back after the next trail day.
-              </p>
-            </div>
-          </div>
+          ) : (
+            <RunsReelEmptyPlaceholder />
+          )
         ) : (
           liveRuns.map((run) => (
             <StoryAvatar

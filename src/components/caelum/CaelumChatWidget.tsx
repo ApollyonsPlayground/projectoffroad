@@ -6,6 +6,7 @@ import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ChevronDown, Send, Sparkles, X } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { OPEN_CAELUM_CHAT_EVENT } from '@/lib/caelum/constants';
 
 const STORAGE_KEY = 'socal-caelum-chat-v1';
 const CHAT_MAX_LEN = 4000;
@@ -30,6 +31,12 @@ type StoredChat = {
 };
 
 const HIDE_PATH = /^\/(login|register|auth)(\/|$)/;
+
+function isFeedPath(pathname: string | null): boolean {
+  if (!pathname) return false;
+  const normalized = pathname.replace(/\/+$/, '') || '/';
+  return normalized === '/feed';
+}
 
 function hideWidget(pathname: string | null): boolean {
   if (!pathname) return true;
@@ -95,6 +102,12 @@ export function CaelumChatWidget() {
   useEffect(() => {
     ctxRef.current = { user, supabaseClient };
   });
+
+  useEffect(() => {
+    const onOpen = () => setOpen(true);
+    window.addEventListener(OPEN_CAELUM_CHAT_EVENT, onOpen);
+    return () => window.removeEventListener(OPEN_CAELUM_CHAT_EVENT, onOpen);
+  }, []);
 
   const displayName = useMemo(() => {
     const p = profile as { name?: string } | null;
@@ -370,13 +383,16 @@ export function CaelumChatWidget() {
     return null;
   }
 
+  /** Feed home uses the Runs-strip circle; avoid stacking near the post FAB. */
+  const showFloatingLauncher = !isFeedPath(pathname);
+
   return (
     <>
-      {!open && (
+      {!open && showFloatingLauncher && (
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="fixed bottom-[calc(5.5rem+env(safe-area-inset-bottom))] right-4 z-[9975] flex h-14 w-14 items-center justify-center rounded-full border border-orange-500/50 bg-gradient-to-br from-zinc-900 to-black text-orange-400 shadow-lg shadow-black/50 backdrop-blur-sm touch-manipulation min-h-[56px] min-w-[56px]"
+          className="fixed left-4 top-[calc(12px+env(safe-area-inset-top))] md:top-[calc(5.25rem+env(safe-area-inset-top))] z-[9975] flex h-14 w-14 items-center justify-center rounded-full border border-orange-500/50 bg-gradient-to-br from-zinc-900 to-black text-orange-400 shadow-lg shadow-black/50 backdrop-blur-sm touch-manipulation min-h-[56px] min-w-[56px]"
           aria-label="Ask Caelum"
         >
           <Sparkles size={26} strokeWidth={2} className="drop-shadow-[0_0_8px_rgba(251,146,60,0.35)]" />
