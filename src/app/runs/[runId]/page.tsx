@@ -39,6 +39,7 @@ import { useToast } from '@/components/Toast';
 import { snapshotPublicIdentity } from '@/lib/profileDisplay';
 import type { RunLiveMapParticipant } from '@/components/RunLiveMap';
 import { RUN_GROUP_CHAT_PRESETS } from '@/lib/runs/chatPresets';
+import { mapDbTrailRow, coordsFromRow } from '@/lib/trails/mapDbTrail';
 
 const RunLiveMap = dynamic(() => import('@/components/RunLiveMap'), {
   ssr: false,
@@ -194,10 +195,37 @@ function runStagingDirectionsUrl(run: RunDetail): string | null {
   return null;
 }
 
+function isLikelyUuid(id: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    id.trim()
+  );
+}
+
+function trailRowToRunEmbed(row: Record<string, unknown>): RunTrailEmbed {
+  const m = mapDbTrailRow(row);
+  const c = coordsFromRow(row);
+  const coordStr =
+    typeof row.coordinates === 'string' && row.coordinates.trim()
+      ? row.coordinates.trim()
+      : m.coordinates ?? null;
+  return {
+    name: m.name,
+    difficulty: m.difficulty,
+    latitude: c?.lat ?? null,
+    longitude: c?.lng ?? null,
+    coordinates: coordStr,
+  };
+}
+
 // ─── Detail Page ──────────────────────────────────────────────────────────────
 
 export default function RunDetailPage() {
-  const { runId } = useParams<{ runId: string }>();
+  const params = useParams();
+  const runIdResolved = useMemo(() => {
+    const raw = params?.runId;
+    const s = Array.isArray(raw) ? raw[0] : raw;
+    return typeof s === 'string' ? s.trim() : '';
+  }, [params?.runId]);
   const router = useRouter();
   const { user, profile, supabaseClient } = useAuth();
   const { showToast } = useToast();
@@ -229,36 +257,74 @@ export default function RunDetailPage() {
   const reflectionTouchedRef = useRef(false);
 
   const fetchDetail = useCallback(async () => {
-    if (!supabaseClient || !runId) return;
+    if (!supabaseClient || !runIdResolved) return;
+    if (!isLikelyUuid(runIdResolved)) {
+      showToast('Invalid run link', 'error');
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
     setHostProfile(null);
     try {
+      // Avoid PostgREST FK embeds (`club:clubs`, `trail:trails`) — they often return 422 when
+      // relationships are missing from schema cache or ambiguous. Match `/runs` list strategy.
       const runSelectAttempts = [
         '*',
         'id, title, description, date, meetup_location, meetup_latitude, meetup_longitude, difficulty, max_participants, vehicle_requirements, comms_note, status, host_id, club_id, trail_id, run_source, user_acknowledged_disclaimer_at, created_at',
-        'id, title, description, date, meetup_location, difficulty, max_participants, vehicle_requirements, comms_note, status, host_id, club_id, trail_id, run_source, created_at, club:clubs(name), trail:trails(name, difficulty)',
-        'id, title, description, date, meetup_location, meetup_latitude, meetup_longitude, difficulty, max_participants, vehicle_requirements, comms_note, status, host_id, club_id, trail_id, run_source, user_acknowledged_disclaimer_at, created_at, club:clubs(name, logo), trail:trails(name, difficulty, latitude, longitude, coordinates)',
       ];
 
-      let runPayload: unknown = null;
+      let runPayload: Record<string, unknown> | null = null;
       let lastRunError: { message?: string } | null = null;
       for (const sel of runSelectAttempts) {
-        const { data, error } = await supabaseClient.from('runs').select(sel).eq('id', runId).single();
-        if (!error) {
-          runPayload = data;
+        const { data, error } = await supabaseClient
+          .from('runs')
+          .select(sel)
+          .eq('id', runIdResolved)
+          .maybeSingle();
+        if (!error && data) {
+          runPayload = data as Record<string, unknown>;
           break;
         }
         lastRunError = error;
       }
 
-      const participantsRes = await supabaseClient
-        .from('run_participants')
-        .select('id, user_id, rsvp_status, users(name, avatar_url)')
-        .eq('run_id', runId);
+      if (!runPayload) {
+        throw lastRunError ?? new Error('Run not found');
+      }
 
-      if (runPayload == null) throw lastRunError ?? new Error('Run not found');
-      const loaded = runPayload as RunDetail;
+      const clubKey = runPayload.club_id != null ? String(runPayload.club_id).trim() : '';
+      const trailKey = runPayload.trail_id != null ? String(runPayload.trail_id).trim() : '';
+
+      const [clubRes, trailRes] = await Promise.all([
+        clubKey && isLikelyUuid(clubKey)
+          ? supabaseClient.from('clubs').select('name, logo').eq('id', clubKey).maybeSingle()
+          : Promise.resolve({ data: null as null }),
+        trailKey && isLikelyUuid(trailKey)
+          ? supabaseClient.from('trails').select('*').eq('id', trailKey).maybeSingle()
+          : Promise.resolve({ data: null as null }),
+      ]);
+
+      let clubEmbed: RunDetail['club'] = null;
+      if (clubRes.data && typeof clubRes.data === 'object') {
+        const c = clubRes.data as { name?: unknown; logo?: unknown };
+        clubEmbed = {
+          name: String(c.name ?? 'Club'),
+          logo: (c.logo as string | null) ?? null,
+        };
+      }
+
+      let trailEmbed: RunDetail['trail'] = null;
+      if (trailRes.data && typeof trailRes.data === 'object') {
+        trailEmbed = trailRowToRunEmbed(trailRes.data as Record<string, unknown>);
+      }
+
+      const loaded: RunDetail = {
+        ...(runPayload as unknown as RunDetail),
+        club: clubEmbed,
+        trail: trailEmbed,
+      };
       setRun(loaded);
+
       const hid = loaded.host_id;
       if (hid) {
         const { data: hp } = await supabaseClient
@@ -268,7 +334,41 @@ export default function RunDetailPage() {
           .maybeSingle();
         setHostProfile(hp as HostProfile | null);
       }
-      const parts = (participantsRes.data ?? []) as unknown as Participant[];
+
+      let parts: Participant[] = [];
+      const participantsEmb = await supabaseClient
+        .from('run_participants')
+        .select('id, user_id, rsvp_status, users(name, avatar_url)')
+        .eq('run_id', runIdResolved);
+
+      if (!participantsEmb.error && participantsEmb.data) {
+        parts = participantsEmb.data as Participant[];
+      } else {
+        const base = await supabaseClient
+          .from('run_participants')
+          .select('id, user_id, rsvp_status')
+          .eq('run_id', runIdResolved);
+        const rawRows = (base.data ?? []) as { id: string; user_id: string; rsvp_status: string }[];
+        const userIds = [...new Set(rawRows.map((r) => r.user_id).filter(Boolean))];
+        const usersById: Record<string, { name: string | null; avatar_url: string | null }> = {};
+        if (userIds.length) {
+          const { data: urows } = await supabaseClient
+            .from('users')
+            .select('id, name, avatar_url')
+            .in('id', userIds);
+          for (const u of urows ?? []) {
+            const row = u as { id: string; name: string | null; avatar_url: string | null };
+            usersById[row.id] = { name: row.name ?? null, avatar_url: row.avatar_url ?? null };
+          }
+        }
+        parts = rawRows.map((r) => ({
+          id: r.id,
+          user_id: r.user_id,
+          rsvp_status: r.rsvp_status,
+          users: usersById[r.user_id] ?? null,
+        }));
+      }
+
       setParticipants(parts);
       if (user) {
         setJoined(parts.some((p) => p.user_id === user.id));
@@ -278,7 +378,7 @@ export default function RunDetailPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [supabaseClient, runId, user, showToast]);
+  }, [supabaseClient, runIdResolved, user, showToast]);
 
   useEffect(() => { fetchDetail(); }, [fetchDetail]);
 
@@ -286,10 +386,10 @@ export default function RunDetailPage() {
     reflectionTouchedRef.current = false;
     setReflectionBody('');
     setRunReflections([]);
-  }, [runId]);
+  }, [runIdResolved]);
 
   useEffect(() => {
-    if (!supabaseClient || !runId || !run || run.status !== 'completed') return;
+    if (!supabaseClient || !runIdResolved || !run || run.status !== 'completed') return;
 
     let cancelled = false;
     void (async () => {
@@ -298,7 +398,7 @@ export default function RunDetailPage() {
         const { data, error } = await supabaseClient
           .from('run_reflections')
           .select(sel)
-          .eq('run_id', runId)
+          .eq('run_id', runIdResolved)
           .order('created_at', { ascending: false });
         if (!error && data != null && !cancelled) {
           const rows = data as RunReflectionRow[];
@@ -315,7 +415,7 @@ export default function RunDetailPage() {
     return () => {
       cancelled = true;
     };
-  }, [supabaseClient, runId, run?.id, run?.status, user?.id]);
+  }, [supabaseClient, runIdResolved, run?.id, run?.status, user?.id]);
 
   // ── RSVP ────────────────────────────────────────────────────────────────────
   const handleRsvp = async () => {
@@ -447,13 +547,13 @@ export default function RunDetailPage() {
 
   // ── SOS: fetch existing alerts + subscribe to new ones ──────────────────────
   useEffect(() => {
-    if (!supabaseClient || !runId) return;
+    if (!supabaseClient || !runIdResolved) return;
 
     // Fetch any existing SOS alerts from the last 2 hours
     supabaseClient
       .from('sos_alerts')
       .select('*')
-      .eq('run_id', runId)
+      .eq('run_id', runIdResolved)
       .gte('created_at', new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString())
       .order('created_at', { ascending: false })
       .then(({ data }) => {
@@ -462,14 +562,14 @@ export default function RunDetailPage() {
 
     // Subscribe to new SOS alerts + cancellations (DELETE) in realtime
     const channel = supabaseClient
-      .channel(`sos-alerts-${runId}`)
+      .channel(`sos-alerts-${runIdResolved}`)
       .on(
         'postgres_changes',
         {
           event: 'INSERT',
           schema: 'public',
           table: 'sos_alerts',
-          filter: `run_id=eq.${runId}`,
+          filter: `run_id=eq.${runIdResolved}`,
         },
         (payload) => {
           const alert = payload.new as RunAlert;
@@ -482,7 +582,7 @@ export default function RunDetailPage() {
           event: 'DELETE',
           schema: 'public',
           table: 'sos_alerts',
-          filter: `run_id=eq.${runId}`,
+          filter: `run_id=eq.${runIdResolved}`,
         },
         (payload) => {
           const oldRow = payload.old as { id?: string };
@@ -499,7 +599,7 @@ export default function RunDetailPage() {
       .subscribe();
 
     return () => { supabaseClient.removeChannel(channel); };
-  }, [supabaseClient, runId]);
+  }, [supabaseClient, runIdResolved]);
 
   // ── SOS: send alert with current GPS coords ──────────────────────────────────
   const handleSendSOS = async () => {
@@ -608,7 +708,7 @@ export default function RunDetailPage() {
   );
 
   useEffect(() => {
-    if (!supabaseClient || !runId || !run || !user || !canUseRunChat) return;
+    if (!supabaseClient || !runIdResolved || !run || !user || !canUseRunChat) return;
 
     let cancelled = false;
     void (async () => {
@@ -620,7 +720,7 @@ export default function RunDetailPage() {
         const { data, error } = await supabaseClient
           .from('messages')
           .select(sel)
-          .eq('run_id', runId)
+          .eq('run_id', runIdResolved)
           .order('created_at', { ascending: true })
           .limit(120);
         if (!error && data != null && !cancelled) {
@@ -631,14 +731,14 @@ export default function RunDetailPage() {
     })();
 
     const channel = supabaseClient
-      .channel(`run-chat-${runId}`)
+      .channel(`run-chat-${runIdResolved}`)
       .on(
         'postgres_changes',
         {
           event: 'INSERT',
           schema: 'public',
           table: 'messages',
-          filter: `run_id=eq.${runId}`,
+          filter: `run_id=eq.${runIdResolved}`,
         },
         (payload) => {
           const row = payload.new as RunChatMessage;
@@ -654,7 +754,7 @@ export default function RunDetailPage() {
       cancelled = true;
       supabaseClient.removeChannel(channel);
     };
-  }, [supabaseClient, runId, run?.id, run?.status, run?.host_id, user?.id, canUseRunChat, enrichChatRow]);
+  }, [supabaseClient, runIdResolved, run?.id, run?.status, run?.host_id, user?.id, canUseRunChat, enrichChatRow]);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });

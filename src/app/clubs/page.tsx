@@ -14,6 +14,7 @@ import {
   Plus,
   Navigation,
   Loader2,
+  Building2,
 } from 'lucide-react';
 import Link from 'next/link';
 import BottomNav from '@/components/BottomNav';
@@ -213,6 +214,7 @@ export default function ClubsPage() {
   const [showRegionDropdown, setShowRegionDropdown] = useState(false);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
+  const [myClubs, setMyClubs] = useState<{ id: string; name: string }[]>([]);
 
   // Request user location
   const requestLocation = useCallback(() => {
@@ -269,6 +271,38 @@ export default function ClubsPage() {
 
     fetchClubs();
   }, []);
+
+  useEffect(() => {
+    if (!user || !supabase || !isSupabaseConfigured()) {
+      setMyClubs([]);
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      const { data: mem } = await supabase
+        .from('club_members')
+        .select('club_id')
+        .eq('user_id', user.id)
+        .eq('status', 'approved');
+      if (cancelled) return;
+      const ids = [...new Set((mem ?? []).map((m: { club_id: string }) => m.club_id).filter(Boolean))];
+      if (!ids.length) {
+        setMyClubs([]);
+        return;
+      }
+      const { data: crows } = await supabase.from('clubs').select('id, name').in('id', ids);
+      if (cancelled) return;
+      setMyClubs(
+        (crows ?? []).map((c: { id: string; name: string | null }) => ({
+          id: c.id,
+          name: String(c.name ?? 'Club'),
+        }))
+      );
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
 
   // Add distance to clubs and sort by proximity
   const clubsWithDistance = useMemo(() => {
@@ -420,6 +454,43 @@ export default function ClubsPage() {
 
       {/* Club List */}
       <main className="max-w-md mx-auto px-4 pt-4 pb-24">
+        <div className="mb-5 rounded-xl border border-border bg-card p-4">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-lg bg-primary/15 flex items-center justify-center shrink-0">
+              <Building2 size={20} className="text-primary" />
+            </div>
+            <div className="min-w-0">
+              <h2 className="text-sm font-semibold text-foreground">Clubs directory</h2>
+              <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                Browse groups by region, request to join, then approved members can host official club runs. New here?{' '}
+                <Link href="/clubs/create/" className="text-primary hover:underline font-medium">
+                  Register your club
+                </Link>{' '}
+                or{' '}
+                <Link href="/runs/" className="text-primary hover:underline font-medium">
+                  browse runs
+                </Link>
+                .
+              </p>
+            </div>
+          </div>
+          {myClubs.length > 0 && (
+            <div className="mt-3 pt-3 border-t border-border">
+              <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide mb-2">Your clubs</p>
+              <div className="flex flex-wrap gap-2">
+                {myClubs.map((c) => (
+                  <Link
+                    key={c.id}
+                    href={`/clubs/${c.id}/`}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-muted text-foreground text-xs font-medium border border-border hover:border-primary/50 transition-colors max-w-full truncate"
+                  >
+                    {c.name}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
         <AnimatePresence mode="wait">
           {isLoading ? (
             <motion.div

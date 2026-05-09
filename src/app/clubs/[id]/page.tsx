@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Pencil, Loader2 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/db/supabase';
 import BottomNav from '@/components/BottomNav';
@@ -39,6 +39,32 @@ interface Member {
   user?: { name: string; avatar_url: string };
 }
 
+function normalizeClubRow(data: Record<string, unknown>): Club {
+  const web = data.website ?? data.website_url;
+  const ig = data.instagram ?? data.instagram_url;
+  return {
+    id: String(data.id ?? ''),
+    name: String(data.name ?? ''),
+    slug: String(data.slug ?? ''),
+    logo: (data.logo as string | null) ?? null,
+    description: String(data.description ?? ''),
+    location: String(data.location ?? ''),
+    website: typeof web === 'string' && web.trim() ? web.trim() : null,
+    instagram: typeof ig === 'string' && ig.trim() ? ig.trim() : null,
+    verified: Boolean(data.verified),
+    premium: Boolean(data.premium),
+    owner_id: String(data.owner_id ?? ''),
+  };
+}
+
+function normalizeInstagram(input: string): string {
+  const t = input.trim().replace(/^@/, '');
+  if (!t) return '';
+  const fromUrl = t.match(/instagram\.com\/([^/?#]+)/i);
+  if (fromUrl) return fromUrl[1];
+  return t;
+}
+
 function instagramHref(raw: string | null): string | null {
   if (!raw?.trim()) return null;
   const t = raw.trim();
@@ -70,6 +96,16 @@ export default function ClubDetailPage() {
   const [isMember, setIsMember] = useState(false);
   const [isPending, setIsPending] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editSaving, setEditSaving] = useState(false);
+  const [editForm, setEditForm] = useState({
+    name: '',
+    description: '',
+    location: '',
+    website: '',
+    instagram: '',
+    logo: '',
+  });
 
   useEffect(() => {
     if (!clubId) return;
@@ -95,9 +131,21 @@ export default function ClubDetailPage() {
     }
     const { data } = await supabase.from('clubs').select('*').eq('id', clubId).single();
 
-    if (data) setClub(data as Club);
+    if (data) setClub(normalizeClubRow(data as Record<string, unknown>));
     setLoading(false);
   }
+
+  useEffect(() => {
+    if (!club) return;
+    setEditForm({
+      name: club.name,
+      description: club.description,
+      location: club.location,
+      website: club.website ?? '',
+      instagram: club.instagram ?? '',
+      logo: club.logo ?? '',
+    });
+  }, [club]);
 
   async function fetchRuns() {
     if (!supabase || !clubId) return;
@@ -114,13 +162,92 @@ export default function ClubDetailPage() {
 
   async function fetchMembers() {
     if (!supabase || !clubId) return;
-    const { data } = await supabase
+    const embedTry = await supabase
       .from('club_members')
       .select('*, user:users(id, name, avatar_url)')
       .eq('club_id', clubId)
       .order('role', { ascending: true });
 
-    if (data) setMembers(data as Member[]);
+    if (!embedTry.error && embedTry.data) {
+      setMembers(embedTry.data as Member[]);
+      return;
+    }
+
+    const base = await supabase
+      .from('club_members')
+      .select('id, user_id, role, status')
+      .eq('club_id', clubId)
+      .order('role', { ascending: true });
+
+    const rawRows = (base.data ?? []) as {
+      id: string;
+      user_id: string;
+      role: string;
+      status?: string;
+    }[];
+    const userIds = [...new Set(rawRows.map((r) => r.user_id).filter(Boolean))];
+    const usersById: Record<string, { name: string; avatar_url: string }> = {};
+    if (userIds.length) {
+      const { data: urows } = await supabase.from('users').select('id, name, avatar_url').in('id', userIds);
+      for (const u of urows ?? []) {
+        const row = u as { id: string; name: string | null; avatar_url: string | null };
+        usersById[row.id] = {
+          name: String(row.name ?? 'Member').trim() || 'Member',
+          avatar_url: row.avatar_url ?? '',
+        };
+      }
+    }
+    setMembers(
+      rawRows.map((r) => ({
+        id: r.id,
+        user_id: r.user_id,
+        role: r.role,
+        status: r.status,
+        user: usersById[r.user_id],
+      }))
+    );
+  }
+
+  async function saveClubEdits() {
+    if (!supabase || !club || !user || user.id !== club.owner_id) return;
+    const name = editForm.name.trim();
+    const location = editForm.location.trim();
+    if (!name || !location) {
+      showToast('Name and location are required', 'info');
+      return;
+    }
+    setEditSaving(true);
+    try {
+      const slug = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+      const website = editForm.website.trim() || null;
+      const instagram = normalizeInstagram(editForm.instagram) || null;
+      const logo = editForm.logo.trim() || null;
+      if (!website && !instagram) {
+        showToast('Add a website or Instagram so people can find your club', 'info');
+        setEditSaving(false);
+        return;
+      }
+      const { error } = await supabase
+        .from('clubs')
+        .update({
+          name,
+          slug: slug || club.slug,
+          description: editForm.description.trim(),
+          location,
+          website,
+          instagram,
+          logo,
+        })
+        .eq('id', club.id);
+      if (error) throw error;
+      showToast('Club updated', 'success');
+      setEditOpen(false);
+      await fetchClub();
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : 'Could not update club', 'error');
+    } finally {
+      setEditSaving(false);
+    }
   }
 
   async function joinClub() {
@@ -274,6 +401,84 @@ export default function ClubDetailPage() {
           {club.description && (
             <div className="mt-4 pt-4 border-t border-border">
               <p className="text-foreground/90">{club.description}</p>
+            </div>
+          )}
+
+          {isClubOwner && (
+            <div className="mt-4 pt-4 border-t border-border space-y-3">
+              <button
+                type="button"
+                onClick={() => setEditOpen((o) => !o)}
+                className="w-full py-2.5 flex items-center justify-center gap-2 rounded-lg border border-border bg-muted/50 text-foreground text-sm font-semibold hover:bg-muted transition"
+              >
+                <Pencil size={16} />
+                {editOpen ? 'Close editor' : 'Edit club info'}
+              </button>
+              {editOpen && (
+                <div className="space-y-3 text-left">
+                  <div>
+                    <label className="block text-xs font-medium text-muted-foreground mb-1">Club name</label>
+                    <input
+                      value={editForm.name}
+                      onChange={(e) => setEditForm((f) => ({ ...f, name: e.target.value }))}
+                      className="w-full px-3 py-2 bg-background border border-border rounded-lg text-foreground text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-muted-foreground mb-1">Location</label>
+                    <input
+                      value={editForm.location}
+                      onChange={(e) => setEditForm((f) => ({ ...f, location: e.target.value }))}
+                      className="w-full px-3 py-2 bg-background border border-border rounded-lg text-foreground text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-muted-foreground mb-1">Description</label>
+                    <textarea
+                      value={editForm.description}
+                      onChange={(e) => setEditForm((f) => ({ ...f, description: e.target.value }))}
+                      rows={4}
+                      className="w-full px-3 py-2 bg-background border border-border rounded-lg text-foreground text-sm resize-y min-h-[96px]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-muted-foreground mb-1">Website URL</label>
+                    <input
+                      value={editForm.website}
+                      onChange={(e) => setEditForm((f) => ({ ...f, website: e.target.value }))}
+                      placeholder="https://..."
+                      className="w-full px-3 py-2 bg-background border border-border rounded-lg text-foreground text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-muted-foreground mb-1">Instagram</label>
+                    <input
+                      value={editForm.instagram}
+                      onChange={(e) => setEditForm((f) => ({ ...f, instagram: e.target.value }))}
+                      placeholder="@handle or URL"
+                      className="w-full px-3 py-2 bg-background border border-border rounded-lg text-foreground text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-muted-foreground mb-1">Logo image URL</label>
+                    <input
+                      value={editForm.logo}
+                      onChange={(e) => setEditForm((f) => ({ ...f, logo: e.target.value }))}
+                      placeholder="https://..."
+                      className="w-full px-3 py-2 bg-background border border-border rounded-lg text-foreground text-sm"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    disabled={editSaving}
+                    onClick={() => void saveClubEdits()}
+                    className="w-full py-3 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-lg transition disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {editSaving ? <Loader2 size={18} className="animate-spin" /> : null}
+                    Save changes
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
