@@ -1,5 +1,5 @@
 /**
- * Upsert trails from src/data/trails.json into Supabase.
+ * Upsert trails from src/data/trails.json (+ optional trails-ca-onx-stubs.json) into Supabase.
  * Tries several row shapes so it works with different existing `trails` schemas.
  *
  * Run: npm run seed:trails
@@ -32,7 +32,35 @@ const supabase = createClient(SUPABASE_URL, SERVICE_ROLE, {
 });
 
 const trailsPath = join(__dirname, '../src/data/trails.json');
-const raw = JSON.parse(readFileSync(trailsPath, 'utf8'));
+const caStubsPath = join(__dirname, '../src/data/trails-ca-onx-stubs.json');
+
+/** @type {unknown[]} */
+let raw = JSON.parse(readFileSync(trailsPath, 'utf8'));
+try {
+  const extra = JSON.parse(readFileSync(caStubsPath, 'utf8'));
+  if (Array.isArray(extra) && extra.length > 0) {
+    raw = [...raw, ...extra];
+    console.log(`[upsert-trails] Including ${extra.length} rows from trails-ca-onx-stubs.json`);
+  }
+} catch (e) {
+  const code = /** @type {{ code?: string }} */ (e)?.code;
+  if (code !== 'ENOENT') throw e;
+}
+
+/** Strip onX-hosted image URLs — never hotlink their CDN. Mirrors `src/lib/trails/trailImageUrl.ts`. */
+function sanitizeTrailHeroImageUrl(raw) {
+  if (raw == null) return null;
+  const s = String(raw).trim();
+  if (!s) return null;
+  let hostname = '';
+  try {
+    hostname = new URL(s).hostname.toLowerCase();
+  } catch {
+    return null;
+  }
+  if (hostname === 'onxmaps.com' || hostname.endsWith('.onxmaps.com')) return null;
+  return s;
+}
 
 function parseCoords(trail) {
   if (trail.coordinates) {
@@ -46,6 +74,26 @@ function parseCoords(trail) {
     if (match) return { lat: parseFloat(match[1]), lng: parseFloat(match[2]) };
   }
   return { lat: null, lng: null };
+}
+
+/** Always seed a Maps link: explicit JSON, coords, or name+location search. */
+function googleMapsUrlForTrail(trail, lat, lng) {
+  const explicit = typeof trail.mapsUrl === 'string' ? trail.mapsUrl.trim() : '';
+  if (explicit) return explicit;
+  if (
+    lat != null &&
+    lng != null &&
+    Number.isFinite(lat) &&
+    Number.isFinite(lng)
+  ) {
+    return `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+  }
+  const name = String(trail.name ?? '').trim();
+  const loc = String(trail.location ?? 'California').trim();
+  const q = encodeURIComponent(
+    `${name} ${loc}`.trim() || 'California off-road trail'
+  );
+  return `https://www.google.com/maps/search/?api=1&query=${q}`;
 }
 
 /** Maps JSON difficulties into legacy CHECK constraint values when needed */
@@ -68,8 +116,22 @@ const FALLBACK_IMAGE =
  * @returns {{ label: string, rows: Record<string, unknown>[] }[]}
  */
 function buildAttempts() {
+  /** Rich rows: `image_url` (never `photo_url`), plus onX + Maps + time — matches typical Supabase trails tables. */
   /** @type {Record<string, unknown>[]} */
-  const modernFull = [];
+  const richImageUrlTe = [];
+  /** @type {Record<string, unknown>[]} */
+  const richImageUrlEt = [];
+  /** Same keys without optional extras that older tables might lack. */
+  /** @type {Record<string, unknown>[]} */
+  const slimImageUrlTe = [];
+  /** @type {Record<string, unknown>[]} */
+  const slimImageUrlEt = [];
+  /** Links only when time columns are absent or problematic. */
+  /** @type {Record<string, unknown>[]} */
+  const linksOnlyImageUrl = [];
+  /** Maps link only (no onX column). */
+  /** @type {Record<string, unknown>[]} */
+  const mapsOnlyImageUrl = [];
   /** @type {Record<string, unknown>[]} */
   const modernImageUrl = [];
   /** @type {Record<string, unknown>[]} */
@@ -86,68 +148,99 @@ function buildAttempts() {
   for (const t of raw) {
     const { lat, lng } = parseCoords(t);
     const diff = (t.difficulty ?? t.difficultyLevel ?? 'Moderate').trim();
-    const image = t.image ?? null;
+    const image = sanitizeTrailHeroImageUrl(t.image ?? null);
+    const mapsUrl = googleMapsUrlForTrail(t, lat, lng);
+    const timeStr = t.time != null && String(t.time).trim() !== '' ? String(t.time).trim() : '—';
 
-    modernFull.push({
+    const coreMinimal = {
       id: t.id,
       name: t.name,
       location: t.location ?? null,
       difficulty: diff,
-      distance: t.distance ?? null,
-      estimated_time: t.time ?? null,
-      terrain: t.terrain ?? null,
       description: t.description ?? null,
-      rig_requirements: t.rigRequirements ?? null,
-      photo_url: image,
-      maps_url: t.mapsUrl ?? null,
-      onx_url: t.onxUrl ?? null,
-      tags: t.tags ?? [],
+      image_url: image || null,
       latitude: lat,
       longitude: lng,
+    };
+
+    richImageUrlTe.push({
+      ...coreMinimal,
+      onx_url: t.onxUrl ?? null,
+      maps_url: mapsUrl,
+      time_estimate: timeStr,
+      distance: t.distance ?? null,
+      terrain: t.terrain ?? null,
+      rig_requirements: t.rigRequirements ?? null,
       status: t.status ?? 'Open',
       is_verified: Boolean(t.isVerified ?? t.verified ?? false),
     });
 
-    // image_url + time_estimate (no photo_url, onx_url, maps_url)
+    richImageUrlEt.push({
+      ...coreMinimal,
+      onx_url: t.onxUrl ?? null,
+      maps_url: mapsUrl,
+      estimated_time: timeStr,
+      distance: t.distance ?? null,
+      terrain: t.terrain ?? null,
+      rig_requirements: t.rigRequirements ?? null,
+      status: t.status ?? 'Open',
+      is_verified: Boolean(t.isVerified ?? t.verified ?? false),
+    });
+
+    slimImageUrlTe.push({
+      ...coreMinimal,
+      onx_url: t.onxUrl ?? null,
+      maps_url: mapsUrl,
+      time_estimate: timeStr,
+    });
+
+    slimImageUrlEt.push({
+      ...coreMinimal,
+      onx_url: t.onxUrl ?? null,
+      maps_url: mapsUrl,
+      estimated_time: timeStr,
+    });
+
+    linksOnlyImageUrl.push({
+      ...coreMinimal,
+      onx_url: t.onxUrl ?? null,
+      maps_url: mapsUrl,
+    });
+
+    mapsOnlyImageUrl.push({
+      ...coreMinimal,
+      maps_url: mapsUrl,
+    });
+
     modernImageUrl.push({
       id: t.id,
       name: t.name,
       location: t.location ?? null,
       difficulty: diff,
       distance: t.distance ?? null,
-      time_estimate: t.time ?? null,
+      time_estimate: timeStr,
       terrain: t.terrain ?? null,
       description: t.description ?? null,
       rig_requirements: t.rigRequirements ?? null,
-      image_url: image,
+      image_url: image || null,
       latitude: lat,
       longitude: lng,
       status: t.status ?? 'Open',
     });
 
-    // No rig_requirements / distance / terrain / status (schemas that match minimal + extras)
     imageUrlNoRigOptionalCols.push({
       id: t.id,
       name: t.name,
       location: t.location ?? null,
       difficulty: diff,
       description: t.description ?? null,
-      image_url: image,
-      time_estimate: t.time ?? null,
+      image_url: image || null,
+      time_estimate: timeStr,
       latitude: lat,
       longitude: lng,
     });
 
-    minimalLatLngImageUrl.push({
-      id: t.id,
-      name: t.name,
-      location: t.location ?? null,
-      difficulty: diff,
-      description: t.description ?? null,
-      image_url: image,
-      latitude: lat,
-      longitude: lng,
-    });
+    minimalLatLngImageUrl.push({ ...coreMinimal });
 
     minimalTitleLatLng.push({
       id: t.id,
@@ -155,7 +248,7 @@ function buildAttempts() {
       location: t.location ?? null,
       difficulty: diff,
       description: t.description ?? null,
-      image_url: image,
+      image_url: image || null,
       latitude: lat,
       longitude: lng,
     });
@@ -168,7 +261,7 @@ function buildAttempts() {
       location: t.location ?? null,
       difficulty: diff,
       description: t.description ?? null,
-      image_url: image,
+      image_url: image || null,
       coordinates: coordStr,
     });
 
@@ -191,7 +284,19 @@ function buildAttempts() {
   }
 
   return [
-    { label: 'modern (photo_url, onx_url, estimated_time, lat/lng)', rows: modernFull },
+    // Prefer `estimated_time` first — matches typical seeded Supabase trails schemas (`time_estimate` attempt stays next for DBs that use that name only).
+    {
+      label: 'image_url + onx_url + maps_url + estimated_time (+distance/terrain/status)',
+      rows: richImageUrlEt,
+    },
+    {
+      label: 'image_url + onx_url + maps_url + time_estimate (+distance/terrain/status)',
+      rows: richImageUrlTe,
+    },
+    { label: 'image_url + onx_url + maps_url + estimated_time', rows: slimImageUrlEt },
+    { label: 'image_url + onx_url + maps_url + time_estimate', rows: slimImageUrlTe },
+    { label: 'image_url + onx_url + maps_url', rows: linksOnlyImageUrl },
+    { label: 'image_url + maps_url', rows: mapsOnlyImageUrl },
     { label: 'minimal (name + image_url + latitude + longitude)', rows: minimalLatLngImageUrl },
     { label: 'image_url + time_estimate + lat/lng (no rig_requirements)', rows: imageUrlNoRigOptionalCols },
     { label: 'image_url + rig_requirements + distance + …', rows: modernImageUrl },

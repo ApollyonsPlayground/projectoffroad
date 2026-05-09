@@ -650,6 +650,8 @@ interface Post {
   bookmarked_by_me?: boolean;
   reposted_by_me?: boolean;
   original_user_name?: string | null;
+  /** True when author is `clubs.owner_id` for at least one club (shown as HOME; independent of platform `users.role`). */
+  club_founder_badge?: boolean;
 }
 
 // ─── Placeholder data ─────────────────────────────────────────────────────────
@@ -1793,6 +1795,14 @@ function RigPostCard({ post, index }: {
                     SO
                   </span>
                 )}
+                {post.club_founder_badge ? (
+                  <span
+                    title="Club founder"
+                    className="px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wide text-emerald-950 bg-emerald-400 rounded-md leading-none flex-shrink-0"
+                  >
+                    HOME
+                  </span>
+                ) : null}
               </Link>
               {(post.rig_model || post.rig_specs) && (
                 <span className="text-[11px] text-zinc-500 bg-zinc-900 border border-zinc-800 px-1.5 py-px rounded-full font-medium leading-snug truncate max-w-[160px]">
@@ -2562,6 +2572,21 @@ export default function HomePage() {
         });
       }
 
+      const clubFounderIds = new Set<string>();
+      if (authorIds.size > 0) {
+        const { data: founderRows, error: founderErr } = await supabaseClient
+          .from('clubs')
+          .select('owner_id')
+          .in('owner_id', [...authorIds]);
+        if (!founderErr && founderRows) {
+          for (const row of founderRows as { owner_id?: string | null }[]) {
+            if (row.owner_id != null && String(row.owner_id).trim()) {
+              clubFounderIds.add(String(row.owner_id));
+            }
+          }
+        }
+      }
+
       const authorAvatarUrl = (postRow: any, au?: AuthorRow): string | undefined => {
         const fromUser = au?.avatar_url;
         if (fromUser != null && String(fromUser).trim()) return String(fromUser).trim();
@@ -2660,6 +2685,7 @@ export default function HomePage() {
           ...p,
           username: authorDisplayName(p.user_id, p),
           role: roleStr,
+          club_founder_badge: clubFounderIds.has(String(p.user_id)),
           ...(mergedAvatar ? { avatar_url: mergedAvatar } : {}),
           verified: Boolean(p.verified ?? au?.is_verified ?? false),
           body: mergedBody,

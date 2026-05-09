@@ -9,6 +9,7 @@
     "start": "next start",
     "lint": "eslint",
     "seed:trails": "node --env-file=.env.local scripts/upsert-trails.mjs",
+    "trail-merge:onx-ca": "node scripts/merge-onx-california-trails.mjs",
     "db:login": "supabase login",
     "db:link": "supabase link",
     "db:push": "supabase db push",

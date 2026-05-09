@@ -4,6 +4,8 @@
  * legacy column names (title, image_url, coordinates) when present.
  */
 
+import { sanitizeTrailHeroImageUrl } from '@/lib/trails/trailImageUrl';
+
 export type DifficultyTier = 'Easy' | 'Moderate' | 'Hard';
 
 export interface ExplorerTrail {
@@ -122,7 +124,9 @@ export function mapDbTrailRow(row: Record<string, unknown>): ExplorerTrail {
   const difficultyLabel = rawDifficultyToTier(rawDiff);
 
   const image =
-    pickString(row, ['photo_url', 'image_url', 'image'], '') || undefined;
+    sanitizeTrailHeroImageUrl(
+      pickString(row, ['photo_url', 'image_url', 'image'], '') || undefined
+    ) ?? undefined;
 
   const coords = coordsFromRow(row);
   const coordinates = coords ? `${coords.lat}, ${coords.lng}` : pickString(row, ['coordinates'], '') || undefined;
