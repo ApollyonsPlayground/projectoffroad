@@ -196,9 +196,8 @@ function runStagingDirectionsUrl(run: RunDetail): string | null {
 }
 
 function isLikelyUuid(id: string): boolean {
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-    id.trim()
-  );
+  // Loose RFC-style UUID check (allows any version nibble) — avoids rejecting newer generators.
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id.trim());
 }
 
 function trailRowToRunEmbed(row: Record<string, unknown>): RunTrailEmbed {
@@ -224,7 +223,8 @@ export default function RunDetailPage() {
   const runIdResolved = useMemo(() => {
     const raw = params?.runId;
     const s = Array.isArray(raw) ? raw[0] : raw;
-    return typeof s === 'string' ? s.trim() : '';
+    if (typeof s !== 'string') return '';
+    return s.trim().replace(/\/+$/, '');
   }, [params?.runId]);
   const router = useRouter();
   const { user, profile, supabaseClient } = useAuth();
@@ -825,6 +825,22 @@ export default function RunDetailPage() {
 
   const isFull = run?.max_participants != null && participants.length >= run.max_participants;
 
+  /** Must stay above loading/not-found returns — hooks cannot follow conditional returns. */
+  const liveMapParticipants = useMemo((): RunLiveMapParticipant[] => {
+    if (!run) return [];
+    const base: RunLiveMapParticipant[] = participants.map((p) => ({
+      user_id: p.user_id,
+      users: p.users ? { name: p.users.name } : null,
+    }));
+    if (run.host_id && !participants.some((p) => p.user_id === run.host_id)) {
+      base.push({
+        user_id: run.host_id,
+        users: { name: hostProfile?.name ?? 'Organizer' },
+      });
+    }
+    return base;
+  }, [participants, run, hostProfile?.name]);
+
   // ── Loading skeleton ─────────────────────────────────────────────────────
   if (isLoading) {
     return (
@@ -860,20 +876,6 @@ export default function RunDetailPage() {
       if (!Number.isNaN(lat) && !Number.isNaN(lng)) return { lat, lng };
       return coordsFromTrailEmbed(run.trail);
     })();
-
-  const liveMapParticipants = useMemo((): RunLiveMapParticipant[] => {
-    const base: RunLiveMapParticipant[] = participants.map((p) => ({
-      user_id: p.user_id,
-      users: p.users ? { name: p.users.name } : null,
-    }));
-    if (run.host_id && !participants.some((p) => p.user_id === run.host_id)) {
-      base.push({
-        user_id: run.host_id,
-        users: { name: hostProfile?.name ?? 'Organizer' },
-      });
-    }
-    return base;
-  }, [participants, run.host_id, hostProfile?.name]);
 
   return (
     <div className="min-h-screen bg-black pb-28">
