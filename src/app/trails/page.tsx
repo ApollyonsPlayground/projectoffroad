@@ -26,9 +26,15 @@ import {
   mapDbTrailRow,
   sortTrailsByName,
   difficultyTierMatchesFilter,
+  explorerTrailMatchesSearch,
+  trailMatchesVehicleFilter,
+  trailVehicleScopeShortLabel,
+  trailVehicleScopeBadgeClass,
+  ensureExplorerTrailVehicleScope,
   type ExplorerTrail,
   type DifficultyTier,
   type DifficultyFilter,
+  type VehicleFilter,
 } from '@/lib/trails/mapDbTrail';
 import { applyCatalogTrailLinks } from '@/lib/trails/staticTrailLinks';
 import { fetchAllTrailRows } from '@/lib/trails/fetchTrailsPaginated';
@@ -51,6 +57,14 @@ const TrailMap = dynamic(() => import('@/components/TrailMap'), {
 type Trail = ExplorerTrail;
 
 const difficulties: DifficultyFilter[] = ['All', 'Easy', 'Moderate', 'Hard'];
+
+const vehicleFilters: VehicleFilter[] = ['All', 'ATV', 'Truck'];
+
+function vehicleFilterChipLabel(v: VehicleFilter): string {
+  if (v === 'All') return 'All rigs';
+  if (v === 'ATV') return 'ATV / SXS';
+  return 'Trucks / 4×4';
+}
 
 function getDifficultyBadgeClass(tier: DifficultyTier): string {
   if (tier === 'Easy') return 'badge-beginner';
@@ -94,6 +108,11 @@ function TrailCard({ trail, index, isSaved, onToggleSave }: {
                   Verified
                 </span>
               )}
+              <span
+                className={`inline-flex items-center px-2 py-1 text-[10px] font-black uppercase tracking-wider border shrink-0 rounded ${trailVehicleScopeBadgeClass(trail.vehicleScope)}`}
+              >
+                {trailVehicleScopeShortLabel(trail.vehicleScope)}
+              </span>
             </div>
             <span className={`shrink-0 px-2.5 py-1 text-xs font-bold uppercase tracking-wider ${getDifficultyBadgeClass(trail.difficultyLabel)}`}>
               {trail.difficultyLabel}
@@ -115,6 +134,11 @@ function TrailCard({ trail, index, isSaved, onToggleSave }: {
                   Verified
                 </span>
               )}
+              <span
+                className={`inline-flex items-center px-2 py-1 text-[10px] font-black uppercase tracking-wider border shrink-0 rounded ${trailVehicleScopeBadgeClass(trail.vehicleScope)}`}
+              >
+                {trailVehicleScopeShortLabel(trail.vehicleScope)}
+              </span>
             </div>
             <span className={`shrink-0 px-2.5 py-1 text-xs font-bold uppercase tracking-wider ${getDifficultyBadgeClass(trail.difficultyLabel)}`}>
               {trail.difficultyLabel}
@@ -246,8 +270,10 @@ export default function TrailsPage() {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDifficulty, setSelectedDifficulty] = useState<DifficultyFilter>('All');
+  const [selectedVehicle, setSelectedVehicle] = useState<VehicleFilter>('All');
   const [showFilters, setShowFilters] = useState(false);
   const [view, setView] = useState<'list' | 'map'>('list');
+  const [searchFocused, setSearchFocused] = useState(false);
 
   // ── Fetch trails from Supabase only (no static JSON fallback) ─
   useEffect(() => {
@@ -268,7 +294,11 @@ export default function TrailsPage() {
         if (typeof navigator !== 'undefined' && navigator.onLine) return false;
         const cached = readTrailsCache();
         if (cached && cached.length > 0) {
-          setDbTrails(cached.map(applyCatalogTrailLinks));
+          setDbTrails(
+            cached.map((row) =>
+              ensureExplorerTrailVehicleScope(applyCatalogTrailLinks(row as ExplorerTrail))
+            )
+          );
           setFetchError(null);
           setFromCache(true);
           setIsLoading(false);
@@ -315,19 +345,27 @@ export default function TrailsPage() {
   // ── Filter trails based on search and difficulty ─────────────────────────────
   const filteredTrails = useMemo(() => {
     return dbTrails.filter((trail) => {
-      const q = searchQuery.toLowerCase();
-      const matchesSearch =
-        q === '' ||
-        trail.name.toLowerCase().includes(q) ||
-        trail.location.toLowerCase().includes(q) ||
-        (trail.description ?? '').toLowerCase().includes(q);
+      const matchesSearch = explorerTrailMatchesSearch(trail, searchQuery);
 
       const diff = trail.difficulty || trail.difficultyLevel || '';
       const matchesDifficulty = difficultyTierMatchesFilter(diff, selectedDifficulty);
+      const matchesVehicle = trailMatchesVehicleFilter(trail.vehicleScope, selectedVehicle);
 
-      return matchesSearch && matchesDifficulty;
+      return matchesSearch && matchesDifficulty && matchesVehicle;
     });
-  }, [dbTrails, searchQuery, selectedDifficulty]);
+  }, [dbTrails, searchQuery, selectedDifficulty, selectedVehicle]);
+
+  const nameSuggestions = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (q.length < 2) return [];
+    return dbTrails
+      .filter((t) => t.name.toLowerCase().includes(q))
+      .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }))
+      .slice(0, 10);
+  }, [dbTrails, searchQuery]);
+
+  const showSuggest =
+    searchFocused && nameSuggestions.length > 0 && searchQuery.trim().length >= 2;
 
   return (
     <div className="min-h-screen bg-black">
@@ -372,17 +410,80 @@ export default function TrailsPage() {
             </div>
           </div>
 
-          {/* Search Bar */}
-          <div className="relative">
-            <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
+          {/* Search */}
+          <div className="relative z-[60]">
+            <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none" />
             <input
-              type="text"
-              placeholder="Search trails..."
+              type="search"
+              autoComplete="off"
+              enterKeyHint="search"
+              placeholder="Search name, area, terrain — use several words…"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-orange-500 transition-colors"
+              onFocus={() => setSearchFocused(true)}
+              onBlur={() => window.setTimeout(() => setSearchFocused(false), 160)}
+              className="w-full pl-10 pr-10 py-2.5 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-orange-500 transition-colors"
             />
+            {searchQuery.trim().length > 0 && (
+              <button
+                type="button"
+                aria-label="Clear search"
+                className="absolute right-2 top-1/2 -translate-y-1/2 px-2 py-1 text-[11px] font-bold uppercase tracking-wide text-zinc-500 hover:text-white"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => setSearchQuery('')}
+              >
+                Clear
+              </button>
+            )}
+            {showSuggest ? (
+              <ul
+                className="absolute left-0 right-0 top-full mt-1 max-h-56 overflow-y-auto rounded-lg border border-zinc-700 bg-zinc-900 shadow-xl shadow-black/40 py-1"
+                role="listbox"
+              >
+                {nameSuggestions.map((t) => (
+                  <li key={t.id} role="option">
+                    <button
+                      type="button"
+                      className="w-full text-left px-3 py-2.5 text-[13px] text-zinc-200 hover:bg-zinc-800"
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        setSearchQuery(t.name);
+                        setSearchFocused(false);
+                      }}
+                    >
+                      <span className="font-semibold text-white">{t.name}</span>
+                      <span className="block text-[11px] text-zinc-500 truncate mt-0.5">{t.location}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+            <p className="text-[11px] text-zinc-500 mt-1.5 leading-snug">
+              Matches when <strong className="text-zinc-400 font-semibold">every</strong> word appears somewhere (name,
+              location, description, tags, terrain…).
+            </p>
           </div>
+
+          {/* Rig type — primary explorer split */}
+          <div className="mt-3 flex gap-2 overflow-x-auto pb-0.5 scrollbar-hide -mx-0.5 px-0.5">
+            {vehicleFilters.map((v) => (
+              <button
+                key={v}
+                type="button"
+                onClick={() => setSelectedVehicle(v)}
+                className={`shrink-0 px-3 py-2 rounded-lg text-[11px] font-black uppercase tracking-wide border transition-colors ${
+                  selectedVehicle === v
+                    ? 'bg-orange-500 text-black border-orange-500'
+                    : 'bg-zinc-900 text-zinc-400 border-zinc-700 hover:border-zinc-600 hover:text-zinc-200'
+                }`}
+              >
+                {vehicleFilterChipLabel(v)}
+              </button>
+            ))}
+          </div>
+          <p className="text-[10px] text-zinc-600 mt-1.5 leading-snug">
+            Trails tagged Both appear under ATV and Trucks. Rows without keywords default to Both until set in the database.
+          </p>
         </div>
 
         {/* Difficulty Filter Chips */}
@@ -394,22 +495,43 @@ export default function TrailsPage() {
               exit={{ height: 0, opacity: 0 }}
               className="overflow-hidden border-t border-zinc-800"
             >
-              <div className="px-4 py-3">
-                <p className="text-xs text-zinc-500 uppercase tracking-wider mb-2">Difficulty</p>
-                <div className="flex flex-wrap gap-2">
-                  {difficulties.map((difficulty) => (
-                    <button
-                      key={difficulty}
-                      onClick={() => setSelectedDifficulty(difficulty)}
-                      className={`px-3 py-1.5 text-xs font-semibold uppercase tracking-wider transition-all ${
-                        selectedDifficulty === difficulty
-                          ? 'bg-orange-500 text-zinc-950'
-                          : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
-                      }`}
-                    >
-                      {difficulty}
-                    </button>
-                  ))}
+              <div className="px-4 py-3 space-y-4">
+                <div>
+                  <p className="text-xs text-zinc-500 uppercase tracking-wider mb-2">Rig type</p>
+                  <div className="flex flex-wrap gap-2">
+                    {vehicleFilters.map((v) => (
+                      <button
+                        key={v}
+                        type="button"
+                        onClick={() => setSelectedVehicle(v)}
+                        className={`px-3 py-1.5 text-xs font-semibold uppercase tracking-wider transition-all ${
+                          selectedVehicle === v
+                            ? 'bg-orange-500 text-zinc-950'
+                            : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
+                        }`}
+                      >
+                        {vehicleFilterChipLabel(v)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <p className="text-xs text-zinc-500 uppercase tracking-wider mb-2">Difficulty</p>
+                  <div className="flex flex-wrap gap-2">
+                    {difficulties.map((difficulty) => (
+                      <button
+                        key={difficulty}
+                        onClick={() => setSelectedDifficulty(difficulty)}
+                        className={`px-3 py-1.5 text-xs font-semibold uppercase tracking-wider transition-all ${
+                          selectedDifficulty === difficulty
+                            ? 'bg-orange-500 text-zinc-950'
+                            : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
+                        }`}
+                      >
+                        {difficulty}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
             </motion.div>
@@ -461,7 +583,7 @@ export default function TrailsPage() {
               style={{ height: 'calc(100dvh - 168px)' }}
               className="relative"
             >
-              <TrailMap trails={filteredTrails} totalInView={filteredTrails.length} />
+              <TrailMap trails={dbTrails} listFilteredCount={filteredTrails.length} />
             </motion.div>
           ) : isLoading ? (
             <motion.div

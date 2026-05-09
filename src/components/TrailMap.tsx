@@ -6,39 +6,22 @@
  * Requests browser geolocation once for "you are here" + a control to recenter.
  */
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
+import L from 'leaflet';
 import { MapContainer, TileLayer, CircleMarker, Popup, useMap, ZoomControl } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import {
+  explorerTrailLngLat,
   rawDifficultyToTier,
   type DifficultyTier,
   type ExplorerTrail,
 } from '@/lib/trails/mapDbTrail';
 
 interface TrailMapProps {
+  /** Every loaded trail — pins include all rows that have coordinates (not narrowed by list filters). */
   trails: ExplorerTrail[];
-  /** Trails matching current filters (list count). */
-  totalInView: number;
-}
-
-/** Parse "34.3031, -117.4524" into [lat, lng]. Returns null if invalid. */
-function parseCoords(trail: ExplorerTrail): [number, number] | null {
-  if (trail.mapLat != null && trail.mapLng != null) {
-    const lat = Number(trail.mapLat);
-    const lng = Number(trail.mapLng);
-    if (!Number.isNaN(lat) && !Number.isNaN(lng)) return [lat, lng];
-  }
-  if (trail.coordinates) {
-    const parts = trail.coordinates.split(',').map((s) => parseFloat(s.trim()));
-    if (parts.length === 2 && !Number.isNaN(parts[0]) && !Number.isNaN(parts[1])) {
-      return [parts[0], parts[1]];
-    }
-  }
-  if (trail.mapsUrl) {
-    const match = trail.mapsUrl.match(/query=([-\d.]+),([-\d.]+)/);
-    if (match) return [parseFloat(match[1]), parseFloat(match[2])];
-  }
-  return null;
+  /** How many trails match the current list filters (search / difficulty / rig). */
+  listFilteredCount: number;
 }
 
 function tierForTrail(trail: ExplorerTrail): DifficultyTier {
@@ -107,20 +90,84 @@ function MapLocateToolbar({
   );
 }
 
-export default function TrailMap({ trails, totalInView }: TrailMapProps) {
+/** Leaflet often mounts before the tab animation finishes — tiles/markers look broken until resize. */
+function MapResizeInvalidator() {
+  const map = useMap();
+  useEffect(() => {
+    const iv = () => {
+      map.invalidateSize({ animate: false });
+    };
+    iv();
+    const t1 = window.setTimeout(iv, 80);
+    const t2 = window.setTimeout(iv, 320);
+    const el = map.getContainer();
+    const ro = new ResizeObserver(iv);
+    ro.observe(el);
+    return () => {
+      window.clearTimeout(t1);
+      window.clearTimeout(t2);
+      ro.disconnect();
+    };
+  }, [map]);
+  return null;
+}
+
+function FitPlottedBounds({
+  points,
+  signature,
+}: {
+  points: [number, number][];
+  /** Sorted trail ids — avoids refitting on unrelated parent re-renders */
+  signature: string;
+}) {
+  const map = useMap();
+  useEffect(() => {
+    if (points.length === 0 || !signature) return;
+    const run = () => {
+      map.invalidateSize({ animate: false });
+      if (points.length === 1) {
+        map.setView(points[0], 11);
+        return;
+      }
+      const b = L.latLngBounds(points.map(([lat, lng]) => L.latLng(lat, lng)));
+      if (!b.isValid()) return;
+      map.fitBounds(b, { padding: [52, 52], maxZoom: 12 });
+    };
+    const rafId = window.requestAnimationFrame(() => run());
+    const t = window.setTimeout(run, 120);
+    return () => {
+      window.cancelAnimationFrame(rafId);
+      window.clearTimeout(t);
+    };
+  }, [map, signature, points]);
+  return null;
+}
+
+export default function TrailMap({ trails, listFilteredCount }: TrailMapProps) {
   const [userPos, setUserPos] = useState<[number, number] | null>(null);
 
   const onLocated = useCallback((p: [number, number]) => {
     setUserPos(p);
   }, []);
 
-  const plotted = trails
-    .map((t) => ({ trail: t, coords: parseCoords(t) }))
-    .filter((item): item is { trail: ExplorerTrail; coords: [number, number] } => item.coords !== null);
+  const { plotted, plottedPoints, plottedFitSignature } = useMemo(() => {
+    const items = trails
+      .map((t) => ({ trail: t, coords: explorerTrailLngLat(t) }))
+      .filter((item): item is { trail: ExplorerTrail; coords: [number, number] } => item.coords !== null);
+    return {
+      plotted: items,
+      plottedPoints: items.map((i) => i.coords),
+      plottedFitSignature: items
+        .map((i) => i.trail.id)
+        .sort()
+        .join(','),
+    };
+  }, [trails]);
 
   const center: [number, number] = [34.05, -116.8];
 
-  const noCoords = Math.max(0, totalInView - plotted.length);
+  const totalLoaded = trails.length;
+  const noCoords = Math.max(0, totalLoaded - plotted.length);
 
   return (
     <div className="relative h-full w-full rounded-xl overflow-hidden border border-zinc-800">
@@ -130,6 +177,7 @@ export default function TrailMap({ trails, totalInView }: TrailMapProps) {
         style={{ height: '100%', width: '100%', background: '#18181b' }}
         scrollWheelZoom
         zoomControl={false}
+        preferCanvas
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/">CARTO</a>'
@@ -137,6 +185,9 @@ export default function TrailMap({ trails, totalInView }: TrailMapProps) {
         />
 
         <ZoomControl position="bottomright" />
+
+        <MapResizeInvalidator />
+        <FitPlottedBounds points={plottedPoints} signature={plottedFitSignature} />
 
         <AutoGeolocate onLocated={onLocated} />
         <MapLocateToolbar userPos={userPos} setUserPos={setUserPos} />
@@ -227,23 +278,63 @@ export default function TrailMap({ trails, totalInView }: TrailMapProps) {
                   >
                     {tier}
                   </span>
-                  <br />
-                  <a
-                    href={`/trails/${trail.id}`}
-                    style={{
-                      display: 'inline-block',
-                      marginTop: '4px',
-                      background: '#f97316',
-                      color: '#000',
-                      borderRadius: '6px',
-                      fontSize: '11px',
-                      fontWeight: 700,
-                      padding: '4px 10px',
-                      textDecoration: 'none',
-                    }}
-                  >
-                    View Trail
-                  </a>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '8px' }}>
+                    <a
+                      href={`/trails/${trail.id}`}
+                      style={{
+                        display: 'inline-block',
+                        background: '#f97316',
+                        color: '#000',
+                        borderRadius: '6px',
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        padding: '4px 10px',
+                        textDecoration: 'none',
+                      }}
+                    >
+                      View Trail
+                    </a>
+                    {trail.mapsUrl ? (
+                      <a
+                        href={trail.mapsUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          display: 'inline-block',
+                          background: '#27272a',
+                          color: '#e4e4e7',
+                          border: '1px solid #52525b',
+                          borderRadius: '6px',
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          padding: '4px 10px',
+                          textDecoration: 'none',
+                        }}
+                      >
+                        Google Maps
+                      </a>
+                    ) : null}
+                    {trail.onxUrl ? (
+                      <a
+                        href={trail.onxUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          display: 'inline-block',
+                          background: '#27272a',
+                          color: '#e4e4e7',
+                          border: '1px solid #52525b',
+                          borderRadius: '6px',
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          padding: '4px 10px',
+                          textDecoration: 'none',
+                        }}
+                      >
+                        onX trail page
+                      </a>
+                    ) : null}
+                  </div>
                 </div>
               </Popup>
             </CircleMarker>
@@ -284,13 +375,12 @@ export default function TrailMap({ trails, totalInView }: TrailMapProps) {
             <span style={{ color: '#a1a1aa', fontSize: '11px', fontWeight: 600 }}>{label}</span>
           </div>
         ))}
-        <p style={{ color: '#71717a', fontSize: '10px', marginTop: '6px', fontWeight: 600 }}>
-          Map pins: {plotted.length}
-          {totalInView !== plotted.length ? ` · ${totalInView} in list` : ''}
+        <p style={{ color: '#71717a', fontSize: '10px', marginTop: '6px', fontWeight: 600, lineHeight: 1.35 }}>
+          Pins: {plotted.length} with coordinates · List filter: {listFilteredCount} of {totalLoaded}
         </p>
         {noCoords > 0 ? (
           <p style={{ color: '#52525b', fontSize: '9px', marginTop: '4px', lineHeight: 1.35 }}>
-            {noCoords} trail{noCoords !== 1 ? 's' : ''} have no saved coordinates — open the list or Maps/onX from each trail.
+            {noCoords} loaded trail{noCoords !== 1 ? 's' : ''} lack coordinates — no dot until lat/lng are saved or parsed from onX webmap links.
           </p>
         ) : null}
       </div>

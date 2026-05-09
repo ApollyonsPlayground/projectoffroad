@@ -25,7 +25,13 @@ import Link from 'next/link';
 import BottomNav from '@/components/BottomNav';
 import { useToast } from '@/components/Toast';
 import { useAuth } from '@/context/AuthContext';
-import { mapDbTrailRow, type ExplorerTrail, type DifficultyTier } from '@/lib/trails/mapDbTrail';
+import {
+  mapDbTrailRow,
+  trailVehicleScopeShortLabel,
+  trailVehicleScopeBadgeClass,
+  type ExplorerTrail,
+  type DifficultyTier,
+} from '@/lib/trails/mapDbTrail';
 import { applyCatalogTrailLinks } from '@/lib/trails/staticTrailLinks';
 import { useSavedTrailIds } from '@/lib/hooks/useSavedTrailIds';
 
@@ -410,8 +416,13 @@ export default function TrailDetailPage() {
               {trail.difficultyLabel}
             </span>
           </div>
-          <div className="mt-3">
+          <div className="mt-3 flex flex-wrap items-center gap-2">
             <DifficultyDot tier={trail.difficultyLabel} />
+            <span
+              className={`inline-flex px-2.5 py-1 text-[10px] font-black uppercase tracking-wider rounded-full border ${trailVehicleScopeBadgeClass(trail.vehicleScope)}`}
+            >
+              {trailVehicleScopeShortLabel(trail.vehicleScope)}
+            </span>
           </div>
         </div>
 

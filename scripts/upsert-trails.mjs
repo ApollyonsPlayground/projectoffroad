@@ -109,6 +109,16 @@ function normalizeLegacyDifficulty(d) {
   return 'Moderate';
 }
 
+/** Optional seed field vehicle_scope for explorer filters (matches CHECK constraint). */
+function normalizeVehicleScopeSeed(raw) {
+  if (raw == null || raw === '') return null;
+  const s = String(raw).trim().toLowerCase();
+  if (['atv', 'sxs', 'utv', 'quad'].includes(s)) return 'atv';
+  if (['truck', 'trucks', '4x4'].includes(s)) return 'truck';
+  if (['both', 'all', 'mixed', 'either'].includes(s)) return 'both';
+  return null;
+}
+
 const FALLBACK_IMAGE =
   'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800&q=80';
 
@@ -151,6 +161,8 @@ function buildAttempts() {
     const image = sanitizeTrailHeroImageUrl(t.image ?? null);
     const mapsUrl = googleMapsUrlForTrail(t, lat, lng);
     const timeStr = t.time != null && String(t.time).trim() !== '' ? String(t.time).trim() : '—';
+    const vehicleScope = normalizeVehicleScopeSeed(t.vehicleScope ?? t.vehicle_scope);
+    const optionalVehicleScope = vehicleScope ? { vehicle_scope: vehicleScope } : {};
 
     const coreMinimal = {
       id: t.id,
@@ -165,6 +177,7 @@ function buildAttempts() {
 
     richImageUrlTe.push({
       ...coreMinimal,
+      ...optionalVehicleScope,
       onx_url: t.onxUrl ?? null,
       maps_url: mapsUrl,
       time_estimate: timeStr,
@@ -177,6 +190,7 @@ function buildAttempts() {
 
     richImageUrlEt.push({
       ...coreMinimal,
+      ...optionalVehicleScope,
       onx_url: t.onxUrl ?? null,
       maps_url: mapsUrl,
       estimated_time: timeStr,
@@ -189,6 +203,7 @@ function buildAttempts() {
 
     slimImageUrlTe.push({
       ...coreMinimal,
+      ...optionalVehicleScope,
       onx_url: t.onxUrl ?? null,
       maps_url: mapsUrl,
       time_estimate: timeStr,
@@ -196,6 +211,7 @@ function buildAttempts() {
 
     slimImageUrlEt.push({
       ...coreMinimal,
+      ...optionalVehicleScope,
       onx_url: t.onxUrl ?? null,
       maps_url: mapsUrl,
       estimated_time: timeStr,
@@ -203,16 +219,19 @@ function buildAttempts() {
 
     linksOnlyImageUrl.push({
       ...coreMinimal,
+      ...optionalVehicleScope,
       onx_url: t.onxUrl ?? null,
       maps_url: mapsUrl,
     });
 
     mapsOnlyImageUrl.push({
       ...coreMinimal,
+      ...optionalVehicleScope,
       maps_url: mapsUrl,
     });
 
     modernImageUrl.push({
+      ...optionalVehicleScope,
       id: t.id,
       name: t.name,
       location: t.location ?? null,
@@ -229,6 +248,7 @@ function buildAttempts() {
     });
 
     imageUrlNoRigOptionalCols.push({
+      ...optionalVehicleScope,
       id: t.id,
       name: t.name,
       location: t.location ?? null,
@@ -240,9 +260,10 @@ function buildAttempts() {
       longitude: lng,
     });
 
-    minimalLatLngImageUrl.push({ ...coreMinimal });
+    minimalLatLngImageUrl.push({ ...coreMinimal, ...optionalVehicleScope });
 
     minimalTitleLatLng.push({
+      ...optionalVehicleScope,
       id: t.id,
       title: t.name,
       location: t.location ?? null,
@@ -256,6 +277,7 @@ function buildAttempts() {
     const coordStr =
       lat != null && lng != null ? `${lat}, ${lng}` : t.coordinates ?? null;
     coordinatesStringOnly.push({
+      ...optionalVehicleScope,
       id: t.id,
       name: t.name,
       location: t.location ?? null,
@@ -266,6 +288,7 @@ function buildAttempts() {
     });
 
     legacyTitleShape.push({
+      ...optionalVehicleScope,
       id: t.id,
       title: t.name,
       location: t.location ?? '',
