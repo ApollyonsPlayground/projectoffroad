@@ -96,7 +96,12 @@ export default function SettingsPage() {
       if (error) throw error;
       await refreshProfile();
     } catch (e) {
-      showToast(e instanceof Error ? e.message : 'Could not save settings', 'error');
+      const msg = e instanceof Error ? e.message : 'Could not save settings';
+      if (String(msg).toLowerCase().includes('once every 24 hours')) {
+        showToast('You can change your name/username once every 24 hours.', 'error');
+      } else {
+        showToast(msg, 'error');
+      }
     }
   };
 

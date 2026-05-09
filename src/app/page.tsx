@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
+import { PublicHomeCtas } from '@/components/PublicHomeCtas';
 
 /** Must match the “Application home page” and privacy URL you enter in Google Cloud OAuth consent. */
 const PUBLIC_SITE =
@@ -48,20 +49,7 @@ export default function PublicHomePage() {
               <p className="text-[11px] text-zinc-500 mt-1">Brand and product name: SoCal Offroaders</p>
             </div>
           </div>
-          <nav className="flex flex-wrap items-center gap-2 sm:justify-end" aria-label="Primary">
-            <Link
-              href="/feed/"
-              className="px-4 py-2.5 rounded-xl bg-orange-500 text-black text-sm font-black hover:bg-orange-400 transition-colors"
-            >
-              Open app
-            </Link>
-            <Link
-              href="/login/"
-              className="px-4 py-2.5 rounded-xl border border-zinc-700 text-sm font-bold text-white hover:border-orange-500/60 transition-colors"
-            >
-              Sign in
-            </Link>
-          </nav>
+          <PublicHomeCtas />
         </div>
       </header>
 

@@ -14,10 +14,13 @@ import {
   Info,
   Search,
   Radio,
+  Image as ImageIcon,
+  X,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/Toast';
 import { mapDbTrailRow, coordsFromRow } from '@/lib/trails/mapDbTrail';
+import { isLimitedMediaDevice, resizeImageFileToJpegBlob } from '@/lib/media/mobileSafeCapture';
 
 const MeetupMapPicker = dynamic(() => import('@/components/runs/MeetupMapPicker'), {
   ssr: false,
@@ -283,6 +286,8 @@ export function HostRunWizard({ variant = 'drawer', onSuccess, onCancel }: Props
   const [disclaimerAck, setDisclaimerAck] = useState(false);
   const [loadingDropdowns, setLoadingDropdowns] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [flyerFile, setFlyerFile] = useState<File | null>(null);
+  const [flyerPreviewUrl, setFlyerPreviewUrl] = useState('');
   /** Loaded from DB so we do not depend on AuthContext `profile` timing (fixes disabled Club run for admins). */
   const [staffFromDb, setStaffFromDb] = useState(false);
 
@@ -648,7 +653,11 @@ export function HostRunWizard({ variant = 'drawer', onSuccess, onCancel }: Props
         row.user_acknowledged_disclaimer_at = new Date().toISOString();
       }
 
-      const { error } = await supabaseClient.from('runs').insert(row);
+      const { data: createdRun, error } = await supabaseClient
+        .from('runs')
+        .insert(row)
+        .select('id')
+        .single();
       if (error) {
         if (
           error.message?.includes('run_source') ||
@@ -665,6 +674,27 @@ export function HostRunWizard({ variant = 'drawer', onSuccess, onCancel }: Props
         }
         throw error;
       }
+
+      const createdRunId = createdRun?.id ? String(createdRun.id) : '';
+      if (flyerFile && createdRunId) {
+        try {
+          const maxEdge = isLimitedMediaDevice() ? 1400 : 2200;
+          const blob = await resizeImageFileToJpegBlob(flyerFile, maxEdge, 0.88);
+          const path = `${createdRunId}/${crypto.randomUUID()}.jpg`;
+          const { error: upErr } = await supabaseClient.storage
+            .from('run-flyers')
+            .upload(path, blob, { contentType: 'image/jpeg', upsert: false });
+          if (!upErr) {
+            const { data: pub } = supabaseClient.storage.from('run-flyers').getPublicUrl(path);
+            const publicUrl = pub?.publicUrl ? String(pub.publicUrl) : '';
+            if (publicUrl) {
+              await supabaseClient.from('runs').update({ flyer_image: publicUrl }).eq('id', createdRunId);
+            }
+          }
+        } catch {
+          // Run is already created; flyer upload failure shouldn't block publishing.
+        }
+      }
       showToast(
         mode === 'club_official' ? 'Official Club Run published' : 'Community Run published',
         'success'
@@ -672,6 +702,9 @@ export function HostRunWizard({ variant = 'drawer', onSuccess, onCancel }: Props
       clearHostRunDraft(user.id);
       setForm({ ...EMPTY });
       setDisclaimerAck(false);
+      setFlyerFile(null);
+      if (flyerPreviewUrl) URL.revokeObjectURL(flyerPreviewUrl);
+      setFlyerPreviewUrl('');
       setTrailSearch('');
       setAddressQuery('');
       setGeocodeResults([]);
@@ -687,6 +720,18 @@ export function HostRunWizard({ variant = 'drawer', onSuccess, onCancel }: Props
       setSubmitting(false);
     }
   };
+
+  useEffect(() => {
+    if (!flyerFile) {
+      if (flyerPreviewUrl) URL.revokeObjectURL(flyerPreviewUrl);
+      setFlyerPreviewUrl('');
+      return;
+    }
+    const url = URL.createObjectURL(flyerFile);
+    if (flyerPreviewUrl) URL.revokeObjectURL(flyerPreviewUrl);
+    setFlyerPreviewUrl(url);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [flyerFile]);
 
   const pad = variant === 'page' ? 'px-4 py-4 max-w-md mx-auto' : 'px-4 py-4';
 
@@ -837,6 +882,46 @@ export function HostRunWizard({ variant = 'drawer', onSuccess, onCancel }: Props
           value={form.description}
           onChange={set('description')}
         />
+      </div>
+
+      {/* Flyer / poster */}
+      <div>
+        <label className={labelClass}>
+          <ImageIcon size={12} className="inline mr-1" />
+          Run flyer / poster (optional)
+        </label>
+        <div className="space-y-2">
+          <input
+            type="file"
+            accept="image/*"
+            className={inputClass}
+            onChange={(e) => {
+              const f = e.target.files?.[0] ?? null;
+              setFlyerFile(f);
+            }}
+          />
+          {flyerPreviewUrl ? (
+            <div className="rounded-xl border border-zinc-800 bg-zinc-950 overflow-hidden">
+              <img
+                src={flyerPreviewUrl}
+                alt="Flyer preview"
+                className="w-full max-h-[280px] object-cover"
+              />
+              <button
+                type="button"
+                onClick={() => setFlyerFile(null)}
+                className="w-full flex items-center justify-center gap-2 py-2 text-[12px] font-bold text-zinc-300 hover:text-white border-t border-zinc-800 bg-zinc-950/40"
+              >
+                <X size={14} />
+                Remove flyer
+              </button>
+            </div>
+          ) : (
+            <p className="text-[12px] text-zinc-500">
+              Adds a poster image to the run card and run detail page.
+            </p>
+          )}
+        </div>
       </div>
 
       {/* Date / Time */}

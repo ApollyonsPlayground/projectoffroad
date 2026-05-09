@@ -74,6 +74,12 @@ export default function EditProfilePage() {
           setSaving(false);
           return;
         }
+        const msg = String(error.message ?? '');
+        if (msg.toLowerCase().includes('once every 24 hours')) {
+          showToast('You can change your name/username once every 24 hours.', 'error');
+          setSaving(false);
+          return;
+        }
         throw error;
       }
       try {

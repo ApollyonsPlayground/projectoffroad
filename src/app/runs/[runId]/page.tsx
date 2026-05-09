@@ -77,6 +77,7 @@ interface RunDetail {
   club_id: string | null;
   trail_id: string | null;
   run_source: 'club_official' | 'user_submitted' | null;
+  flyer_image?: string | null;
   user_acknowledged_disclaimer_at: string | null;
   created_at: string;
   club: { name: string; logo: string | null; verified?: boolean } | null;
@@ -270,7 +271,7 @@ export default function RunDetailPage() {
       // relationships are missing from schema cache or ambiguous. Match `/runs` list strategy.
       const runSelectAttempts = [
         '*',
-        'id, title, description, date, meetup_location, meetup_latitude, meetup_longitude, difficulty, max_participants, vehicle_requirements, comms_note, status, host_id, club_id, trail_id, run_source, user_acknowledged_disclaimer_at, created_at',
+        'id, title, description, date, meetup_location, meetup_latitude, meetup_longitude, difficulty, max_participants, vehicle_requirements, comms_note, status, host_id, club_id, trail_id, run_source, flyer_image, user_acknowledged_disclaimer_at, created_at',
       ];
 
       let runPayload: Record<string, unknown> | null = null;
@@ -930,6 +931,20 @@ export default function RunDetailPage() {
           animate={{ opacity: 1, y: 0 }}
           className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden"
         >
+          {/* Flyer / poster (optional) */}
+          {run.flyer_image && String(run.flyer_image).trim() ? (
+            <div className="relative h-[220px] bg-zinc-950">
+              <img
+                src={String(run.flyer_image)}
+                alt=""
+                className="absolute inset-0 w-full h-full object-cover"
+                loading="lazy"
+                draggable={false}
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/55 to-transparent" />
+            </div>
+          ) : null}
+
           {/* Club + difficulty header */}
           <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-zinc-800/60">
             <div className="flex items-center gap-2 min-w-0">

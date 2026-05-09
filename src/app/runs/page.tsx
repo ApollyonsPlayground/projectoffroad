@@ -47,6 +47,7 @@ interface Run {
   host_id?: string | null;
   host_display_name?: string | null;
   run_source?: 'club_official' | 'user_submitted' | null;
+  flyer_image?: string | null;
   club?: { name: string; verified?: boolean; banner_image?: string | null } | null;
   trail?: { name: string; difficulty: string; photo_url?: string | null } | null;
 }
@@ -167,7 +168,11 @@ function RunCard({
   const clubBanner = clubBannerRaw
     ? ensureStoragePublicObjectUrl(clubBannerRaw) || clubBannerRaw
     : '';
+  const flyerRaw =
+    run.flyer_image != null && String(run.flyer_image).trim() ? String(run.flyer_image).trim() : '';
+  const flyerUrl = flyerRaw ? ensureStoragePublicObjectUrl(flyerRaw) || flyerRaw : '';
   const trailPhoto =
+    flyerUrl ||
     clubBanner ||
     (run.trail?.photo_url && String(run.trail.photo_url).trim()) ||
     RUN_CARD_FALLBACK_IMG;
@@ -354,11 +359,11 @@ export default function RunsPage() {
         '*',
         'id, title, description, date, meetup_location, difficulty, max_participants, vehicle_requirements, status, club_id',
         'id, title, description, date, meetup_location, difficulty, max_participants, vehicle_requirements, status, club_id, trail_id',
-        'id, title, description, date, meetup_location, difficulty, max_participants, vehicle_requirements, status, club_id, trail_id, run_source, host_id',
-        'id, title, description, date, meetup_location, difficulty, max_participants, vehicle_requirements, status, club_id, run_source, host_id',
+        'id, title, description, date, meetup_location, difficulty, max_participants, vehicle_requirements, status, club_id, trail_id, run_source, host_id, flyer_image',
+        'id, title, description, date, meetup_location, difficulty, max_participants, vehicle_requirements, status, club_id, run_source, host_id, flyer_image',
         'id, title, description, date, meetup_location, difficulty, max_participants, vehicle_requirements, status, club_id, club:clubs(name)',
         'id, title, description, date, meetup_location, difficulty, max_participants, vehicle_requirements, status, club_id, club:clubs(name), trail:trails(name, difficulty)',
-        'id, title, description, date, meetup_location, difficulty, max_participants, vehicle_requirements, status, club_id, run_source, host_id, club:clubs(name), trail:trails(name, difficulty)',
+        'id, title, description, date, meetup_location, difficulty, max_participants, vehicle_requirements, status, club_id, run_source, host_id, flyer_image, club:clubs(name), trail:trails(name, difficulty)',
       ];
 
       let runsData: Run[] | null = null;
