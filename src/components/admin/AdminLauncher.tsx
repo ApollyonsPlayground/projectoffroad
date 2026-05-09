@@ -33,7 +33,10 @@ export function AdminLauncher() {
       .select('*')
       .eq('id', user.id)
       .maybeSingle()
-      .then(({ data }) => setRole((data as { role?: string } | null)?.role ?? null));
+      .then(({ data }) => {
+        const r = String((data as { role?: string } | null)?.role ?? '').trim().toLowerCase();
+        setRole(r || null);
+      });
   }, [user, supabaseClient]);
 
   useEffect(() => {
@@ -42,7 +45,8 @@ export function AdminLauncher() {
     return () => window.removeEventListener('open-admin-panel', openPanel);
   }, []);
 
-  const allowed = role === 'owner' || role === 'admin';
+  const allowed =
+    role === 'owner' || role === 'admin';
   if (!allowed || !user || hideFloatingAdmin(pathname)) {
     return null;
   }

@@ -45,6 +45,35 @@ type Props = {
   onCloseDrawer?: () => void;
 };
 
+async function parseJsonSafe<T>(res: Response): Promise<T | null> {
+  try {
+    return (await res.json()) as T;
+  } catch {
+    return null;
+  }
+}
+
+async function fetchErrorMessage(res: Response): Promise<string> {
+  const j = await parseJsonSafe<{ error?: string }>(res);
+  if (j?.error && typeof j.error === 'string') return j.error;
+  return `Request failed (${res.status})`;
+}
+
+function formatSafeClubTimestamp(raw?: string | null): string {
+  if (!raw || typeof raw !== 'string') return '';
+  const d = new Date(raw.trim());
+  if (Number.isNaN(d.getTime())) return '';
+  try {
+    return d.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+  } catch {
+    try {
+      return d.toLocaleDateString(undefined);
+    } catch {
+      return '';
+    }
+  }
+}
+
 export function AdminPanel({ variant, onCloseDrawer }: Props) {
   const router = useRouter();
   const { user, supabaseClient, loading: authLoading } = useAuth();
@@ -81,7 +110,10 @@ export function AdminPanel({ variant, onCloseDrawer }: Props) {
       .select('*')
       .eq('id', user.id)
       .maybeSingle()
-      .then(({ data }) => setRole((data as { role?: string } | null)?.role ?? null));
+      .then(({ data }) => {
+        const r = String((data as { role?: string } | null)?.role ?? '').trim().toLowerCase();
+        setRole(r || null);
+      });
   }, [supabaseClient, user]);
 
   const allowed = role === 'owner' || role === 'admin';
@@ -90,34 +122,81 @@ export function AdminPanel({ variant, onCloseDrawer }: Props) {
     if (!token) return;
     const res = await fetch('/api/admin/stats', { headers: authHeaders() });
     if (!res.ok) return;
-    const j = await res.json();
-    setStats(j.counts ?? {});
+    const j = await parseJsonSafe<{ counts?: Record<string, number> }>(res);
+    setStats(j?.counts ?? {});
   }, [token, authHeaders]);
 
   const loadClubs = useCallback(async () => {
     if (!token) return;
     const res = await fetch('/api/admin/clubs', { headers: authHeaders() });
-    if (!res.ok) return;
-    const j = await res.json();
-    setClubs(j.clubs ?? []);
-  }, [token, authHeaders]);
+    if (!res.ok) {
+      showToast(await fetchErrorMessage(res), 'error');
+      return;
+    }
+    const j = await parseJsonSafe<{ clubs?: ClubRow[] }>(res);
+    const rows = j?.clubs ?? [];
+    setClubs(
+      rows.map((c) => ({
+        ...c,
+        verified: Boolean(c?.verified),
+        id: String(c?.id ?? ''),
+        name: String(c?.name ?? 'Club'),
+        slug: String(c?.slug ?? ''),
+      }))
+    );
+  }, [token, authHeaders, showToast]);
 
   const loadPosts = useCallback(async () => {
     if (!token) return;
     const res = await fetch('/api/admin/posts?limit=60', { headers: authHeaders() });
-    if (!res.ok) return;
-    const j = await res.json();
-    setPosts(j.posts ?? []);
-  }, [token, authHeaders]);
+    if (!res.ok) {
+      showToast(await fetchErrorMessage(res), 'error');
+      return;
+    }
+    const j = await parseJsonSafe<{ posts?: unknown[] }>(res);
+    const rows = Array.isArray(j?.posts) ? j.posts : [];
+    setPosts(
+      rows.map((raw) => {
+        const p = raw as Record<string, unknown>;
+        const createdRaw = p.created_at;
+        const created =
+          typeof createdRaw === 'string' ? createdRaw : createdRaw != null ? String(createdRaw) : '';
+        return {
+          ...p,
+          id: String(p.id ?? ''),
+          body: String(p.body ?? ''),
+          hidden: Boolean(p.hidden),
+          image_url: p.image_url != null ? String(p.image_url) : undefined,
+          user_name: p.user_name != null ? String(p.user_name) : undefined,
+          created_at: created || new Date(0).toISOString(),
+        };
+      })
+    );
+  }, [token, authHeaders, showToast]);
 
   const loadUsers = useCallback(async () => {
     if (!token) return;
     const q = userQuery ? `?q=${encodeURIComponent(userQuery)}` : '';
     const res = await fetch(`/api/admin/users${q}`, { headers: authHeaders() });
-    if (!res.ok) return;
-    const j = await res.json();
-    setUsers(j.users ?? []);
-  }, [token, authHeaders, userQuery]);
+    if (!res.ok) {
+      showToast(await fetchErrorMessage(res), 'error');
+      return;
+    }
+    const j = await parseJsonSafe<{ users?: unknown[] }>(res);
+    const rows = Array.isArray(j?.users) ? j.users : [];
+    setUsers(
+      rows.map((raw) => {
+        const u = raw as Record<string, unknown>;
+        return {
+          ...u,
+          id: String(u.id ?? ''),
+          name: u.name != null ? String(u.name) : null,
+          email: u.email != null ? String(u.email) : '',
+          role: u.role != null ? String(u.role) : 'user',
+        };
+      })
+    );
+  }, [token, authHeaders, userQuery, showToast]);
 
   useEffect(() => {
     if (!allowed || !token) return;
@@ -146,7 +225,7 @@ export function AdminPanel({ variant, onCloseDrawer }: Props) {
         headers: { ...authHeaders(), 'Content-Type': 'application/json' },
         body: JSON.stringify({ verified }),
       });
-      if (!res.ok) throw new Error((await res.json()).error ?? 'Failed');
+      if (!res.ok) throw new Error(await fetchErrorMessage(res));
       showToast(verified ? 'Marked as verified club' : 'Marked as not verified', 'success');
       await loadClubs();
       await loadOverview();
@@ -165,7 +244,7 @@ export function AdminPanel({ variant, onCloseDrawer }: Props) {
         method: 'DELETE',
         headers: authHeaders(),
       });
-      if (!res.ok) throw new Error((await res.json()).error ?? 'Failed');
+      if (!res.ok) throw new Error(await fetchErrorMessage(res));
       showToast('Post deleted', 'success');
       setPosts((p) => p.filter((x) => x.id !== id));
       await loadOverview();
@@ -184,7 +263,7 @@ export function AdminPanel({ variant, onCloseDrawer }: Props) {
         headers: { ...authHeaders(), 'Content-Type': 'application/json' },
         body: JSON.stringify({ hidden }),
       });
-      if (!res.ok) throw new Error((await res.json()).error ?? 'Failed');
+      if (!res.ok) throw new Error(await fetchErrorMessage(res));
       showToast(hidden ? 'Hidden from feed' : 'Restored to feed', 'success');
       setPosts((p) => p.map((x) => (x.id === id ? { ...x, hidden } : x)));
     } catch (e: unknown) {
@@ -202,7 +281,7 @@ export function AdminPanel({ variant, onCloseDrawer }: Props) {
         headers: { ...authHeaders(), 'Content-Type': 'application/json' },
         body: JSON.stringify({ role: newRole }),
       });
-      if (!res.ok) throw new Error((await res.json()).error ?? 'Failed');
+      if (!res.ok) throw new Error(await fetchErrorMessage(res));
       showToast('Role updated', 'success');
       await loadUsers();
     } catch (e: unknown) {
@@ -407,13 +486,10 @@ export function AdminPanel({ variant, onCloseDrawer }: Props) {
                     {c.description && (
                       <p className="text-[13px] text-zinc-500 mt-2 line-clamp-3">{c.description}</p>
                     )}
-                    {c.created_at && (
+                    {formatSafeClubTimestamp(c.created_at) && (
                       <p className="text-[11px] text-zinc-600 mt-2 flex items-center gap-1">
                         <Calendar size={12} />
-                        {new Date(c.created_at).toLocaleDateString(undefined, {
-                          dateStyle: 'medium',
-                          timeStyle: 'short',
-                        })}
+                        {formatSafeClubTimestamp(c.created_at)}
                       </p>
                     )}
                   </div>
@@ -482,7 +558,16 @@ export function AdminPanel({ variant, onCloseDrawer }: Props) {
               <div key={p.id} className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 space-y-2">
                 <div className="flex justify-between gap-2">
                   <p className="text-[11px] text-zinc-500">{p.user_name ?? 'User'}</p>
-                  <p className="text-[10px] text-zinc-600">{new Date(p.created_at).toLocaleString()}</p>
+                  <p className="text-[10px] text-zinc-600">
+                    {(() => {
+                      try {
+                        const d = new Date(p.created_at);
+                        return Number.isNaN(d.getTime()) ? '' : d.toLocaleString();
+                      } catch {
+                        return '';
+                      }
+                    })()}
+                  </p>
                 </div>
                 <p className="text-[14px] text-zinc-200 whitespace-pre-wrap break-words">{p.body}</p>
                 {p.image_url && (

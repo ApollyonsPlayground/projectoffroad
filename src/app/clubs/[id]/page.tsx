@@ -15,6 +15,8 @@ interface Club {
   name: string;
   slug: string;
   logo: string | null;
+  /** Public URL — hero on club runs & directory-style cards when set */
+  banner_image?: string | null;
   description: string;
   location: string;
   website: string | null;
@@ -51,6 +53,10 @@ function normalizeClubRow(data: Record<string, unknown>): Club {
     location: String(data.location ?? ''),
     website: typeof web === 'string' && web.trim() ? web.trim() : null,
     instagram: typeof ig === 'string' && ig.trim() ? ig.trim() : null,
+    banner_image:
+      typeof data.banner_image === 'string' && data.banner_image.trim()
+        ? data.banner_image.trim()
+        : null,
     verified: Boolean(data.verified),
     premium: Boolean(data.premium),
     owner_id: String(data.owner_id ?? ''),
@@ -86,7 +92,8 @@ export default function ClubDetailPage() {
     return Array.isArray(raw) ? raw[0] : raw;
   }, [params?.id]);
   const router = useRouter();
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, supabaseClient } = useAuth();
+  const sb = supabaseClient ?? supabase;
   const { showToast } = useToast();
   const [club, setClub] = useState<Club | null>(null);
   const [runs, setRuns] = useState<Run[]>([]);
@@ -98,6 +105,7 @@ export default function ClubDetailPage() {
   const [deleting, setDeleting] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [editSaving, setEditSaving] = useState(false);
+  const [bannerUploading, setBannerUploading] = useState(false);
   const [editForm, setEditForm] = useState({
     name: '',
     description: '',
@@ -105,6 +113,7 @@ export default function ClubDetailPage() {
     website: '',
     instagram: '',
     logo: '',
+    banner_image: '',
   });
 
   useEffect(() => {
@@ -125,11 +134,11 @@ export default function ClubDetailPage() {
   }, [user, members]);
 
   async function fetchClub() {
-    if (!supabase || !clubId) {
+    if (!sb || !clubId) {
       setLoading(false);
       return;
     }
-    const { data } = await supabase.from('clubs').select('*').eq('id', clubId).single();
+    const { data } = await sb.from('clubs').select('*').eq('id', clubId).single();
 
     if (data) setClub(normalizeClubRow(data as Record<string, unknown>));
     setLoading(false);
@@ -144,12 +153,13 @@ export default function ClubDetailPage() {
       website: club.website ?? '',
       instagram: club.instagram ?? '',
       logo: club.logo ?? '',
+      banner_image: club.banner_image ?? '',
     });
   }, [club]);
 
   async function fetchRuns() {
-    if (!supabase || !clubId) return;
-    const { data } = await supabase
+    if (!sb || !clubId) return;
+    const { data } = await sb
       .from('runs')
       .select('id, title, date, difficulty')
       .eq('club_id', clubId)
@@ -161,8 +171,8 @@ export default function ClubDetailPage() {
   }
 
   async function fetchMembers() {
-    if (!supabase || !clubId) return;
-    const embedTry = await supabase
+    if (!sb || !clubId) return;
+    const embedTry = await sb
       .from('club_members')
       .select('*, user:users(id, name, avatar_url)')
       .eq('club_id', clubId)
@@ -173,7 +183,7 @@ export default function ClubDetailPage() {
       return;
     }
 
-    const base = await supabase
+    const base = await sb
       .from('club_members')
       .select('id, user_id, role, status')
       .eq('club_id', clubId)
@@ -188,7 +198,7 @@ export default function ClubDetailPage() {
     const userIds = [...new Set(rawRows.map((r) => r.user_id).filter(Boolean))];
     const usersById: Record<string, { name: string; avatar_url: string }> = {};
     if (userIds.length) {
-      const { data: urows } = await supabase.from('users').select('id, name, avatar_url').in('id', userIds);
+      const { data: urows } = await sb.from('users').select('id, name, avatar_url').in('id', userIds);
       for (const u of urows ?? []) {
         const row = u as { id: string; name: string | null; avatar_url: string | null };
         usersById[row.id] = {
@@ -208,8 +218,43 @@ export default function ClubDetailPage() {
     );
   }
 
+  async function uploadClubBannerFile(file: File) {
+    if (!sb || !club || !user || user.id !== club.owner_id) return;
+    if (!file.type.startsWith('image/')) {
+      showToast('Use a JPG, PNG, or WebP image', 'info');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      showToast('Flyer must be under 5 MB', 'info');
+      return;
+    }
+    setBannerUploading(true);
+    try {
+      const extRaw = file.name.split('.').pop()?.toLowerCase();
+      const safeExt =
+        extRaw === 'png' || extRaw === 'webp' || extRaw === 'jpg' || extRaw === 'jpeg' ? extRaw : 'jpg';
+      const path = `${club.id}/banner-${Date.now()}.${safeExt}`;
+      const { error: upErr } = await sb.storage.from('club-banners').upload(path, file, {
+        upsert: true,
+        contentType: file.type,
+      });
+      if (upErr) throw upErr;
+      const { data: pub } = sb.storage.from('club-banners').getPublicUrl(path);
+      const url = pub.publicUrl;
+      const { error: dbErr } = await sb.from('clubs').update({ banner_image: url }).eq('id', club.id);
+      if (dbErr) throw dbErr;
+      setEditForm((f) => ({ ...f, banner_image: url }));
+      await fetchClub();
+      showToast('Club flyer saved — it will show on official club runs.', 'success');
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : 'Upload failed', 'error');
+    } finally {
+      setBannerUploading(false);
+    }
+  }
+
   async function saveClubEdits() {
-    if (!supabase || !club || !user || user.id !== club.owner_id) return;
+    if (!sb || !club || !user || user.id !== club.owner_id) return;
     const name = editForm.name.trim();
     const location = editForm.location.trim();
     if (!name || !location) {
@@ -227,7 +272,7 @@ export default function ClubDetailPage() {
         setEditSaving(false);
         return;
       }
-      const { error } = await supabase
+      const { error } = await sb
         .from('clubs')
         .update({
           name,
@@ -237,6 +282,7 @@ export default function ClubDetailPage() {
           website,
           instagram,
           logo,
+          banner_image: editForm.banner_image.trim() || null,
         })
         .eq('id', club.id);
       if (error) throw error;
@@ -257,12 +303,12 @@ export default function ClubDetailPage() {
     }
 
     setJoining(true);
-    if (!supabase || !clubId) {
+    if (!sb || !clubId) {
       setJoining(false);
       return;
     }
     // Membership is approval-based: user creates a pending request.
-    const { error } = await supabase
+    const { error } = await sb
       .from('club_members')
       .insert({ club_id: clubId, user_id: user.id, role: 'member', status: 'pending' });
 
@@ -274,9 +320,9 @@ export default function ClubDetailPage() {
   }
 
   async function approveMember(memberId: string) {
-    if (!supabase || !clubId || !user || !club || user.id !== club.owner_id) return;
+    if (!sb || !clubId || !user || !club || user.id !== club.owner_id) return;
     try {
-      const { error } = await supabase
+      const { error } = await sb
         .from('club_members')
         .update({ status: 'approved', role: 'member' })
         .eq('id', memberId)
@@ -290,7 +336,7 @@ export default function ClubDetailPage() {
   }
 
   async function deleteClub() {
-    if (!supabase || !club || !user || user.id !== club.owner_id) return;
+    if (!sb || !club || !user || user.id !== club.owner_id) return;
     if (
       !window.confirm(
         'Delete this club permanently? Linked runs and garage photos will be removed or unlinked. This cannot be undone.'
@@ -300,7 +346,7 @@ export default function ClubDetailPage() {
     }
     setDeleting(true);
     try {
-      const { error } = await supabase.from('clubs').delete().eq('id', club.id);
+      const { error } = await sb.from('clubs').delete().eq('id', club.id);
       if (error) throw error;
       showToast('Club deleted', 'success');
       router.push('/clubs/');
@@ -349,6 +395,15 @@ export default function ClubDetailPage() {
 
   return (
     <div className="min-h-screen bg-background pb-24">
+      {club.banner_image ? (
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+          <img
+            src={club.banner_image}
+            alt=""
+            className="w-full max-h-52 object-cover rounded-xl border border-border bg-muted"
+          />
+        </div>
+      ) : null}
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Link href="/clubs/" className="inline-block text-sm text-primary hover:underline mb-4">
           ← Back to clubs
@@ -467,6 +522,31 @@ export default function ClubDetailPage() {
                       placeholder="https://..."
                       className="w-full px-3 py-2 bg-background border border-border rounded-lg text-foreground text-sm"
                     />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-muted-foreground mb-1">
+                      Club flyer / poster (official club runs)
+                    </label>
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      disabled={bannerUploading || editSaving}
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (f) void uploadClubBannerFile(f);
+                        e.target.value = '';
+                      }}
+                      className="w-full text-sm text-foreground file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-muted file:text-foreground"
+                    />
+                    <input
+                      value={editForm.banner_image}
+                      onChange={(e) => setEditForm((f) => ({ ...f, banner_image: e.target.value }))}
+                      placeholder="Or paste image URL (save below)"
+                      className="w-full px-3 py-2 mt-2 bg-background border border-border rounded-lg text-foreground text-sm"
+                    />
+                    <p className="text-[11px] text-muted-foreground mt-1">
+                      Upload saves immediately. URL-only changes apply when you tap Save changes.
+                    </p>
                   </div>
                   <button
                     type="button"

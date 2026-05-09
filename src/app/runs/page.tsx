@@ -25,6 +25,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/Toast';
 import { HostRunWizard } from '@/components/runs/HostRunWizard';
 import { mapDbTrailRow } from '@/lib/trails/mapDbTrail';
+import { ensureStoragePublicObjectUrl } from '@/lib/supabase/storagePublicUrl';
 
 /** When a run has no trail photo yet */
 const RUN_CARD_FALLBACK_IMG =
@@ -46,7 +47,7 @@ interface Run {
   host_id?: string | null;
   host_display_name?: string | null;
   run_source?: 'club_official' | 'user_submitted' | null;
-  club?: { name: string } | null;
+  club?: { name: string; banner_image?: string | null } | null;
   trail?: { name: string; difficulty: string; photo_url?: string | null } | null;
 }
 
@@ -157,8 +158,19 @@ function RunCard({
   const spotsLeft = run.max_participants != null ? run.max_participants - participantCount : null;
   const isAlmostFull = spotsLeft != null && spotsLeft <= 3 && spotsLeft > 0;
 
+  const clubBannerRaw =
+    run.run_source === 'club_official' &&
+    run.club?.banner_image &&
+    String(run.club.banner_image).trim()
+      ? String(run.club.banner_image).trim()
+      : '';
+  const clubBanner = clubBannerRaw
+    ? ensureStoragePublicObjectUrl(clubBannerRaw) || clubBannerRaw
+    : '';
   const trailPhoto =
-    (run.trail?.photo_url && String(run.trail.photo_url).trim()) || RUN_CARD_FALLBACK_IMG;
+    clubBanner ||
+    (run.trail?.photo_url && String(run.trail.photo_url).trim()) ||
+    RUN_CARD_FALLBACK_IMG;
 
   return (
     <motion.article
@@ -396,6 +408,26 @@ export default function RunsPage() {
           }
         }
       }
+
+      const clubIds = [
+        ...new Set(fetchedRuns.map((r) => String(r.club_id ?? '').trim()).filter(Boolean)),
+      ];
+      const clubById: Record<string, { name: string; banner_image: string | null }> = {};
+      if (clubIds.length) {
+        const cr = await supabaseClient.from('clubs').select('id, name, banner_image').in('id', clubIds);
+        if (!cr.error && cr.data) {
+          for (const row of cr.data as { id: string; name: string | null; banner_image?: string | null }[]) {
+            clubById[String(row.id)] = {
+              name: String(row.name ?? 'Club').trim() || 'Club',
+              banner_image:
+                row.banner_image != null && String(row.banner_image).trim()
+                  ? String(row.banner_image).trim()
+                  : null,
+            };
+          }
+        }
+      }
+
       const enriched = fetchedRuns.map((r) => {
         const tid = r.trail_id ? String(r.trail_id).trim() : '';
         const fromDb = tid ? trailById[tid] : undefined;
@@ -415,9 +447,26 @@ export default function RunsPage() {
                 }
               : null;
 
+        const cid = r.club_id ? String(r.club_id).trim() : '';
+        const fromClubDb = cid ? clubById[cid] : undefined;
+        const embeddedClub = r.club as { name?: string; banner_image?: string | null } | null | undefined;
+        const mergedClub =
+          fromClubDb != null
+            ? { name: fromClubDb.name, banner_image: fromClubDb.banner_image }
+            : embeddedClub && embeddedClub.name
+              ? {
+                  name: String(embeddedClub.name),
+                  banner_image:
+                    embeddedClub.banner_image != null && String(embeddedClub.banner_image).trim()
+                      ? String(embeddedClub.banner_image).trim()
+                      : null,
+                }
+              : null;
+
         return {
           ...r,
           trail: mergedTrail,
+          club: mergedClub,
           host_display_name: r.host_id ? hostNameById[r.host_id] ?? null : null,
         };
       });
