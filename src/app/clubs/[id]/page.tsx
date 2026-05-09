@@ -9,6 +9,7 @@ import { supabase } from '@/lib/db/supabase';
 import BottomNav from '@/components/BottomNav';
 import ClubGarage from '@/components/clubs/ClubGarage';
 import { useToast } from '@/components/Toast';
+import { ensureStoragePublicObjectUrl } from '@/lib/supabase/storagePublicUrl';
 
 interface Club {
   id: string;
@@ -41,22 +42,29 @@ interface Member {
   user?: { name: string; avatar_url: string };
 }
 
+function storageAwareClubImageUrl(raw: unknown): string | null {
+  if (typeof raw !== 'string' || !raw.trim()) return null;
+  const s = raw.trim();
+  return ensureStoragePublicObjectUrl(s) || s;
+}
+
 function normalizeClubRow(data: Record<string, unknown>): Club {
   const web = data.website ?? data.website_url;
   const ig = data.instagram ?? data.instagram_url;
+  const bannerRaw =
+    typeof data.banner_image === 'string' && data.banner_image.trim()
+      ? data.banner_image.trim()
+      : null;
   return {
     id: String(data.id ?? ''),
     name: String(data.name ?? ''),
     slug: String(data.slug ?? ''),
-    logo: (data.logo as string | null) ?? null,
+    logo: storageAwareClubImageUrl(data.logo),
     description: String(data.description ?? ''),
     location: String(data.location ?? ''),
     website: typeof web === 'string' && web.trim() ? web.trim() : null,
     instagram: typeof ig === 'string' && ig.trim() ? ig.trim() : null,
-    banner_image:
-      typeof data.banner_image === 'string' && data.banner_image.trim()
-        ? data.banner_image.trim()
-        : null,
+    banner_image: bannerRaw ? storageAwareClubImageUrl(bannerRaw) : null,
     verified: Boolean(data.verified),
     premium: Boolean(data.premium),
     owner_id: String(data.owner_id ?? ''),
@@ -419,6 +427,15 @@ export default function ClubDetailPage() {
   const ig = instagramHref(club.instagram);
   const web = websiteHref(club.website);
 
+  const approvedMembers = useMemo(
+    () =>
+      members.filter((m) => {
+        const s = String(m.status ?? 'approved').trim().toLowerCase();
+        return s === 'approved';
+      }),
+    [members]
+  );
+
   return (
     <div className="min-h-screen bg-background pb-24">
       {club.banner_image ? (
@@ -700,13 +717,13 @@ export default function ClubDetailPage() {
 
         <div className="rounded-xl border border-border bg-card overflow-hidden">
           <div className="p-4 border-b border-border">
-            <h2 className="text-lg font-semibold text-foreground">Members ({members.length})</h2>
+            <h2 className="text-lg font-semibold text-foreground">Members ({approvedMembers.length})</h2>
           </div>
 
           <div className="p-4">
-            {members.length > 0 ? (
+            {approvedMembers.length > 0 ? (
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {members.map((member) => (
+                {approvedMembers.map((member) => (
                   <div key={member.id} className="flex items-center space-x-2 p-2 bg-muted rounded-lg border border-border">
                     <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-primary-foreground font-bold shrink-0">
                       {member.user?.name?.charAt(0) || '?'}

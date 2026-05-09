@@ -1388,7 +1388,11 @@ export default function RunDetailPage() {
           <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-zinc-800/60">
             <div className="flex items-center gap-2 min-w-0">
               {run.club?.logo ? (
-                <img src={run.club.logo} alt={run.club.name} className="w-7 h-7 rounded-full object-cover flex-shrink-0" />
+                <img
+                  src={ensureStoragePublicObjectUrl(run.club.logo) || run.club.logo}
+                  alt={run.club.name}
+                  className="w-7 h-7 rounded-full object-cover flex-shrink-0"
+                />
               ) : (
                 <div className="w-7 h-7 rounded-full bg-orange-500/20 flex items-center justify-center flex-shrink-0">
                   <Shield size={13} className="text-orange-500" />
@@ -1436,7 +1440,11 @@ export default function RunDetailPage() {
                   className="flex items-center gap-2.5 min-w-0 group"
                 >
                   {run.club.logo ? (
-                    <img src={run.club.logo} alt="" className="w-9 h-9 rounded-full object-cover flex-shrink-0 border border-zinc-700" />
+                    <img
+                      src={ensureStoragePublicObjectUrl(run.club.logo) || run.club.logo}
+                      alt=""
+                      className="w-9 h-9 rounded-full object-cover flex-shrink-0 border border-zinc-700"
+                    />
                   ) : (
                     <div className="w-9 h-9 rounded-full bg-orange-500/15 flex items-center justify-center flex-shrink-0 border border-orange-500/30">
                       <Building2 size={16} className="text-orange-400" />

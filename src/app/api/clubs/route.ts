@@ -27,7 +27,27 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 400 })
     }
 
-    return NextResponse.json(data)
+    const clubs = (data ?? []) as { id: string }[]
+    const ids = [...new Set(clubs.map((c) => String(c.id)).filter(Boolean))]
+    const countByClub: Record<string, number> = {}
+    if (ids.length) {
+      const { data: memRows } = await supabase
+        .from('club_members')
+        .select('club_id')
+        .eq('status', 'approved')
+        .in('club_id', ids)
+      for (const row of memRows ?? []) {
+        const cid = String((row as { club_id: string }).club_id)
+        countByClub[cid] = (countByClub[cid] ?? 0) + 1
+      }
+    }
+
+    const enriched = clubs.map((c) => ({
+      ...(c as Record<string, unknown>),
+      member_count: countByClub[String(c.id)] ?? 0,
+    }))
+
+    return NextResponse.json(enriched)
   } catch (error) {
     console.error('Clubs GET error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

@@ -20,7 +20,41 @@ import Link from 'next/link';
 import BottomNav from '@/components/BottomNav';
 import { ClubListSkeleton } from '@/components/SkeletonLoader';
 import { supabase, isSupabaseConfigured } from '@/lib/db/supabase';
+import { ensureStoragePublicObjectUrl } from '@/lib/supabase/storagePublicUrl';
 import { useAuth } from '@/context/AuthContext';
+
+function storageAwareClubImageUrl(raw: unknown): string | undefined {
+  if (typeof raw !== 'string' || !raw.trim()) return undefined;
+  const s = raw.trim();
+  return ensureStoragePublicObjectUrl(s) || s;
+}
+
+async function fetchApprovedMemberCountsForClubs(
+  clubIds: string[]
+): Promise<Record<string, number>> {
+  const countByClub: Record<string, number> = {};
+  const ids = [...new Set(clubIds.filter(Boolean))];
+  if (!ids.length || !supabase) return countByClub;
+
+  const chunkSize = 120;
+  for (let i = 0; i < ids.length; i += chunkSize) {
+    const chunk = ids.slice(i, i + chunkSize);
+    const { data, error } = await supabase
+      .from('club_members')
+      .select('club_id')
+      .eq('status', 'approved')
+      .in('club_id', chunk);
+    if (error) {
+      console.error('Approved member counts:', error);
+      continue;
+    }
+    for (const row of data ?? []) {
+      const id = String((row as { club_id: string }).club_id);
+      countByClub[id] = (countByClub[id] ?? 0) + 1;
+    }
+  }
+  return countByClub;
+}
 
 interface Club {
   id: string;
@@ -56,8 +90,8 @@ function normalizeClubFromDb(row: Record<string, unknown>): Club {
     id: String(row.id ?? ''),
     name: String(row.name ?? 'Club'),
     slug: String(row.slug ?? ''),
-    logo: row.logo as string | undefined,
-    banner_image: row.banner_image as string | undefined,
+    logo: storageAwareClubImageUrl(row.logo),
+    banner_image: storageAwareClubImageUrl(row.banner_image),
     description: String(row.description ?? ''),
     location: String(row.location ?? ''),
     region: String(row.region ?? 'Other'),
@@ -257,8 +291,16 @@ export default function ClubsPage() {
 
         if (error) throw error;
         setFetchFailed(false);
+        const rows = (data ?? []) as Record<string, unknown>[];
+        const ids = rows.map((r) => String(r.id ?? '')).filter(Boolean);
+        const countByClub = await fetchApprovedMemberCountsForClubs(ids);
         setClubs(
-          data?.length ? (data as Record<string, unknown>[]).map((row) => normalizeClubFromDb(row)) : []
+          rows.length
+            ? rows.map((row) => {
+                const c = normalizeClubFromDb(row);
+                return { ...c, member_count: countByClub[c.id] ?? c.member_count ?? 0 };
+              })
+            : []
         );
       } catch (err) {
         console.error('Error fetching clubs:', err);
