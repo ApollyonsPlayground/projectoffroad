@@ -6,7 +6,7 @@
  * Requests browser geolocation once for "you are here" + a control to recenter.
  */
 
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import L from 'leaflet';
 import { MapContainer, TileLayer, CircleMarker, Popup, useMap, ZoomControl } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -50,44 +50,6 @@ function AutoGeolocate({
     );
   }, [onLocated]);
   return null;
-}
-
-function MapLocateToolbar({
-  userPos,
-  setUserPos,
-}: {
-  userPos: [number, number] | null;
-  setUserPos: (p: [number, number] | null) => void;
-}) {
-  const map = useMap();
-
-  const locate = useCallback(() => {
-    if (!navigator.geolocation) return;
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const next: [number, number] = [pos.coords.latitude, pos.coords.longitude];
-        setUserPos(next);
-        map.setView(next, Math.max(map.getZoom(), 11));
-      },
-      () => {},
-      { enableHighAccuracy: true, timeout: 15_000, maximumAge: 0 }
-    );
-  }, [map, setUserPos]);
-
-  return (
-    <div
-      className="leaflet-top leaflet-right leaflet-control"
-      style={{ marginTop: 12, marginRight: 12 }}
-    >
-      <button
-        type="button"
-        onClick={locate}
-        className="rounded-lg border border-zinc-600 bg-zinc-900/95 px-3 py-2 text-[11px] font-bold uppercase tracking-wide text-white shadow-lg backdrop-blur-sm hover:bg-zinc-800"
-      >
-        {userPos ? 'Center on me' : 'Use my location'}
-      </button>
-    </div>
-  );
 }
 
 /** Leaflet often mounts before the tab animation finishes — tiles/markers look broken until resize. */
@@ -144,10 +106,25 @@ function FitPlottedBounds({
 }
 
 export default function TrailMap({ trails, listFilteredCount }: TrailMapProps) {
+  const mapRef = useRef<L.Map | null>(null);
   const [userPos, setUserPos] = useState<[number, number] | null>(null);
 
   const onLocated = useCallback((p: [number, number]) => {
     setUserPos(p);
+  }, []);
+
+  const locateUser = useCallback(() => {
+    const map = mapRef.current;
+    if (!map || typeof navigator === 'undefined' || !navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const next: [number, number] = [pos.coords.latitude, pos.coords.longitude];
+        setUserPos(next);
+        map.setView(next, Math.max(map.getZoom(), 11));
+      },
+      () => {},
+      { enableHighAccuracy: true, timeout: 15_000, maximumAge: 0 }
+    );
   }, []);
 
   const { plotted, plottedPoints, plottedFitSignature } = useMemo(() => {
@@ -172,6 +149,7 @@ export default function TrailMap({ trails, listFilteredCount }: TrailMapProps) {
   return (
     <div className="relative h-full w-full rounded-xl overflow-hidden border border-zinc-800">
       <MapContainer
+        ref={mapRef}
         center={center}
         zoom={7}
         style={{ height: '100%', width: '100%', background: '#18181b' }}
@@ -190,7 +168,6 @@ export default function TrailMap({ trails, listFilteredCount }: TrailMapProps) {
         <FitPlottedBounds points={plottedPoints} signature={plottedFitSignature} />
 
         <AutoGeolocate onLocated={onLocated} />
-        <MapLocateToolbar userPos={userPos} setUserPos={setUserPos} />
 
         {userPos ? (
           <CircleMarker
@@ -321,6 +298,16 @@ export default function TrailMap({ trails, listFilteredCount }: TrailMapProps) {
           );
         })}
       </MapContainer>
+
+      <div className="pointer-events-auto absolute right-3 top-3 z-[5000]">
+        <button
+          type="button"
+          onClick={locateUser}
+          className="rounded-lg border border-zinc-600 bg-zinc-900/95 px-3 py-2 text-[11px] font-bold uppercase tracking-wide text-white shadow-lg backdrop-blur-sm hover:bg-zinc-800"
+        >
+          {userPos ? 'Center on me' : 'Use my location'}
+        </button>
+      </div>
 
       <div
         style={{
