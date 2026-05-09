@@ -8,6 +8,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { StoryWatchModal, type WatchStoryRow, type StoryReelBucket } from '@/components/stories/StoryWatchModal';
 import { resolvePublicDisplayName } from '@/lib/profileDisplay';
 import { useToast } from '@/components/Toast';
+import { isLimitedMediaDevice, resizeImageFileToJpegBlob } from '@/lib/media/mobileSafeCapture';
 
 type ProfileLite = {
   id: string;
@@ -150,13 +151,33 @@ export function FollowingStoriesStrip({
       return;
     }
 
-    const ext = (file.name.split('.').pop() || (mediaType === 'video' ? 'mp4' : 'jpg')).toLowerCase().slice(0, 8);
-    const path = `${user.id}/${crypto.randomUUID()}.${ext}`;
+    let path = '';
+    let uploadBody: Blob | File = file;
+    let uploadMime = mime || file.type;
+
+    if (mediaType === 'image') {
+      const maxEdge = isLimitedMediaDevice() ? 1400 : 2200;
+      try {
+        uploadBody = await resizeImageFileToJpegBlob(file, maxEdge, 0.88);
+        uploadMime = 'image/jpeg';
+        path = `${user.id}/${crypto.randomUUID()}.jpg`;
+      } catch {
+        const ext = (file.name.split('.').pop() || 'jpg').toLowerCase().slice(0, 8);
+        path = `${user.id}/${crypto.randomUUID()}.${ext}`;
+        uploadBody = file;
+        uploadMime = mime || file.type;
+      }
+    } else {
+      const ext = (file.name.split('.').pop() || 'mp4').toLowerCase().slice(0, 8);
+      path = `${user.id}/${crypto.randomUUID()}.${ext}`;
+      uploadBody = file;
+      uploadMime = mime || file.type;
+    }
 
     setPostingStory(true);
     try {
-      const { error: upErr } = await supabaseClient.storage.from('story-media').upload(path, file, {
-        contentType: mime || undefined,
+      const { error: upErr } = await supabaseClient.storage.from('story-media').upload(path, uploadBody, {
+        contentType: uploadMime || undefined,
         upsert: false,
       });
       if (upErr) throw upErr;

@@ -48,6 +48,11 @@ import {
   snapshotPublicIdentity,
 } from '@/lib/profileDisplay';
 import { ensureStoragePublicObjectUrl } from '@/lib/supabase/storagePublicUrl';
+import {
+  captureVideoFrameScaledDataUrl,
+  isLimitedMediaDevice,
+  resizeImageFileToJpegBlob,
+} from '@/lib/media/mobileSafeCapture';
 
 // ─── NewPostDrawer ─────────────────────────────────────────────────────────────
 
@@ -84,43 +89,6 @@ function NewPostDrawer({ open, onClose, onPosted }: {
     return () => { document.body.style.overflow = ''; };
   }, [open]);
 
-  async function captureVideoFrameDataUrl(file: File, timeSeconds: number): Promise<string> {
-    const url = URL.createObjectURL(file);
-    try {
-      const v = document.createElement('video');
-      v.preload = 'metadata';
-      v.muted = true;
-      v.playsInline = true;
-      v.src = url;
-
-      await new Promise<void>((resolve, reject) => {
-        const onLoaded = () => resolve();
-        const onErr = () => reject(new Error('Could not read video'));
-        v.addEventListener('loadedmetadata', onLoaded, { once: true });
-        v.addEventListener('error', onErr, { once: true });
-      });
-
-      const target = Math.max(0, Math.min(timeSeconds, Math.max(0, (v.duration || 0) - 0.1)));
-      v.currentTime = target;
-      await new Promise<void>((resolve, reject) => {
-        const onSeeked = () => resolve();
-        const onErr = () => reject(new Error('Could not seek video'));
-        v.addEventListener('seeked', onSeeked, { once: true });
-        v.addEventListener('error', onErr, { once: true });
-      });
-
-      const canvas = document.createElement('canvas');
-      canvas.width = Math.max(1, v.videoWidth || 1);
-      canvas.height = Math.max(1, v.videoHeight || 1);
-      const ctx = canvas.getContext('2d');
-      if (!ctx) throw new Error('Canvas unavailable');
-      ctx.drawImage(v, 0, 0, canvas.width, canvas.height);
-      return canvas.toDataURL('image/jpeg', 0.86);
-    } finally {
-      URL.revokeObjectURL(url);
-    }
-  }
-
   function dataUrlToBlob(dataUrl: string): Blob {
     const [head, body] = dataUrl.split(',');
     const mime = /data:(.*?);base64/.exec(head)?.[1] ?? 'image/jpeg';
@@ -151,19 +119,38 @@ function NewPostDrawer({ open, onClose, onPosted }: {
     }
 
     try {
-      const url = URL.createObjectURL(file);
+      const blobUrl = URL.createObjectURL(file);
       const v = document.createElement('video');
       v.preload = 'metadata';
-      v.src = url;
+      v.muted = true;
+      v.playsInline = true;
+      v.setAttribute('playsinline', 'true');
+      v.setAttribute('webkit-playsinline', 'true');
+      v.src = blobUrl;
       await new Promise<void>((resolve, reject) => {
-        const onLoaded = () => resolve();
-        const onErr = () => reject(new Error('Could not read video'));
+        const timer = window.setTimeout(() => reject(new Error('timeout')), 22_000);
+        const onLoaded = () => {
+          window.clearTimeout(timer);
+          resolve();
+        };
+        const onErr = () => {
+          window.clearTimeout(timer);
+          reject(new Error('Could not read video'));
+        };
         v.addEventListener('loadedmetadata', onLoaded, { once: true });
         v.addEventListener('error', onErr, { once: true });
       });
-      URL.revokeObjectURL(url);
+      const durationSec = Number.isFinite(v.duration) ? v.duration : NaN;
+      try {
+        v.pause();
+        v.removeAttribute('src');
+        v.load();
+      } catch {
+        /* ignore */
+      }
+      URL.revokeObjectURL(blobUrl);
 
-      if (Number.isFinite(v.duration) && v.duration > 30) {
+      if (Number.isFinite(durationSec) && durationSec > 30) {
         showToast('Videos must be 30 seconds or shorter', 'error');
         setMediaFile(null);
         setImagePreview(null);
@@ -171,7 +158,7 @@ function NewPostDrawer({ open, onClose, onPosted }: {
         return;
       }
 
-      const frame = await captureVideoFrameDataUrl(file, 0.1);
+      const frame = await captureVideoFrameScaledDataUrl(file, 0.12);
       setImagePreview(frame);
     } catch {
       showToast('Could not read video', 'error');
@@ -207,11 +194,24 @@ function NewPostDrawer({ open, onClose, onPosted }: {
         const isVideo = mediaFile.type.startsWith('video/');
         const id = `${Date.now()}`;
         if (!isVideo) {
-          const ext = mediaFile.name.split('.').pop();
+          let uploadBlob: Blob = mediaFile;
+          let contentType = mediaFile.type || 'application/octet-stream';
+          let ext = mediaFile.name.split('.').pop() || 'jpg';
+          if (isLimitedMediaDevice() && mediaFile.type.startsWith('image/')) {
+            try {
+              uploadBlob = await resizeImageFileToJpegBlob(mediaFile, 2000, 0.88);
+              contentType = 'image/jpeg';
+              ext = 'jpg';
+            } catch {
+              uploadBlob = mediaFile;
+              contentType = mediaFile.type || 'application/octet-stream';
+              ext = mediaFile.name.split('.').pop() || 'jpg';
+            }
+          }
           const path = `${user.id}/${id}.${ext}`;
           const { error: uploadError } = await supabaseClient.storage
             .from('post-images')
-            .upload(path, mediaFile, { upsert: true });
+            .upload(path, uploadBlob, { upsert: true, contentType });
           if (uploadError) throw uploadError;
           uploadedPath = path;
           const { data: urlData } = supabaseClient.storage.from('post-images').getPublicUrl(path);
@@ -226,7 +226,7 @@ function NewPostDrawer({ open, onClose, onPosted }: {
           if (vErr) throw vErr;
           uploadedVideoPath = videoPath;
 
-          const frame0 = imagePreview ?? (await captureVideoFrameDataUrl(mediaFile, 0.1));
+          const frame0 = imagePreview ?? (await captureVideoFrameScaledDataUrl(mediaFile, 0.12));
           const thumbBlob = dataUrlToBlob(frame0);
 
           const thumbPublicPath = `${user.id}/${id}-thumb.jpg`;
@@ -304,10 +304,62 @@ function NewPostDrawer({ open, onClose, onPosted }: {
         }
 
         if (mediaFile && mediaFile.type.startsWith('video/')) {
-          // Basic frame sampling moderation (best-effort).
-          const times = [10, 25];
-          for (const t of times) {
-            const frame = await captureVideoFrameDataUrl(mediaFile, t);
+          // Basic frame sampling moderation — scaled frames + fewer seeks on iOS (WKWebView OOM).
+          let probeDur = 30;
+          try {
+            const u = URL.createObjectURL(mediaFile);
+            const vv = document.createElement('video');
+            vv.preload = 'metadata';
+            vv.muted = true;
+            vv.playsInline = true;
+            vv.setAttribute('playsinline', 'true');
+            vv.setAttribute('webkit-playsinline', 'true');
+            vv.src = u;
+            await new Promise<void>((resolve, reject) => {
+              const timer = window.setTimeout(() => reject(new Error('timeout')), 22_000);
+              vv.addEventListener(
+                'loadedmetadata',
+                () => {
+                  window.clearTimeout(timer);
+                  resolve();
+                },
+                { once: true }
+              );
+              vv.addEventListener(
+                'error',
+                () => {
+                  window.clearTimeout(timer);
+                  reject(new Error('bad'));
+                },
+                { once: true }
+              );
+            });
+            probeDur = Number.isFinite(vv.duration) ? vv.duration : 30;
+            try {
+              vv.pause();
+              vv.removeAttribute('src');
+              vv.load();
+            } catch {
+              /* ignore */
+            }
+            URL.revokeObjectURL(u);
+          } catch {
+            probeDur = 30;
+          }
+
+          const rawSamples = isLimitedMediaDevice()
+            ? [Math.max(0.25, probeDur * 0.5)]
+            : [10, 25];
+          const sampleTimes = rawSamples.map((t) =>
+            Math.min(Math.max(0.15, t), Math.max(0.2, probeDur - 0.1))
+          );
+
+          for (let i = 0; i < sampleTimes.length; i++) {
+            const t = sampleTimes[i];
+            if (isLimitedMediaDevice() && i > 0) {
+              await new Promise((r) => window.setTimeout(r, 120));
+            }
+            const frame = await captureVideoFrameScaledDataUrl(mediaFile, t);
             const blob = dataUrlToBlob(frame);
             const tmpPath = `${user.id}/moderation/${Date.now()}-${Math.round(t * 1000)}.jpg`;
             const { error: upErr } = await supabaseClient.storage
