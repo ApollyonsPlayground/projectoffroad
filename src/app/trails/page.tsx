@@ -31,6 +31,7 @@ import {
   type DifficultyFilter,
 } from '@/lib/trails/mapDbTrail';
 import { applyCatalogTrailLinks } from '@/lib/trails/staticTrailLinks';
+import { fetchAllTrailRows } from '@/lib/trails/fetchTrailsPaginated';
 import { readTrailsCache, writeTrailsCache } from '@/lib/trails/offlineCache';
 import { useSavedTrailIds } from '@/lib/hooks/useSavedTrailIds';
 
@@ -282,20 +283,22 @@ export default function TrailsPage() {
 
       if (tryOfflineCache()) return;
 
-      const { data, error } = await supabaseClient.from('trails').select('*');
-
-      if (cancelled) return;
-
-      if (error) {
-        console.error('[Trail Explorer]', error);
+      let rows: Record<string, unknown>[] = [];
+      try {
+        rows = await fetchAllTrailRows(supabaseClient);
+      } catch (err: unknown) {
+        const message =
+          err instanceof Error ? err.message : typeof err === 'string' ? err : 'Failed to load trails';
+        console.error('[Trail Explorer]', err);
+        if (cancelled) return;
         if (tryOfflineCache()) return;
-        setFetchError(error.message);
+        setFetchError(message);
         setDbTrails([]);
         setIsLoading(false);
         return;
       }
 
-      const rows = (data ?? []) as Record<string, unknown>[];
+      if (cancelled) return;
       const mapped = sortTrailsByName(rows.map((r) => applyCatalogTrailLinks(mapDbTrailRow(r))));
       setDbTrails(mapped);
       writeTrailsCache(mapped);
@@ -458,7 +461,7 @@ export default function TrailsPage() {
               style={{ height: 'calc(100dvh - 168px)' }}
               className="relative"
             >
-              <TrailMap trails={filteredTrails} />
+              <TrailMap trails={filteredTrails} totalInView={filteredTrails.length} />
             </motion.div>
           ) : isLoading ? (
             <motion.div

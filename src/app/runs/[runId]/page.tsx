@@ -31,6 +31,7 @@ import {
   ExternalLink,
   Radio,
   StickyNote,
+  ImageIcon,
 } from 'lucide-react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
@@ -41,6 +42,8 @@ import { snapshotPublicIdentity } from '@/lib/profileDisplay';
 import type { RunLiveMapParticipant } from '@/components/RunLiveMap';
 import { RUN_GROUP_CHAT_PRESETS } from '@/lib/runs/chatPresets';
 import { mapDbTrailRow, coordsFromRow } from '@/lib/trails/mapDbTrail';
+import { resizeImageFileToJpegBlob, isLimitedMediaDevice } from '@/lib/media/mobileSafeCapture';
+import { ensureStoragePublicObjectUrl } from '@/lib/supabase/storagePublicUrl';
 
 const RunLiveMap = dynamic(() => import('@/components/RunLiveMap'), {
   ssr: false,
@@ -263,6 +266,9 @@ export default function RunDetailPage() {
   const [editMapCenter, setEditMapCenter] = useState<[number, number]>([34.05, -116.8]);
   const [editZoom, setEditZoom] = useState(11);
   const [editPinTouched, setEditPinTouched] = useState(false);
+  const [editFlyerFile, setEditFlyerFile] = useState<File | null>(null);
+  const [editFlyerPreviewUrl, setEditFlyerPreviewUrl] = useState('');
+  const [editFlyerRemoved, setEditFlyerRemoved] = useState(false);
 
   const [chatMessages, setChatMessages] = useState<RunChatMessage[]>([]);
   const [chatInput, setChatInput] = useState('');
@@ -444,6 +450,29 @@ export default function RunDetailPage() {
     }
     setEditPinTouched(false);
   }, [run?.id]);
+
+  useEffect(() => {
+    if (!editFlyerFile) {
+      setEditFlyerPreviewUrl((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return '';
+      });
+      return;
+    }
+    const url = URL.createObjectURL(editFlyerFile);
+    setEditFlyerPreviewUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return url;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mirror HostRunWizard: only react to file swaps
+  }, [editFlyerFile]);
+
+  useEffect(() => {
+    if (!editOpen) {
+      setEditFlyerRemoved(false);
+      setEditFlyerFile(null);
+    }
+  }, [editOpen]);
 
   useEffect(() => {
     reflectionTouchedRef.current = false;
@@ -781,6 +810,39 @@ export default function RunDetailPage() {
 
       const { error } = await supabaseClient.from('runs').update(patch).eq('id', run.id);
       if (error) throw error;
+
+      if (editFlyerFile) {
+        try {
+          const maxEdge = isLimitedMediaDevice() ? 1400 : 2200;
+          const blob = await resizeImageFileToJpegBlob(editFlyerFile, maxEdge, 0.88);
+          const path = `${run.id}/${crypto.randomUUID()}.jpg`;
+          const { error: upErr } = await supabaseClient.storage
+            .from('run-flyers')
+            .upload(path, blob, { contentType: 'image/jpeg', upsert: false });
+          if (upErr) throw upErr;
+          const { data: pub } = supabaseClient.storage.from('run-flyers').getPublicUrl(path);
+          const publicUrl = pub?.publicUrl ? String(pub.publicUrl) : '';
+          if (publicUrl) {
+            const { error: flyerErr } = await supabaseClient
+              .from('runs')
+              .update({ flyer_image: publicUrl })
+              .eq('id', run.id);
+            if (flyerErr) throw flyerErr;
+          }
+        } catch (fe) {
+          showToast(
+            fe instanceof Error ? fe.message : 'Flyer upload failed — other details were saved.',
+            'info'
+          );
+        }
+      } else if (editFlyerRemoved) {
+        const { error: flyerErr } = await supabaseClient
+          .from('runs')
+          .update({ flyer_image: null })
+          .eq('id', run.id);
+        if (flyerErr) throw flyerErr;
+      }
+
       showToast('Run updated', 'success');
       setEditOpen(false);
       await fetchDetail();
@@ -1096,6 +1158,81 @@ export default function RunDetailPage() {
 
                   <div>
                     <label className="block text-[12px] font-semibold text-zinc-400 uppercase tracking-wider mb-1.5">
+                      <ImageIcon size={12} className="inline mr-1 align-text-bottom text-zinc-400" />
+                      Run flyer / poster (optional)
+                    </label>
+                    <div className="space-y-2">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        disabled={editSaving}
+                        className="w-full min-h-[44px] bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-[14px] text-zinc-300 file:mr-3 file:rounded-lg file:border-0 file:bg-zinc-800 file:px-3 file:py-1.5 file:text-[13px] file:text-white"
+                        onChange={(e) => {
+                          const f = e.target.files?.[0] ?? null;
+                          if (f && !f.type.startsWith('image/')) {
+                            showToast('Use an image file', 'info');
+                            e.target.value = '';
+                            return;
+                          }
+                          if (f && f.size > 5 * 1024 * 1024) {
+                            showToast('Image must be under 5 MB', 'info');
+                            e.target.value = '';
+                            return;
+                          }
+                          setEditFlyerRemoved(false);
+                          setEditFlyerFile(f);
+                        }}
+                      />
+                      {editFlyerPreviewUrl ? (
+                        <div className="rounded-xl border border-zinc-800 bg-zinc-950 overflow-hidden">
+                          <img
+                            src={editFlyerPreviewUrl}
+                            alt="Flyer preview"
+                            className="w-full max-h-[280px] object-cover"
+                          />
+                          <button
+                            type="button"
+                            disabled={editSaving}
+                            onClick={() => setEditFlyerFile(null)}
+                            className="w-full flex items-center justify-center gap-2 py-2 text-[12px] font-bold text-zinc-300 hover:text-white border-t border-zinc-800 bg-zinc-950/40 disabled:opacity-50"
+                          >
+                            <X size={14} />
+                            Remove new flyer
+                          </button>
+                        </div>
+                      ) : run.flyer_image && String(run.flyer_image).trim() && !editFlyerRemoved ? (
+                        <div className="rounded-xl border border-zinc-800 bg-zinc-950 overflow-hidden">
+                          <img
+                            src={
+                              ensureStoragePublicObjectUrl(String(run.flyer_image)) ||
+                              String(run.flyer_image)
+                            }
+                            alt="Current flyer"
+                            className="w-full max-h-[280px] object-cover"
+                          />
+                          <button
+                            type="button"
+                            disabled={editSaving}
+                            onClick={() => {
+                              setEditFlyerRemoved(true);
+                              setEditFlyerFile(null);
+                            }}
+                            className="w-full flex items-center justify-center gap-2 py-2 text-[12px] font-bold text-zinc-300 hover:text-white border-t border-zinc-800 bg-zinc-950/40 disabled:opacity-50"
+                          >
+                            <X size={14} />
+                            Remove flyer
+                          </button>
+                        </div>
+                      ) : (
+                        <p className="text-[12px] text-zinc-500">
+                          Adds a poster image to the run card and run detail page.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[12px] font-semibold text-zinc-400 uppercase tracking-wider mb-1.5">
                       Date & time
                     </label>
                     <input
@@ -1235,7 +1372,9 @@ export default function RunDetailPage() {
           {run.flyer_image && String(run.flyer_image).trim() ? (
             <div className="relative h-[220px] bg-zinc-950">
               <img
-                src={String(run.flyer_image)}
+                src={
+                  ensureStoragePublicObjectUrl(String(run.flyer_image)) || String(run.flyer_image)
+                }
                 alt=""
                 className="absolute inset-0 w-full h-full object-cover"
                 loading="lazy"

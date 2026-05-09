@@ -27,6 +27,9 @@ export interface ExplorerTrail {
   rigRequirements?: string;
   tags?: string[];
   coordinates?: string;
+  /** Numeric coords from DB when present (Trail Map pins). */
+  mapLat?: number;
+  mapLng?: number;
   status?: string;
   /** Editorial / verified listing (from `is_verified` column) */
   isVerified: boolean;
@@ -171,6 +174,7 @@ export function mapDbTrailRow(row: Record<string, unknown>): ExplorerTrail {
     rigRequirements: rigRequirements || undefined,
     tags,
     coordinates,
+    ...(coords ? { mapLat: coords.lat, mapLng: coords.lng } : {}),
     status,
     isVerified,
   };

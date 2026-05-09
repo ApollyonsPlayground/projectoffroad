@@ -20,6 +20,7 @@ import {
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/Toast';
 import { mapDbTrailRow, coordsFromRow } from '@/lib/trails/mapDbTrail';
+import { fetchAllTrailRows } from '@/lib/trails/fetchTrailsPaginated';
 import { isLimitedMediaDevice, resizeImageFileToJpegBlob } from '@/lib/media/mobileSafeCapture';
 
 const MeetupMapPicker = dynamic(() => import('@/components/runs/MeetupMapPicker'), {
@@ -309,7 +310,7 @@ export function HostRunWizard({ variant = 'drawer', onSuccess, onCancel }: Props
     setLoadingDropdowns(true);
 
     void (async () => {
-      const [{ data: roleRow }, membersRes, trailsRes] = await Promise.all([
+      const [{ data: roleRow }, membersRes] = await Promise.all([
         supabaseClient.from('users').select('role').eq('id', user.id).maybeSingle(),
         supabaseClient
           .from('club_members')
@@ -317,10 +318,18 @@ export function HostRunWizard({ variant = 'drawer', onSuccess, onCancel }: Props
           .eq('user_id', user.id)
           .eq('status', 'approved')
           .in('role', ['owner', 'admin', 'officer', 'leader']),
-        supabaseClient.from('trails').select('*'),
       ]);
 
       if (cancelled) return;
+
+      let trailRows: Record<string, unknown>[] = [];
+      let trailsFetchFailed = false;
+      try {
+        trailRows = await fetchAllTrailRows(supabaseClient);
+      } catch (trailsErr) {
+        trailsFetchFailed = true;
+        console.error('[HostRunWizard] trails fetch', trailsErr);
+      }
 
       const staff = ['owner', 'admin'].includes(String(roleRow?.role ?? '').toLowerCase());
       setStaffFromDb(staff);
@@ -359,14 +368,12 @@ export function HostRunWizard({ variant = 'drawer', onSuccess, onCancel }: Props
       }
       setStaffDirectoryClubs(dirList);
 
-      if (trailsRes.error) {
-        console.error('[HostRunWizard] trails fetch', trailsRes.error);
+      if (trailsFetchFailed) {
         setTrails([]);
         showToast('Could not load trails — check connection or try Trail Explorer', 'error');
       } else {
-        const rows = (trailsRes.data ?? []) as Record<string, unknown>[];
         setTrails(
-          rows
+          trailRows
             .map(trailRowToPickerOption)
             .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }))
         );
