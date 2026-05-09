@@ -4,11 +4,12 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import BottomNav from '@/components/BottomNav';
+import { resolveLeaderboardDisplayName } from '@/lib/profileDisplay';
 
 interface LeaderboardEntry {
   rank: number;
   user_id: string;
-  name: string;
+  displayName: string;
   avatar_url: string | null;
   runs_attended: number;
 }
@@ -36,7 +37,7 @@ export default function LeaderboardPage() {
 
       const { data: users } = await supabaseClient
         .from('users')
-        .select('id, name, avatar_url, role')
+        .select('id, name, avatar_url, role, username, hide_display_name')
         .order('created_at', { ascending: false })
         .limit(50);
 
@@ -45,8 +46,8 @@ export default function LeaderboardPage() {
           if (excludedIds.has(String(u.id))) return false;
           const role = String((u as { role?: unknown }).role ?? '').toLowerCase().trim();
           if (role === 'play_review' || role === 'review') return false;
-          const name = String(u.name ?? '').toLowerCase();
-          if (name.includes('play review') || name.includes('reviewer')) return false;
+          const legalName = String(u.name ?? '').toLowerCase();
+          if (legalName.includes('play review') || legalName.includes('reviewer')) return false;
           return true;
         });
 
@@ -58,11 +59,23 @@ export default function LeaderboardPage() {
               .eq('user_id', u.id)
               .eq('rsvp_status', 'going');
 
+            const row = u as {
+              id: string;
+              name?: string | null;
+              avatar_url?: string | null;
+              username?: string | null;
+              hide_display_name?: boolean | null;
+            };
             return {
               rank: index + 1,
-              user_id: u.id,
-              name: u.name,
-              avatar_url: u.avatar_url,
+              user_id: row.id,
+              displayName: resolveLeaderboardDisplayName({
+                id: row.id,
+                name: row.name ?? null,
+                username: row.username ?? null,
+                hide_display_name: row.hide_display_name ?? null,
+              }),
+              avatar_url: row.avatar_url ?? null,
               runs_attended: count || 0,
             };
           }),
@@ -127,11 +140,11 @@ export default function LeaderboardPage() {
                   </div>
 
                   <div className="w-12 h-12 bg-amber-500 rounded-full flex items-center justify-center text-black font-bold text-xl ml-4 overflow-hidden">
-                    {entry.name?.charAt(0) || '?'}
+                    {(entry.displayName.replace(/^@/, '').charAt(0) || '?').toUpperCase()}
                   </div>
 
                   <div className="flex-1 ml-4 min-w-0">
-                    <div className="text-white font-semibold truncate">{entry.name}</div>
+                    <div className="text-white font-semibold truncate">{entry.displayName}</div>
                     <div className="text-gray-400 text-sm">{entry.runs_attended} run RSVPs</div>
                   </div>
 

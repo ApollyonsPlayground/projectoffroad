@@ -30,6 +30,16 @@ export function validateUsernameInput(raw: string): { ok: true; value: string | 
   return { ok: true, value: s };
 }
 
+/**
+ * Leaderboard & competitive surfaces: prefer @username (trail identity like my_z71_adventures),
+ * not legal/Google profile name, when a handle exists.
+ */
+export function resolveLeaderboardDisplayName(p: ProfileIdentityFields | null | undefined): string {
+  const handle = String(p?.username ?? '').trim().toLowerCase();
+  if (handle) return `@${handle}`;
+  return resolvePublicDisplayName(p);
+}
+
 /** What everyone else sees (feed headers, other profiles, search). */
 export function resolvePublicDisplayName(p: ProfileIdentityFields | null | undefined): string {
   const hide = Boolean(p?.hide_display_name);
