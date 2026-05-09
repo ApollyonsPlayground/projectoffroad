@@ -294,26 +294,6 @@ export default function TrailMap({ trails, listFilteredCount }: TrailMapProps) {
                     >
                       View Trail
                     </a>
-                    {trail.mapsUrl ? (
-                      <a
-                        href={trail.mapsUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        style={{
-                          display: 'inline-block',
-                          background: '#27272a',
-                          color: '#e4e4e7',
-                          border: '1px solid #52525b',
-                          borderRadius: '6px',
-                          fontSize: '11px',
-                          fontWeight: 700,
-                          padding: '4px 10px',
-                          textDecoration: 'none',
-                        }}
-                      >
-                        Google Maps
-                      </a>
-                    ) : null}
                     {trail.onxUrl ? (
                       <a
                         href={trail.onxUrl}
@@ -331,7 +311,7 @@ export default function TrailMap({ trails, listFilteredCount }: TrailMapProps) {
                           textDecoration: 'none',
                         }}
                       >
-                        onX trail page
+                        Open in onX
                       </a>
                     ) : null}
                   </div>

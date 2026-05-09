@@ -83,22 +83,13 @@ export default function TrailGrid({ trails, onSelectTrail }: TrailGridProps) {
               ))}
             </div>
 
-            <div className="flex gap-2">
-              <button 
-                onClick={() => onSelectTrail(trail)}
-                className="flex-1 bg-[#2d5a27] text-[#f5f5dc] py-2 px-4 rounded hover:bg-[#1e3d1a] transition-colors text-sm font-medium"
-              >
-                View Trail
-              </button>
-              <a 
-                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(trail.name + ' ' + trail.location)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex-1 bg-[#8b4513] text-[#f5f5dc] py-2 px-4 rounded hover:bg-[#d2691e] transition-colors text-sm font-medium text-center"
-              >
-                Maps
-              </a>
-            </div>
+            <button
+              type="button"
+              onClick={() => onSelectTrail(trail)}
+              className="w-full bg-[#2d5a27] text-[#f5f5dc] py-2 px-4 rounded hover:bg-[#1e3d1a] transition-colors text-sm font-medium"
+            >
+              View Trail
+            </button>
           </div>
         </div>
       ))}

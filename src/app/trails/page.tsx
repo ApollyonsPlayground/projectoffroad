@@ -181,16 +181,6 @@ function TrailCard({ trail, index, isSaved, onToggleSave }: {
 
         {/* Action Buttons */}
         <div className="flex gap-2">
-          <a
-            href={trail.mapsUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(trail.name + ' ' + trail.location)}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center justify-center gap-1.5 px-3 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-sm font-medium transition-colors"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <Map size={15} />
-            Maps
-          </a>
           {trail.onxUrl ? (
             <a
               href={trail.onxUrl}
@@ -200,7 +190,7 @@ function TrailCard({ trail, index, isSaved, onToggleSave }: {
               onClick={(e) => e.stopPropagation()}
             >
               <ExternalLink size={15} />
-              onX
+              Open in onX
             </a>
           ) : (
             <span
@@ -208,7 +198,7 @@ function TrailCard({ trail, index, isSaved, onToggleSave }: {
               title="No onX link for this trail"
             >
               <ExternalLink size={15} />
-              onX
+              Open in onX
             </span>
           )}
           <button

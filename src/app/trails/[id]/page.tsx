@@ -12,7 +12,6 @@ import {
   Truck,
   Tag,
   ExternalLink,
-  Map,
   BookmarkPlus,
   BookmarkCheck,
   Share2,
@@ -584,26 +583,15 @@ export default function TrailDetailPage() {
 
         {/* Action buttons */}
         <div className="px-4 pt-5 space-y-3">
-          {trail.mapsUrl && (
-            <a
-              href={trail.mapsUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 w-full py-3.5 bg-orange-500 hover:bg-orange-600 text-black font-bold text-[15px] rounded-xl transition-colors"
-              onClick={() => showToast('Opening Google Maps', 'info')}
-            >
-              <Map size={18} /> Open in Maps
-            </a>
-          )}
           {trail.onxUrl && (
             <a
               href={trail.onxUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 w-full py-3.5 bg-zinc-900 border border-zinc-700 hover:border-orange-500/40 text-white font-semibold text-[14px] rounded-xl transition-colors"
-              onClick={() => showToast('Opening in onX Off-Road', 'info')}
+              className="flex items-center justify-center gap-2 w-full py-3.5 bg-orange-500 hover:bg-orange-600 text-black font-bold text-[15px] rounded-xl transition-colors"
+              onClick={() => showToast('Opening onX', 'info')}
             >
-              <ExternalLink size={16} /> View on onX Off-Road
+              <ExternalLink size={16} /> Open in onX
             </a>
           )}
           <motion.button

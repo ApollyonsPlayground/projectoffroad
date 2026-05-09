@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from 'react';
-import { MapPin, Navigation, Mountain, Clock, Wrench } from 'lucide-react';
+import { MapPin, Mountain, Clock, Wrench } from 'lucide-react';
 
 interface Trail {
   id: string;
@@ -18,8 +18,7 @@ interface Trail {
   tags: string[];
   description: string;
   image: string;
-  onxUrl: string;
-  mapsUrl: string;
+  onxUrl?: string;
 }
 
 interface TrailCardProps {
@@ -123,19 +122,22 @@ export default function TrailCard({ trail, index }: TrailCardProps) {
           ))}
         </div>
 
-        {/* Navigation Suite */}
-        <div className="grid grid-cols-2 gap-3">
-          <a href={trail.mapsUrl} target="_blank" rel="noopener noreferrer"
-            className="flex-1 py-2 bg-neutral-800 hover:bg-neutral-700 text-center text-neutral-300 text-xs font-bold uppercase border border-neutral-700 transition-colors">
-            Google Maps
-          </a>
-          <a href={trail.onxUrl} target="_blank" rel="noopener noreferrer"
-            className="flex-1 py-2 bg-orange-600 hover:bg-orange-700 text-center text-white text-xs font-bold uppercase transition-colors">
-            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/>
-            </svg>
-            <span className="font-medium">Open in onX</span>
-          </a>
+        {/* Navigation */}
+        <div>
+          {trail.onxUrl ? (
+            <a
+              href={trail.onxUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex w-full items-center justify-center gap-2 py-3 bg-orange-600 hover:bg-orange-700 text-center text-white text-xs font-bold uppercase transition-colors"
+            >
+              <span className="font-medium">Open in onX</span>
+            </a>
+          ) : (
+            <span className="flex w-full items-center justify-center py-3 bg-neutral-800 text-neutral-500 text-xs font-bold uppercase border border-neutral-700 cursor-not-allowed">
+              Open in onX unavailable
+            </span>
+          )}
         </div>
       </div>
     </div>
