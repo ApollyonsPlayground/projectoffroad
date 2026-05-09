@@ -373,6 +373,7 @@ export default function RunsPage() {
           .from('runs')
           .select(sel)
           .eq('status', filter)
+          .eq('visibility', 'public')
           .order('date', { ascending: true });
         if (!res.error) {
           runsData = (res.data ?? []) as unknown as Run[];

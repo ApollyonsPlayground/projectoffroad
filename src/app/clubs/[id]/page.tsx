@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Trash2, Pencil, Loader2 } from 'lucide-react';
+import { Trash2, Pencil, Loader2, MessageCircle } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/db/supabase';
 import BottomNav from '@/components/BottomNav';
@@ -123,6 +123,13 @@ export default function ClubDetailPage() {
     fetchMembers();
   }, [clubId]);
 
+  // After membership status resolves, refetch runs so members can see club-only runs.
+  useEffect(() => {
+    if (!clubId) return;
+    void fetchRuns();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clubId, isMember]);
+
   useEffect(() => {
     if (user && members.length > 0) {
       const myRows = members.filter((m) => m.user_id === user.id);
@@ -159,13 +166,19 @@ export default function ClubDetailPage() {
 
   async function fetchRuns() {
     if (!sb || !clubId) return;
-    const { data } = await sb
+    let q = sb
       .from('runs')
       .select('id, title, date, difficulty')
       .eq('club_id', clubId)
       .eq('status', 'upcoming')
       .order('date', { ascending: true })
       .limit(5);
+
+    if (!isMember) {
+      q = q.eq('visibility', 'public');
+    }
+
+    const { data } = await q
 
     if (data) setRuns(data as Run[]);
   }
@@ -633,7 +646,18 @@ export default function ClubDetailPage() {
 
         <div className="rounded-xl border border-border bg-card overflow-hidden mb-6">
           <div className="p-4 border-b border-border">
-            <h2 className="text-lg font-semibold text-foreground">Upcoming Runs</h2>
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="text-lg font-semibold text-foreground">Upcoming Runs</h2>
+              {isMember && clubId ? (
+                <Link
+                  href={`/clubs/${clubId}/chat/`}
+                  className="inline-flex items-center gap-2 text-sm font-semibold text-orange-400 hover:text-orange-300"
+                >
+                  <MessageCircle size={16} />
+                  Club chat
+                </Link>
+              ) : null}
+            </div>
           </div>
 
           <div className="p-4">

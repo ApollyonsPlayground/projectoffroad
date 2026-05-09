@@ -288,6 +288,7 @@ export function HostRunWizard({ variant = 'drawer', onSuccess, onCancel }: Props
   const [submitting, setSubmitting] = useState(false);
   const [flyerFile, setFlyerFile] = useState<File | null>(null);
   const [flyerPreviewUrl, setFlyerPreviewUrl] = useState('');
+  const [clubOnly, setClubOnly] = useState(false);
   /** Loaded from DB so we do not depend on AuthContext `profile` timing (fixes disabled Club run for admins). */
   const [staffFromDb, setStaffFromDb] = useState(false);
 
@@ -295,6 +296,7 @@ export function HostRunWizard({ variant = 'drawer', onSuccess, onCancel }: Props
   const [meetupLat, setMeetupLat] = useState<number>(DEFAULT_MAP_CENTER[0]);
   const [meetupLng, setMeetupLng] = useState<number>(DEFAULT_MAP_CENTER[1]);
   const [mapZoom, setMapZoom] = useState(9);
+  const [pinTouched, setPinTouched] = useState(false);
   const [addressQuery, setAddressQuery] = useState('');
   const [geocodeLoading, setGeocodeLoading] = useState(false);
   const [geocodeResults, setGeocodeResults] = useState<{ lat: number; lng: number; label: string }[]>(
@@ -545,6 +547,7 @@ export function HostRunWizard({ variant = 'drawer', onSuccess, onCancel }: Props
     setMeetupLng(r.lng);
     setMapZoom(15);
     setGeocodeResults([]);
+    setPinTouched(true);
   };
 
   const runAddressSearch = async () => {
@@ -591,6 +594,11 @@ export function HostRunWizard({ variant = 'drawer', onSuccess, onCancel }: Props
       showToast('Place the staging-area pin on the map', 'error');
       return;
     }
+    // Prevent accidental default pin saves (common source of “staging moved” reports).
+    if (!pinTouched) {
+      showToast('Tap the map or drag the pin to set the staging area', 'error');
+      return;
+    }
 
     if (mode === 'club_official') {
       if (!staffFromDb) {
@@ -628,6 +636,14 @@ export function HostRunWizard({ variant = 'drawer', onSuccess, onCancel }: Props
         host_id: user.id,
         status: 'upcoming',
         run_source: mode,
+        // Staff verified without a club has no member list to gate, so force public.
+        visibility:
+          mode === 'club_official' &&
+          !staffFromDb &&
+          form.club_id &&
+          clubOnly
+            ? 'club_only'
+            : 'public',
       };
 
       if (mode === 'club_official') {
@@ -705,6 +721,7 @@ export function HostRunWizard({ variant = 'drawer', onSuccess, onCancel }: Props
       setFlyerFile(null);
       if (flyerPreviewUrl) URL.revokeObjectURL(flyerPreviewUrl);
       setFlyerPreviewUrl('');
+      setClubOnly(false);
       setTrailSearch('');
       setAddressQuery('');
       setGeocodeResults([]);
@@ -712,6 +729,7 @@ export function HostRunWizard({ variant = 'drawer', onSuccess, onCancel }: Props
       setMapCenter(DEFAULT_MAP_CENTER);
       setMeetupLat(DEFAULT_MAP_CENTER[0]);
       setMeetupLng(DEFAULT_MAP_CENTER[1]);
+      setPinTouched(false);
       onSuccess();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Failed to create run';
@@ -747,6 +765,7 @@ export function HostRunWizard({ variant = 'drawer', onSuccess, onCancel }: Props
             onClick={() => {
               setMode('club_official');
               setDisclaimerAck(false);
+              setClubOnly(false);
               setForm((f) =>
                 staffFromDb ? { ...f, club_id: STAFF_VERIFIED_NO_CLUB } : { ...f, club_id: '' }
               );
@@ -770,6 +789,7 @@ export function HostRunWizard({ variant = 'drawer', onSuccess, onCancel }: Props
             onClick={() => {
               setMode('user_submitted');
               setForm((f) => ({ ...f, club_id: '' }));
+              setClubOnly(false);
             }}
             className={`flex flex-col items-center justify-center gap-1.5 min-h-[88px] rounded-xl border-2 transition-colors touch-manipulation ${
               mode === 'user_submitted'
@@ -857,6 +877,27 @@ export function HostRunWizard({ variant = 'drawer', onSuccess, onCancel }: Props
             </span>
           )}
         </p>
+      )}
+
+      {/* Visibility: public vs members-only */}
+      {mode === 'club_official' && !staffFromDb && (
+        <div className="rounded-xl border border-zinc-800 bg-zinc-950/40 px-3 py-3 space-y-2">
+          <p className="text-[11px] font-black uppercase tracking-wider text-zinc-500">Visibility</p>
+          <label className="flex items-start gap-3 text-[13px] text-zinc-300">
+            <input
+              type="checkbox"
+              className="mt-1"
+              checked={clubOnly}
+              onChange={(e) => setClubOnly(e.target.checked)}
+            />
+            <span>
+              <strong className="text-white">Club members only</strong>
+              <span className="block text-[12px] text-zinc-500 mt-0.5">
+                Only approved members of the hosting club can see this run.
+              </span>
+            </span>
+          </label>
+        </div>
       )}
 
       {/* Title */}
@@ -1089,6 +1130,7 @@ export function HostRunWizard({ variant = 'drawer', onSuccess, onCancel }: Props
           onPositionChange={(lat, lng) => {
             setMeetupLat(lat);
             setMeetupLng(lng);
+            setPinTouched(true);
           }}
           heightPx={240}
           zoom={mapZoom}

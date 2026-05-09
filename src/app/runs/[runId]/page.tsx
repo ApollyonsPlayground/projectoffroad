@@ -22,6 +22,7 @@ import {
   Flag,
   Siren,
   X,
+  Pencil,
   Send,
   MessageCircle,
   Ban,
@@ -47,6 +48,13 @@ const RunLiveMap = dynamic(() => import('@/components/RunLiveMap'), {
     <div className="h-[min(320px,55dvh)] flex items-center justify-center bg-zinc-900 border border-zinc-800 rounded-2xl">
       <Loader2 className="animate-spin text-orange-500" size={24} />
     </div>
+  ),
+});
+
+const MeetupMapPicker = dynamic(() => import('@/components/runs/MeetupMapPicker'), {
+  ssr: false,
+  loading: () => (
+    <div className="h-[220px] bg-zinc-900 animate-pulse rounded-xl border border-zinc-800" aria-hidden />
   ),
 });
 
@@ -240,6 +248,22 @@ export default function RunDetailPage() {
   const [hostBusy, setHostBusy] = useState<'complete' | 'cancel' | 'delete' | null>(null);
   const [hostProfile, setHostProfile] = useState<HostProfile | null>(null);
 
+  // Host edit
+  const [editOpen, setEditOpen] = useState(false);
+  const [editSaving, setEditSaving] = useState(false);
+  const [editTitle, setEditTitle] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [editDate, setEditDate] = useState('');
+  const [editDifficulty, setEditDifficulty] = useState('');
+  const [editMax, setEditMax] = useState<string>('');
+  const [editVehicleReq, setEditVehicleReq] = useState('');
+  const [editComms, setEditComms] = useState('');
+  const [editMeetupLat, setEditMeetupLat] = useState<number>(0);
+  const [editMeetupLng, setEditMeetupLng] = useState<number>(0);
+  const [editMapCenter, setEditMapCenter] = useState<[number, number]>([34.05, -116.8]);
+  const [editZoom, setEditZoom] = useState(11);
+  const [editPinTouched, setEditPinTouched] = useState(false);
+
   const [chatMessages, setChatMessages] = useState<RunChatMessage[]>([]);
   const [chatInput, setChatInput] = useState('');
   const [chatSending, setChatSending] = useState(false);
@@ -387,6 +411,39 @@ export default function RunDetailPage() {
   }, [supabaseClient, runIdResolved, user, showToast]);
 
   useEffect(() => { fetchDetail(); }, [fetchDetail]);
+
+  // Prime edit form when run loads/changes.
+  useEffect(() => {
+    if (!run) return;
+    setEditTitle(run.title ?? '');
+    setEditDescription(run.description ?? '');
+    // datetime-local expects "YYYY-MM-DDTHH:mm"
+    try {
+      const d = new Date(run.date);
+      const pad = (n: number) => String(n).padStart(2, '0');
+      if (!Number.isNaN(d.getTime())) {
+        const local = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+        setEditDate(local);
+      } else {
+        setEditDate('');
+      }
+    } catch {
+      setEditDate('');
+    }
+    setEditDifficulty(run.difficulty ?? 'Moderate');
+    setEditMax(run.max_participants != null ? String(run.max_participants) : '');
+    setEditVehicleReq(run.vehicle_requirements ?? '');
+    setEditComms(run.comms_note ?? '');
+    const lat = run.meetup_latitude != null ? Number(run.meetup_latitude) : NaN;
+    const lng = run.meetup_longitude != null ? Number(run.meetup_longitude) : NaN;
+    if (!Number.isNaN(lat) && !Number.isNaN(lng)) {
+      setEditMeetupLat(lat);
+      setEditMeetupLng(lng);
+      setEditMapCenter([lat, lng]);
+      setEditZoom(12);
+    }
+    setEditPinTouched(false);
+  }, [run?.id]);
 
   useEffect(() => {
     reflectionTouchedRef.current = false;
@@ -681,7 +738,68 @@ export default function RunDetailPage() {
     }
   };
 
+  const saveRunEdits = async () => {
+    if (!supabaseClient || !run || !user) return;
+    if (!canEditRun) return;
+
+    const title = editTitle.trim();
+    if (!title) {
+      showToast('Title is required', 'error');
+      return;
+    }
+    if (!editDate) {
+      showToast('Pick a date/time', 'error');
+      return;
+    }
+    const dateIso = new Date(editDate).toISOString();
+
+    // Always require valid coords when editing (prevents falling back to trail coords).
+    if (
+      !Number.isFinite(editMeetupLat) ||
+      !Number.isFinite(editMeetupLng) ||
+      Math.abs(editMeetupLat) > 90 ||
+      Math.abs(editMeetupLng) > 180
+    ) {
+      showToast('Set the staging pin on the map', 'error');
+      return;
+    }
+
+    setEditSaving(true);
+    try {
+      const patch: Record<string, unknown> = {
+        title,
+        description: editDescription.trim() || null,
+        date: dateIso,
+        difficulty: editDifficulty,
+        max_participants: editMax.trim() ? parseInt(editMax.trim(), 10) : null,
+        vehicle_requirements: editVehicleReq.trim() || null,
+        comms_note: editComms.trim() || null,
+        meetup_latitude: editMeetupLat,
+        meetup_longitude: editMeetupLng,
+        meetup_location: `Staging pin · ${editMeetupLat.toFixed(5)}, ${editMeetupLng.toFixed(5)}`,
+      };
+
+      const { error } = await supabaseClient.from('runs').update(patch).eq('id', run.id);
+      if (error) throw error;
+      showToast('Run updated', 'success');
+      setEditOpen(false);
+      await fetchDetail();
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : 'Could not update run', 'error');
+    } finally {
+      setEditSaving(false);
+    }
+  };
+
   const isHost = Boolean(user && run && user.id === run.host_id);
+  const isStaff =
+    Boolean(
+      user &&
+        profile &&
+        typeof (profile as { role?: unknown }).role === 'string' &&
+        ['owner', 'admin'].includes(String((profile as { role: string }).role).trim().toLowerCase())
+    );
+  const canEditRun = Boolean(user && run && (isHost || isStaff));
   const canUseRunChat = Boolean(
     user &&
       run &&
@@ -896,6 +1014,17 @@ export default function RunDetailPage() {
             <ArrowLeft size={17} />
           </button>
           <h1 className="text-[16px] font-black text-white truncate flex-1">{run.title}</h1>
+          {canEditRun && (
+            <button
+              type="button"
+              onClick={() => setEditOpen(true)}
+              className="w-8 h-8 flex items-center justify-center rounded-full bg-zinc-900 text-zinc-400 hover:text-white transition-colors flex-shrink-0"
+              aria-label="Edit run"
+              title="Edit run"
+            >
+              <Pencil size={16} />
+            </button>
+          )}
           <span className={`flex-shrink-0 px-2.5 py-1 text-[11px] font-black uppercase rounded-lg ${getStatusBadge(run.status)}`}>
             {run.status}
           </span>
@@ -903,6 +1032,176 @@ export default function RunDetailPage() {
       </header>
 
       <main className="max-w-md mx-auto px-4 pt-5 space-y-5">
+        <AnimatePresence>
+          {editOpen && (
+            <>
+              <motion.div
+                key="edit-backdrop"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-[9990] bg-black/80 backdrop-blur-sm"
+                onClick={() => (editSaving ? null : setEditOpen(false))}
+              />
+              <motion.div
+                key="edit-drawer"
+                initial={{ y: '100%' }}
+                animate={{ y: 0 }}
+                exit={{ y: '100%' }}
+                transition={{ type: 'spring', stiffness: 420, damping: 38 }}
+                className="fixed bottom-0 left-0 right-0 z-[9991] max-w-md mx-auto bg-zinc-950 border border-zinc-800 rounded-t-2xl max-h-[92dvh] flex flex-col"
+                style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-zinc-800 flex-shrink-0">
+                  <div className="flex items-center gap-2">
+                    <Pencil size={16} className="text-orange-500" />
+                    <h2 className="text-[16px] font-black text-white">Edit run</h2>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={editSaving}
+                    onClick={() => setEditOpen(false)}
+                    className="w-10 h-10 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full bg-zinc-800 text-zinc-400 hover:text-white transition-colors touch-manipulation disabled:opacity-50"
+                    aria-label="Close"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+
+                <div className="flex-1 overflow-y-auto min-h-0 px-4 py-4 space-y-4">
+                  <div>
+                    <label className="block text-[12px] font-semibold text-zinc-400 uppercase tracking-wider mb-1.5">
+                      Title
+                    </label>
+                    <input
+                      value={editTitle}
+                      onChange={(e) => setEditTitle(e.target.value)}
+                      className="w-full min-h-[44px] bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2.5 text-[15px] text-white placeholder-zinc-600 focus:outline-none focus:border-orange-500/60 transition-colors touch-manipulation"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[12px] font-semibold text-zinc-400 uppercase tracking-wider mb-1.5">
+                      Description
+                    </label>
+                    <textarea
+                      value={editDescription}
+                      onChange={(e) => setEditDescription(e.target.value)}
+                      rows={3}
+                      className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2.5 text-[15px] text-white placeholder-zinc-600 focus:outline-none focus:border-orange-500/60 transition-colors touch-manipulation resize-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[12px] font-semibold text-zinc-400 uppercase tracking-wider mb-1.5">
+                      Date & time
+                    </label>
+                    <input
+                      type="datetime-local"
+                      value={editDate}
+                      onChange={(e) => setEditDate(e.target.value)}
+                      className="w-full min-h-[44px] bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2.5 text-[15px] text-white [color-scheme:dark] focus:outline-none focus:border-orange-500/60 transition-colors touch-manipulation"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[12px] font-semibold text-zinc-400 uppercase tracking-wider mb-1.5">
+                        Difficulty
+                      </label>
+                      <select
+                        value={editDifficulty}
+                        onChange={(e) => setEditDifficulty(e.target.value)}
+                        className="w-full min-h-[44px] bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2.5 text-[15px] text-white focus:outline-none focus:border-orange-500/60 transition-colors touch-manipulation"
+                      >
+                        {['Easy', 'Moderate', 'Challenging', 'Extreme'].map((d) => (
+                          <option key={d} value={d} className="bg-zinc-900">
+                            {d}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[12px] font-semibold text-zinc-400 uppercase tracking-wider mb-1.5">
+                        Max rigs
+                      </label>
+                      <input
+                        value={editMax}
+                        onChange={(e) => setEditMax(e.target.value)}
+                        inputMode="numeric"
+                        placeholder="Optional"
+                        className="w-full min-h-[44px] bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2.5 text-[15px] text-white placeholder-zinc-600 focus:outline-none focus:border-orange-500/60 transition-colors touch-manipulation"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[12px] font-semibold text-zinc-400 uppercase tracking-wider mb-1.5">
+                      Vehicle / gear notes
+                    </label>
+                    <input
+                      value={editVehicleReq}
+                      onChange={(e) => setEditVehicleReq(e.target.value)}
+                      className="w-full min-h-[44px] bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2.5 text-[15px] text-white placeholder-zinc-600 focus:outline-none focus:border-orange-500/60 transition-colors touch-manipulation"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[12px] font-semibold text-zinc-400 uppercase tracking-wider mb-1.5">
+                      Comms / radio
+                    </label>
+                    <input
+                      value={editComms}
+                      onChange={(e) => setEditComms(e.target.value)}
+                      className="w-full min-h-[44px] bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2.5 text-[15px] text-white placeholder-zinc-600 focus:outline-none focus:border-orange-500/60 transition-colors touch-manipulation"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[12px] font-semibold text-zinc-400 uppercase tracking-wider mb-1.5">
+                      Staging pin
+                    </label>
+                    <MeetupMapPicker
+                      center={editMapCenter}
+                      position={[editMeetupLat, editMeetupLng]}
+                      onPositionChange={(lat, lng) => {
+                        setEditMeetupLat(lat);
+                        setEditMeetupLng(lng);
+                        setEditPinTouched(true);
+                      }}
+                      heightPx={240}
+                      zoom={editZoom}
+                    />
+                    <p className="mt-2 text-[11px] font-mono text-zinc-500">
+                      {Number(editMeetupLat).toFixed(5)}, {Number(editMeetupLng).toFixed(5)}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="px-4 pb-4 pt-3 border-t border-zinc-800 flex gap-2">
+                  <button
+                    type="button"
+                    disabled={editSaving}
+                    onClick={() => setEditOpen(false)}
+                    className="flex-1 min-h-[44px] rounded-xl border border-zinc-700 text-zinc-200 font-bold hover:border-zinc-500 disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    disabled={editSaving}
+                    onClick={saveRunEdits}
+                    className="flex-1 min-h-[44px] rounded-xl bg-orange-500 text-black font-black hover:bg-orange-400 disabled:opacity-50"
+                  >
+                    {editSaving ? 'Saving…' : 'Save changes'}
+                  </button>
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
+
         {run.run_source === 'user_submitted' && (
           <div className="rounded-2xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-[13px] text-amber-100/95 leading-relaxed">
             <div className="flex items-start gap-2.5">
