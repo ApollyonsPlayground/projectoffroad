@@ -383,7 +383,7 @@ export function CaelumChatWidget() {
     return null;
   }
 
-  /** Feed home uses the Runs-strip circle; avoid stacking near the post FAB. */
+  /** Feed uses a bottom-right post FAB — launcher hidden there (event still opens chat). */
   const showFloatingLauncher = !isFeedPath(pathname);
 
   return (
@@ -392,7 +392,7 @@ export function CaelumChatWidget() {
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="fixed left-4 top-[calc(12px+env(safe-area-inset-top))] md:top-[calc(5.25rem+env(safe-area-inset-top))] z-[9975] flex h-14 w-14 items-center justify-center rounded-full border border-orange-500/50 bg-gradient-to-br from-zinc-900 to-black text-orange-400 shadow-lg shadow-black/50 backdrop-blur-sm touch-manipulation min-h-[56px] min-w-[56px]"
+          className="fixed z-[9975] flex h-14 w-14 items-center justify-center rounded-full border border-orange-500/50 bg-gradient-to-br from-zinc-900 to-black text-orange-400 shadow-lg shadow-black/50 backdrop-blur-sm touch-manipulation min-h-[56px] min-w-[56px] left-auto top-auto right-4 bottom-[calc(7.5rem+env(safe-area-inset-bottom))] md:bottom-10 md:right-8"
           aria-label="Ask Caelum"
         >
           <Sparkles size={26} strokeWidth={2} className="drop-shadow-[0_0_8px_rgba(251,146,60,0.35)]" />

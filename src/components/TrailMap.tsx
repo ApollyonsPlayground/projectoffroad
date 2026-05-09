@@ -7,7 +7,7 @@
  */
 
 import { useEffect, useState, useCallback } from 'react';
-import { MapContainer, TileLayer, CircleMarker, Popup, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, CircleMarker, Popup, useMap, ZoomControl } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import {
   rawDifficultyToTier,
@@ -93,8 +93,8 @@ function MapLocateToolbar({
 
   return (
     <div
-      className="leaflet-top leaflet-left leaflet-control"
-      style={{ marginTop: 12, marginLeft: 12 }}
+      className="leaflet-top leaflet-right leaflet-control"
+      style={{ marginTop: 12, marginRight: 12 }}
     >
       <button
         type="button"
@@ -129,12 +129,14 @@ export default function TrailMap({ trails, totalInView }: TrailMapProps) {
         zoom={7}
         style={{ height: '100%', width: '100%', background: '#18181b' }}
         scrollWheelZoom
-        zoomControl
+        zoomControl={false}
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/">CARTO</a>'
           url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
         />
+
+        <ZoomControl position="bottomright" />
 
         <AutoGeolocate onLocated={onLocated} />
         <MapLocateToolbar userPos={userPos} setUserPos={setUserPos} />
@@ -252,8 +254,9 @@ export default function TrailMap({ trails, totalInView }: TrailMapProps) {
       <div
         style={{
           position: 'absolute',
-          bottom: '80px',
-          right: '12px',
+          bottom: '12px',
+          left: '12px',
+          maxWidth: 'min(260px, calc(100% - 24px))',
           background: 'rgba(9,9,11,0.9)',
           border: '1px solid #3f3f46',
           borderRadius: '10px',
