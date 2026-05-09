@@ -321,13 +321,26 @@ export default function ClubDetailPage() {
       return;
     }
     // Membership is approval-based: user creates a pending request.
-    const { error } = await sb
-      .from('club_members')
-      .insert({ club_id: clubId, user_id: user.id, role: 'member', status: 'pending' });
+    let desiredStatus: 'pending' | 'approved' = 'pending';
+    try {
+      const { data: me } = await sb.from('users').select('role').eq('id', user.id).maybeSingle();
+      const r = String((me as any)?.role ?? '').trim().toLowerCase();
+      if (r === 'owner' || r === 'admin') desiredStatus = 'approved';
+    } catch {
+      desiredStatus = 'pending';
+    }
+
+    const { error } = await sb.from('club_members').insert({
+      club_id: clubId,
+      user_id: user.id,
+      role: 'member',
+      status: desiredStatus,
+    });
 
     setJoining(false);
     if (!error) {
-      setIsPending(true);
+      setIsPending(desiredStatus === 'pending');
+      setIsMember(desiredStatus === 'approved');
       fetchMembers();
     }
   }
