@@ -1252,6 +1252,14 @@ function RigPostCard({ post, index }: {
   useEffect(() => {
     setRepostsCount(post.reposts_count ?? 0);
   }, [canonicalPostId, post.reposts_count]);
+
+  useEffect(() => {
+    setLikesCount(post.likes_count ?? 0);
+  }, [canonicalPostId, post.likes_count]);
+
+  useEffect(() => {
+    setCommentsCount(post.comments_count ?? 0);
+  }, [canonicalPostId, post.comments_count]);
   const [reportOpen, setReportOpen] = useState(false);
   const [reportReason, setReportReason] = useState('');
   const [isReporting, setIsReporting] = useState(false);
@@ -1399,8 +1407,7 @@ function RigPostCard({ post, index }: {
       });
 
       setComments(enriched);
-      // Update count to match live DB total for this canonical thread.
-      if (enriched.length > 0) setCommentsCount(enriched.length);
+      setCommentsCount(enriched.length);
       setCommentsLoading(false);
       if (drawerJustOpened.current) {
         drawerJustOpened.current = false;
@@ -1875,6 +1882,7 @@ function RigPostCard({ post, index }: {
                 active={commentsOpen}
                 activeColor="text-sky-400"
                 label="Comment"
+                showCountIncludingZero
                 onClick={() => {
                   if (!requireAuth('comment')) return;
                   setCommentsOpen((o) => !o);
@@ -1895,6 +1903,7 @@ function RigPostCard({ post, index }: {
                 active={liked}
                 activeColor="text-orange-500"
                 label={liked ? 'Unlike' : 'Like'}
+                showCountIncludingZero
                 onClick={toggleLike}
               />
               <StatBtn icon={Share2} label="Share" onClick={handleShare} />
@@ -2361,7 +2370,7 @@ export default function HomePage() {
         .from('posts')
         .select('*')
         .order('created_at', { ascending: false })
-        .limit(120);
+        .limit(200);
 
       if (postsResult.error) throw postsResult.error;
 
@@ -2380,7 +2389,37 @@ export default function HomePage() {
         return false;
       });
 
-      const feedSource = rawPosts;
+      // Repost rows are not global: the reposter sees their RT, and each account they follow sees it
+      // on their feed (broadcast-to-following only). Others keep seeing only the original post thread.
+      const reposterIds = [
+        ...new Set(
+          rawPosts
+            .filter((p: any) => p.repost_of_id)
+            .map((p: any) => String(p.user_id))
+        ),
+      ];
+      const followingByReposter = new Map<string, Set<string>>();
+      if (reposterIds.length > 0) {
+        const { data: followEdges } = await supabaseClient
+          .from('follows')
+          .select('follower_id,following_id')
+          .in('follower_id', reposterIds);
+        for (const row of followEdges ?? []) {
+          const rid = String((row as { follower_id: string }).follower_id);
+          const fid = String((row as { following_id: string }).following_id);
+          if (!followingByReposter.has(rid)) followingByReposter.set(rid, new Set());
+          followingByReposter.get(rid)!.add(fid);
+        }
+      }
+
+      const feedSource = rawPosts.filter((p: any) => {
+        if (!p.repost_of_id) return true;
+        if (modBypass) return true;
+        if (!viewerId) return false;
+        const rid = String(p.user_id);
+        if (rid === String(viewerId)) return true;
+        return followingByReposter.get(rid)?.has(String(viewerId)) ?? false;
+      });
 
       const postById = new Map<string, any>(
         rawPosts.map((p: any) => [String(p.id), p])
@@ -2398,6 +2437,31 @@ export default function HomePage() {
         ...new Set(feedSource.map((p: any) => String(p.repost_of_id ?? p.id))),
       ];
       const canonicalIdSet = new Set(canonicalIds);
+      const uuidCanonicalIds = canonicalIds.filter((id) => isLikelyUuid(id));
+
+      const likeCountMap: Record<string, number> = {};
+      const commentCountMap: Record<string, number> = {};
+      if (uuidCanonicalIds.length > 0) {
+        const [likesAggRes, commentsAggRes] = await Promise.all([
+          supabaseClient.from('post_likes').select('post_id').in('post_id', uuidCanonicalIds),
+          supabaseClient.from('comments').select('post_id').in('post_id', uuidCanonicalIds),
+        ]);
+        if (!likesAggRes.error && likesAggRes.data) {
+          for (const row of likesAggRes.data as { post_id?: string }[]) {
+            const pid = row.post_id ? String(row.post_id) : '';
+            if (!pid) continue;
+            likeCountMap[pid] = (likeCountMap[pid] ?? 0) + 1;
+          }
+        }
+        if (!commentsAggRes.error && commentsAggRes.data) {
+          for (const row of commentsAggRes.data as { post_id?: string }[]) {
+            const pid = row.post_id ? String(row.post_id) : '';
+            if (!pid) continue;
+            commentCountMap[pid] = (commentCountMap[pid] ?? 0) + 1;
+          }
+        }
+      }
+
       const repostCountMap: Record<string, number> = {};
       if (canonicalIds.length > 0) {
         const { data: repRows, error: repCountErr } = await supabaseClient
@@ -2543,6 +2607,17 @@ export default function HomePage() {
           metricsRow.reposts ??
           0;
 
+        const lc =
+          likeCountMap[canonicalId] ??
+          metricsRow.likes_count ??
+          metricsRow.likes ??
+          0;
+        const cc =
+          commentCountMap[canonicalId] ??
+          metricsRow.comments_count ??
+          metricsRow.comments ??
+          0;
+
         return {
           ...p,
           username: authorDisplayName(p.user_id, p),
@@ -2557,8 +2632,8 @@ export default function HomePage() {
           liked_by_me: likedIds.has(canonicalId),
           bookmarked_by_me: savedIds.has(canonicalId),
           reposted_by_me: repostedIds.has(canonicalId),
-          likes_count: metricsRow.likes_count ?? metricsRow.likes ?? 0,
-          comments_count: metricsRow.comments_count ?? metricsRow.comments ?? 0,
+          likes_count: lc,
+          comments_count: cc,
           reposts_count: rc,
           original_user_name,
         };
