@@ -6,7 +6,6 @@ import { ThemeSync } from "@/components/ThemeSync";
 import { ViewTransitions } from "@/components/ViewTransitions";
 import { ToastProvider } from "@/components/Toast";
 import { AdminLauncher } from "@/components/admin/AdminLauncher";
-import { CaelumChatWidget } from "@/components/caelum/CaelumChatWidget";
 import DisclaimerModal from "@/components/DisclaimerModal";
 import { DesktopNavbar } from "@/components/DesktopNavbar";
 
@@ -55,7 +54,6 @@ export default function RootLayout({
             </ViewTransitions>
             <DisclaimerModal />
             <AdminLauncher />
-            <CaelumChatWidget />
           </ToastProvider>
         </AuthProvider>
       </body>

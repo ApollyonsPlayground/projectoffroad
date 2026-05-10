@@ -12,7 +12,6 @@ import {
   BadgeCheck,
   Mountain,
   Plus,
-  Sparkles,
   ZoomIn,
   X,
   Image as ImageIcon,
@@ -43,7 +42,6 @@ import {
   insertSavedPost,
 } from '@/lib/supabase/resilientSocial';
 import { mapDbTrailRow } from '@/lib/trails/mapDbTrail';
-import { OPEN_CAELUM_CHAT_EVENT } from '@/lib/caelum/constants';
 import {
   resolveOwnProfileDisplayName,
   resolvePublicDisplayName,
@@ -865,29 +863,6 @@ interface LiveRun {
   isLive: boolean;
 }
 
-function CaelumRunsStripChip() {
-  return (
-    <button
-      type="button"
-      onClick={() => window.dispatchEvent(new CustomEvent(OPEN_CAELUM_CHAT_EVENT))}
-      className="flex flex-col items-center gap-1.5 flex-shrink-0 select-none touch-manipulation"
-      aria-label="Ask Caelum"
-    >
-      <motion.div whileTap={{ scale: 0.91 }} className="relative">
-        <div className="relative w-[58px] h-[58px] rounded-full p-[2px] bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600 shadow-[0_6px_20px_-6px_rgba(249,115,22,0.45)]">
-          <div className="w-full h-full rounded-full overflow-hidden bg-zinc-950 flex items-center justify-center">
-            <Sparkles size={26} strokeWidth={2.2} className="text-orange-400" />
-          </div>
-        </div>
-        <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-emerald-500 ring-2 ring-zinc-950" aria-hidden />
-      </motion.div>
-      <span className="text-[9px] text-zinc-400 text-center font-semibold leading-tight max-w-[76px] w-[76px] line-clamp-2">
-        Ask Caelum
-      </span>
-    </button>
-  );
-}
-
 function RunsReelEmptyPlaceholder() {
   return (
     <div className="flex flex-col items-center gap-2.5 py-1 flex-shrink-0 text-center max-w-[260px] select-none">
@@ -996,8 +971,6 @@ function StoriesBar({ embedded = false }: { embedded?: boolean } = {}) {
       <div
         className={`flex gap-3 px-4 overflow-x-auto scrollbar-hide [overscroll-behavior-x:contain] touch-pan-x ${embedded ? 'py-2' : 'py-3'} ${liveRuns.length === 0 && !embedded ? 'justify-center' : 'justify-start'}`}
       >
-        {embedded ? <CaelumRunsStripChip /> : null}
-
         {liveRuns.length === 0 ? (
           embedded ? (
             <div className="flex flex-1 min-w-0 justify-center">
