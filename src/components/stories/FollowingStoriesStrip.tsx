@@ -312,6 +312,8 @@ export function FollowingStoriesStrip({
           0,
           watchUserId ? buckets.findIndex((b) => b.userId === watchUserId) : 0
         )}
+        viewerUserId={user.id}
+        onStoriesChanged={fetchStories}
       />
     </>
   );

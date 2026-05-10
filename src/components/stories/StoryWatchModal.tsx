@@ -1,10 +1,11 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { X, Volume2, VolumeX } from 'lucide-react';
+import { X, Volume2, VolumeX, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence, useMotionValue, animate } from 'framer-motion';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { resolvePublicDisplayName } from '@/lib/profileDisplay';
+import { useToast } from '@/components/Toast';
 
 export type WatchStoryRow = {
   id: string;
@@ -38,6 +39,10 @@ type Props = {
   supabaseClient: SupabaseClient | null;
   reels: StoryReelBucket[];
   initialReelIndex: number;
+  /** Signed-in user — when it matches the active reel’s `userId`, they can delete their story. */
+  viewerUserId?: string | null;
+  /** Called after a successful delete so the strip can refetch (and drop empty buckets). */
+  onStoriesChanged?: () => void | Promise<void>;
 };
 
 export function StoryWatchModal({
@@ -46,7 +51,10 @@ export function StoryWatchModal({
   supabaseClient,
   reels,
   initialReelIndex,
+  viewerUserId = null,
+  onStoriesChanged,
 }: Props) {
+  const { showToast } = useToast();
   const [reelIdx, setReelIdx] = useState(0);
   const [storyIdx, setStoryIdx] = useState(0);
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
@@ -54,6 +62,7 @@ export function StoryWatchModal({
   /** 0–1 fill for the active progress segment (images advance by timer; videos use timeupdate). */
   const [segmentProgress, setSegmentProgress] = useState(0);
   const [videoMuted, setVideoMuted] = useState(true);
+  const [deleting, setDeleting] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const imageTimerRef = useRef<number | null>(null);
@@ -91,6 +100,39 @@ export function StoryWatchModal({
   const safeStoryIdx = Math.min(Math.max(0, storyIdx), Math.max(0, bucketStories.length - 1));
   const current = bucketStories[safeStoryIdx] ?? null;
 
+  const isOwnStory =
+    Boolean(viewerUserId && currentReel?.userId && viewerUserId === currentReel.userId);
+
+  /** After parent refetches, current reel may be gone or empty — hop reels or close. */
+  useEffect(() => {
+    if (!open || reels.length === 0) {
+      if (open && reels.length === 0) onClose();
+      return;
+    }
+    const bucket = reels[reelIdx];
+    if (bucket && bucket.stories.length > 0) return;
+
+    const forward = reels.findIndex((b, i) => i >= reelIdx && b.stories.length > 0);
+    if (forward >= 0) {
+      setReelIdx(forward);
+      setStoryIdx(0);
+      return;
+    }
+    let backward = -1;
+    for (let i = reelIdx - 1; i >= 0; i--) {
+      if (reels[i].stories.length > 0) {
+        backward = i;
+        break;
+      }
+    }
+    if (backward >= 0) {
+      setReelIdx(backward);
+      setStoryIdx(Math.max(0, reels[backward].stories.length - 1));
+      return;
+    }
+    onClose();
+  }, [open, reels, reelIdx, onClose]);
+
   const displayName = currentReel?.profile
     ? resolvePublicDisplayName({
         id: currentReel.userId,
@@ -109,6 +151,43 @@ export function StoryWatchModal({
       imageTimerRef.current = null;
     }
   }, []);
+
+  const deleteCurrentStory = useCallback(async () => {
+    if (!supabaseClient || !current || !isOwnStory || deleting) return;
+    if (
+      typeof window !== 'undefined' &&
+      !window.confirm('Delete this story? It will be removed for everyone.')
+    ) {
+      return;
+    }
+    setDeleting(true);
+    clearImageTimer();
+    try {
+      const { error: rowErr } = await supabaseClient.from('user_stories').delete().eq('id', current.id);
+      if (rowErr) throw rowErr;
+
+      const { error: stErr } = await supabaseClient.storage.from('story-media').remove([current.media_path]);
+      if (stErr) {
+        console.warn('[StoryWatchModal] storage remove:', stErr.message);
+      }
+
+      showToast('Story deleted', 'success');
+      await onStoriesChanged?.();
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Could not delete story';
+      showToast(msg, 'error');
+    } finally {
+      setDeleting(false);
+    }
+  }, [
+    supabaseClient,
+    current,
+    isOwnStory,
+    deleting,
+    clearImageTimer,
+    showToast,
+    onStoriesChanged,
+  ]);
 
   const goNextStory = useCallback(() => {
     clearImageTimer();
@@ -355,16 +434,29 @@ export function StoryWatchModal({
                       : ''}
                   </p>
                 </div>
-                {current?.media_type === 'video' && signedUrl && (
-                  <button
-                    type="button"
-                    onClick={() => setVideoMuted((m) => !m)}
-                    className="w-9 h-9 flex items-center justify-center rounded-full bg-black/35 text-white backdrop-blur-sm"
-                    aria-label={videoMuted ? 'Unmute' : 'Mute'}
-                  >
-                    {videoMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
-                  </button>
-                )}
+                <div className="flex items-center gap-1.5 ml-auto">
+                  {isOwnStory && (
+                    <button
+                      type="button"
+                      onClick={() => void deleteCurrentStory()}
+                      disabled={deleting}
+                      className="w-9 h-9 flex items-center justify-center rounded-full bg-black/35 text-red-400 backdrop-blur-sm disabled:opacity-50 active:scale-95"
+                      aria-label="Delete story"
+                    >
+                      <Trash2 size={18} strokeWidth={2.2} />
+                    </button>
+                  )}
+                  {current?.media_type === 'video' && signedUrl && (
+                    <button
+                      type="button"
+                      onClick={() => setVideoMuted((m) => !m)}
+                      className="w-9 h-9 flex items-center justify-center rounded-full bg-black/35 text-white backdrop-blur-sm"
+                      aria-label={videoMuted ? 'Unmute' : 'Mute'}
+                    >
+                      {videoMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -385,6 +477,7 @@ export function StoryWatchModal({
                 type="button"
                 aria-label="Next"
                 className="absolute right-0 top-0 bottom-0 w-[38%] max-w-[180px] z-20 cursor-e-resize bg-transparent"
+                onClick={tapRight}
               />
 
               {error && (
