@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Volume2, VolumeX, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence, useMotionValue, animate } from 'framer-motion';
 import type { SupabaseClient } from '@supabase/supabase-js';
@@ -55,6 +56,7 @@ export function StoryWatchModal({
   onStoriesChanged,
 }: Props) {
   const { showToast } = useToast();
+  const [mounted, setMounted] = useState(false);
   const [reelIdx, setReelIdx] = useState(0);
   const [storyIdx, setStoryIdx] = useState(0);
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
@@ -72,6 +74,21 @@ export function StoryWatchModal({
   const stateRef = useRef({ reelIdx: 0, storyIdx: 0 });
 
   const y = useMotionValue(0);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  /** Full-screen overlay must attach to `document.body` — ancestors with transform (Framer, sticky strips)
+   *  turn `position:fixed` into a positioned descendant, so stories render behind the nav/header otherwise. */
+  useEffect(() => {
+    if (!open || !mounted) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [open, mounted]);
 
   useEffect(() => {
     stateRef.current = { reelIdx, storyIdx };
@@ -365,9 +382,9 @@ export function StoryWatchModal({
     goNextStory();
   };
 
-  if (!open || reels.length === 0) return null;
+  if (!open || reels.length === 0 || !mounted) return null;
 
-  return (
+  return createPortal(
     <AnimatePresence>
       {open && (
         <motion.div
@@ -376,7 +393,7 @@ export function StoryWatchModal({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.18 }}
-          className="fixed inset-0 z-[10020] bg-black overflow-hidden"
+          className="fixed inset-0 z-[19900] isolate min-h-[100dvh] w-full bg-black overflow-hidden"
           style={{ WebkitTapHighlightColor: 'transparent' }}
         >
           <motion.div
@@ -535,7 +552,8 @@ export function StoryWatchModal({
           </motion.div>
         </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }
 
