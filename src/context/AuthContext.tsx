@@ -21,6 +21,32 @@ function isAppManagedProfilePhoto(avatarUrl: string | null | undefined): boolean
   return normalized.includes('/storage/v1/object/public/avatars/')
 }
 
+/** Display name + avatar from Google / Apple (and other OIDC) user_metadata. */
+function oauthDisplayNameAndAvatar(meta: Record<string, unknown> | undefined | null): {
+  name: string
+  avatar_url: string | null
+} {
+  const m = meta ?? {}
+  let name = ''
+  if (typeof m.full_name === 'string' && m.full_name.trim()) name = m.full_name.trim()
+  else if (typeof m.name === 'string' && m.name.trim()) name = m.name.trim()
+  else if (m.name && typeof m.name === 'object') {
+    const o = m.name as Record<string, unknown>
+    const g = typeof o.given_name === 'string' ? o.given_name : ''
+    const f = typeof o.family_name === 'string' ? o.family_name : ''
+    name = `${g} ${f}`.trim()
+  }
+  if (!name && typeof m.email === 'string' && m.email.includes('@')) {
+    name = m.email.split('@')[0] ?? ''
+  }
+  if (!name) name = 'Rider'
+  const avatar_url =
+    (typeof m.avatar_url === 'string' && m.avatar_url.trim()) ||
+    (typeof m.picture === 'string' && m.picture.trim()) ||
+    null
+  return { name, avatar_url }
+}
+
 // profile is Record<string,unknown> but always contains at least { role?: string }
 interface AuthContextType {
   user: User | null
@@ -30,6 +56,7 @@ interface AuthContextType {
   supabaseClient: SupabaseClient | null
   signOut: () => Promise<void>
   signInWithGoogle: () => Promise<{ error: string | null }>
+  signInWithApple: () => Promise<{ error: string | null }>
   refreshProfile: () => Promise<void>
 }
 
@@ -135,13 +162,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         session.user.email?.trim() ||
         `${userId.replace(/-/g, '')}@oauth.placeholder.local`
 
-      const googleName =
-        (session.user.user_metadata?.full_name as string) ||
-        (session.user.user_metadata?.name as string) ||
-        session.user.email?.split('@')[0] ||
-        'Rider'
-
-      const avatar_url = (session.user.user_metadata?.avatar_url as string) || null
+      const { name: oauthName, avatar_url } = oauthDisplayNameAndAvatar(
+        session.user.user_metadata as Record<string, unknown> | undefined
+      )
 
       const { data: existing, error: selErr } = await supabase
         .from('users')
@@ -155,7 +178,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const { error: insErr } = await supabase.from('users').insert({
           id: userId,
           email,
-          name: googleName,
+          name: oauthName,
           avatar_url,
           sync_display_name_from_google: false,
         })
@@ -184,7 +207,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           patch.avatar_url = avatar_url
         }
         if (existing.sync_display_name_from_google === true) {
-          patch.name = googleName
+          patch.name = oauthName
         }
         const { error: updErr } = await supabase.from('users').update(patch).eq('id', userId)
         if (updErr) console.warn('[Auth] profile update:', updErr.message)
@@ -221,7 +244,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!error && data) setProfile(data)
   }
 
-  async function signInWithGoogle() {
+  async function signInWithOAuthProvider(
+    provider: 'google' | 'apple',
+    disabledHelp: string,
+    emptyUrlHelp: string
+  ): Promise<{ error: string | null }> {
     if (!supabase) return { error: 'Supabase is not configured.' }
 
     // Always use the current browser origin — avoids broken flows when
@@ -248,10 +275,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         ? `${origin}${callbackPath}?${qs}`
         : `${callbackPath}?${qs}`
 
-    let oauth: Awaited<ReturnType<typeof supabase.auth.signInWithOAuth>>;
+    let oauth: Awaited<ReturnType<typeof supabase.auth.signInWithOAuth>>
     try {
       oauth = await supabase.auth.signInWithOAuth({
-        provider: 'google',
+        provider,
         options: {
           redirectTo,
           // Full top-level navigation avoids some mobile browsers blocking the
@@ -276,10 +303,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         (error as { code?: string }).code === 'validation_failed'
 
       if (providerDisabled) {
-        return {
-          error:
-            'Google sign-in is disabled in Supabase. Dashboard → Authentication → Providers → Google: enable it, add Client ID/Secret, and in Google Cloud set redirect URI to https://YOUR_REF.supabase.co/auth/v1/callback — see instruction.md.',
-        }
+        return { error: disabledHelp }
       }
 
       return { error: raw || null }
@@ -297,14 +321,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { error: null }
     }
 
-    return {
-      error:
-        'Could not start Google sign-in (empty auth URL). Try Safari/Chrome directly (not an in-app browser), or disable strict tracking/ad blockers for this site.',
-    }
+    return { error: emptyUrlHelp }
+  }
+
+  async function signInWithGoogle() {
+    return signInWithOAuthProvider(
+      'google',
+      'Google sign-in is disabled in Supabase. Dashboard → Authentication → Providers → Google: enable it, add Client ID/Secret, and in Google Cloud set redirect URI to https://YOUR_REF.supabase.co/auth/v1/callback — see instruction.md.',
+      'Could not start Google sign-in (empty auth URL). Try Safari/Chrome directly (not an in-app browser), or disable strict tracking/ad blockers for this site.'
+    )
+  }
+
+  async function signInWithApple() {
+    return signInWithOAuthProvider(
+      'apple',
+      'Apple sign-in is disabled or incomplete in Supabase. Dashboard → Authentication → Providers → Apple: enable, add Services ID, Secret Key (JWT), Team ID, Key ID — see instruction.md.',
+      'Could not start Apple sign-in (empty auth URL). Use Safari or Chrome (not an in-app browser), or disable strict tracking/ad blockers for this site.'
+    )
   }
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, isConfigured, supabaseClient: supabase, signOut, signInWithGoogle, refreshProfile }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        profile,
+        loading,
+        isConfigured,
+        supabaseClient: supabase,
+        signOut,
+        signInWithGoogle,
+        signInWithApple,
+        refreshProfile,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   )

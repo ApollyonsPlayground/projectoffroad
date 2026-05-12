@@ -21,6 +21,12 @@ const nextConfig: NextConfig = {
   devIndicators: false,
   turbopack: {},
   ...(allowedDevOrigins?.length ? { allowedDevOrigins } : {}),
+  async redirects() {
+    return [
+      { source: "/leaderboard", destination: "/menu/", permanent: false },
+      { source: "/leaderboard/", destination: "/menu/", permanent: false },
+    ];
+  },
   typescript: {
     ignoreBuildErrors: true,
   },

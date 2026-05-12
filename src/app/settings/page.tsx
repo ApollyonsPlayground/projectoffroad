@@ -167,6 +167,9 @@ export default function SettingsPage() {
   };
 
   const googleLinked = Boolean(user?.identities?.some((i) => i.provider === 'google'));
+  const appleLinked = Boolean(user?.identities?.some((i) => i.provider === 'apple'));
+  const signInLabel =
+    googleLinked && appleLinked ? 'Google · Apple' : googleLinked ? 'Google' : appleLinked ? 'Apple' : 'Connected';
 
   return (
     <div className="min-h-screen bg-[#050705] pb-24">
@@ -196,9 +199,7 @@ export default function SettingsPage() {
               </div>
               <div className="flex justify-between gap-3 items-center">
                 <span className="text-neutral-500">Sign-in</span>
-                <span className="text-neutral-200">
-                  {googleLinked ? 'Google' : 'Connected'}
-                </span>
+                <span className="text-neutral-200">{signInLabel}</span>
               </div>
               <Link
                 href="/profile/edit"

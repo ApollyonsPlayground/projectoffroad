@@ -26,7 +26,7 @@ Optional: **`NEXT_PUBLIC_CLUB_VERIFICATION_EMAIL`** — overrides the default **
 
 ### Google sign-in (`Unsupported provider: provider is not enabled`)
 
-Login uses **Google OAuth** via Supabase (`signInWithOAuth({ provider: 'google' })`). The error **`validation_failed` / provider not enabled** means the **Google provider is off or incomplete** in Supabase — not an app bug.
+Login uses **Google** and **Apple** OAuth via Supabase (`signInWithOAuth`). The error **`validation_failed` / provider not enabled** means that **provider is off or incomplete** in Supabase — not an app bug.
 
 1. **Supabase Dashboard** → **Authentication** → **Providers** → **Google** → turn **Enable Sign in with Google** on.
 2. In **Google Cloud Console** → **APIs & Services** → **Credentials** → **Create OAuth client ID** (Web application). Under **Authorized redirect URIs**, add exactly:
@@ -51,6 +51,31 @@ Login uses **Google OAuth** via Supabase (`signInWithOAuth({ provider: 'google' 
 On **phones**, test sign-in in **Safari or Chrome**, not inside Instagram/TikTok/Facebook in-app browsers — those WebViews often break OAuth, cookies, or redirects.
 
 After step 4, retry **Continue with Google** on `/login`.
+
+### Apple Sign In (Supabase)
+
+The app calls **`signInWithOAuth({ provider: 'apple' })`** with the same **`/auth/callback/`** redirect as Google (see [`AuthContext`](src/context/AuthContext.tsx)). **No new env vars** in the Next app — everything is configured in **Supabase** and **Apple Developer**.
+
+1. **Apple Developer** → **Certificates, Identifiers & Profiles**:
+   - **Identifiers** → **Services IDs** → **+** → create a **Services ID** (e.g. `com.yourorg.web.signin`). Enable **Sign In with Apple**, configure **Primary App ID** (your iOS app’s App ID if you have one; for web-only you still link an App ID that has Sign In with Apple enabled).
+   - Under the Services ID → **Sign In with Apple** → **Configure** → **Return URLs** add exactly:
+     - `https://<YOUR_PROJECT_REF>.supabase.co/auth/v1/callback`
+     (Same host as in the Google section — Supabase’s Auth callback, **not** your Vercel URL.)
+   - **Keys** → create a **Sign In with Apple** key (`.p8`), note **Key ID**. You also need **Team ID** (Membership page).
+
+2. **Supabase Dashboard** → **Authentication** → **Providers** → **Apple**:
+   - Enable Apple.
+   - **Services ID** = the Services ID identifier (e.g. `com.yourorg.web.signin`).
+   - **Secret Key** = a **JWT client secret** signed with your Apple **`.p8`** key (Supabase documents the exact fields: Key ID, Team ID, etc.). **OAuth web flow:** Apple expects this secret to be **rotated about every 6 months** — set a calendar reminder; see [Supabase: Login with Apple](https://supabase.com/docs/guides/auth/social-login/auth-apple).
+   - **Team ID** and **Key ID** as required by the form.
+
+3. **Authentication** → **URL Configuration** → **Redirect URLs**: same list as Google — must include every origin you use + **`/auth/callback/`** (e.g. `https://your-domain.com/auth/callback/`). Apple redirects to Supabase first; Supabase then redirects to this app route with `?code=`.
+
+4. **iOS native app (Capacitor)**: If you ship **Sign in with Apple** as a capability on the iOS target, that is separate from this **web OAuth** path — the app currently completes OAuth via **Safari / Custom Tabs** and the same **`/auth/callback/`** + deep link as Google. For App Store guidelines, Apple may require a native **Sign in with Apple** button when you offer other third-party sign-in; plan to add the native capability + `ASAuthorizationAppleID` flow later if required.
+
+5. Retry **Continue with Apple** on `/login` or `/register`.
+
+**Apple relay email:** Users may hide their email; Supabase still gets a stable `user.id`. On **web OAuth**, Apple often does **not** send full name in later responses (first authorization only in native flows). The app still seeds `users.name` from metadata when present; otherwise use **Edit profile** or onboarding if you need a display name.
 
 ### Google sign-in (`401` / `deleted_client`)
 

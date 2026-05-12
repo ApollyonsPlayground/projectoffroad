@@ -20,7 +20,6 @@ export default function RegisterPage() {
       showToast(err, 'error')
       setGoogleLoading(false)
     }
-    // On success Supabase redirects the browser — no manual navigation needed
   }
 
   return (
@@ -37,13 +36,13 @@ export default function RegisterPage() {
               SoCal<span className="text-orange-500">Offroaders</span>
             </span>
             <p className="text-zinc-500 text-[13px] text-center leading-snug max-w-[220px]">
-              Official Google Authentication Required for Trail Access.
+              Create an account with Google. Apple sign-in is coming soon.
             </p>
           </div>
         </div>
 
-        {/* Google sign-up — sole CTA */}
-        <div className="w-full flex flex-col items-center gap-4">
+        {/* OAuth */}
+        <div className="w-full flex flex-col items-center gap-3">
           <motion.button
             whileTap={{ scale: 0.97 }}
             whileHover={{ scale: 1.015 }}
@@ -65,10 +64,23 @@ export default function RegisterPage() {
             {googleLoading ? 'Redirecting…' : 'Continue with Google'}
           </motion.button>
 
+          <div
+            className="w-full flex flex-col items-center justify-center gap-1 py-4 rounded-2xl border-2 border-zinc-700 bg-zinc-900/60 text-zinc-500"
+            role="status"
+            aria-label="Sign up with Apple — coming soon"
+          >
+            <span className="flex items-center gap-2.5 font-bold text-[15px] text-zinc-400">
+              <svg width="18" height="22" viewBox="0 0 814 1000" fill="currentColor" aria-hidden="true" focusable="false">
+                <path d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 138.3 204.5-1.5 3.2-21.6 73.7-71.3 145.4-44.2 63.5-90.1 126.9-162.1 127.8-71.1 1-94.1-42.1-175.3-42.1-81.2 0-106.6 41-173.9 43.5-69.5 2.6-122.5-69.5-166.7-133-90.8-131.8-160.5-372.3-67.1-534.2 45.7-79.2 127.4-129.4 216.3-130.8 67.4-1.3 131 45.3 171.3 45.3 40.2 0 115.9-56.9 195.5-48.4 33.3 1.4 126.6 13.4 186.5 100.4-4.8 3-111.3 65.1-111.3 194.2 0 153.8 120.1 207.6 126.3 210.9zM468.7 132.7c35.9-43.1 60.1-102.8 53.4-162.6-51.6 2.1-114.1 34.4-151.2 77.4-33.2 38.1-62.4 99.1-54.6 157.6 57.5 4.5 116.2-29.2 152.4-72.4z" />
+              </svg>
+              Apple — coming soon
+            </span>
+            <span className="text-[10px] text-zinc-600 font-semibold uppercase tracking-wide">Finishing setup</span>
+          </div>
+
           <p className="text-[11px] text-zinc-700 text-center max-w-[240px] leading-relaxed">
-            By continuing you agree to our community guidelines. Your Google account is the only sign-in method.
-          </p>
-        </div>
+            By continuing with Google you agree to our community guidelines.
+          </p>        </div>
 
         <button
           onClick={() => router.push('/login')}
