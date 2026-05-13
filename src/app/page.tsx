@@ -208,6 +208,9 @@ export default function PublicHomePage() {
           <Link href="/support/" className="hover:text-zinc-400">
             Support
           </Link>
+          <Link href="/beta/" className="hover:text-zinc-400">
+            Beta testing
+          </Link>
           <Link href="/feed/" className="hover:text-zinc-400">
             Community feed
           </Link>

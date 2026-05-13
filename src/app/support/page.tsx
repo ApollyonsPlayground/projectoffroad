@@ -35,6 +35,11 @@ export default function SupportPage() {
           <h2 className="text-white mt-8">Quick links</h2>
           <ul className="list-disc pl-6 text-gray-300 space-y-2">
             <li>
+              <Link href="/beta/" className="text-amber-400 hover:underline">
+                Beta testing (iOS &amp; Android)
+              </Link>
+            </li>
+            <li>
               <Link href="/login/" className="text-amber-400 hover:underline">
                 Sign in
               </Link>
