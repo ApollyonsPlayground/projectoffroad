@@ -405,7 +405,7 @@ export default function RunsPage() {
       }
 
       const hostIds = [...new Set(fetchedRuns.map((r) => r.host_id).filter(Boolean))] as string[];
-      let hostNameById: Record<string, string> = {};
+      const hostNameById: Record<string, string> = {};
       if (hostIds.length) {
         const { data: hostRows } = await supabaseClient.from('users').select('id, name').in('id', hostIds);
         if (hostRows) {

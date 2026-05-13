@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
     return redirectLogin(request, 'Server is missing Supabase URL or anon/publishable key.');
   }
 
-  let response = NextResponse.redirect(new URL('/feed/', request.url));
+  const response = NextResponse.redirect(new URL('/feed/', request.url));
 
   const secure = cookieSecureFromRequest(request);
 

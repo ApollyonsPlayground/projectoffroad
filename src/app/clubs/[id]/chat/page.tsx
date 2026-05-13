@@ -97,7 +97,7 @@ export default function ClubChatPage() {
       }
       const rows = (data ?? []) as ClubMessageRow[];
       const authorIds = [...new Set(rows.map((r) => r.user_id).filter(Boolean))];
-      let authorById: Record<string, UserRow> = {};
+      const authorById: Record<string, UserRow> = {};
       if (authorIds.length) {
         const { data: urows } = await supabaseClient.from('users').select('id,name,avatar_url').in('id', authorIds);
         for (const u of urows ?? []) {
