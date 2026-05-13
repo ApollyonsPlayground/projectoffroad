@@ -464,7 +464,7 @@ export default function RunDetailPage() {
       if (prev) URL.revokeObjectURL(prev);
       return url;
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- mirror HostRunWizard: only react to file swaps
+     
   }, [editFlyerFile]);
 
   useEffect(() => {

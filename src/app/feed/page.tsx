@@ -1351,7 +1351,7 @@ function RigPostCard({ post, index }: {
       const myLikes = likesRes.error ? [] : (likesRes.data ?? []);
 
       const distinctUserIds = [...new Set(rows.map((c: any) => c.user_id as string))];
-      let roleMap: Record<string, string | null> = {};
+      const roleMap: Record<string, string | null> = {};
       type AuthorProf = {
         name?: string | null;
         username?: string | null;
@@ -1431,7 +1431,7 @@ function RigPostCard({ post, index }: {
         setTimeout(() => commentInputRef.current?.focus(), 150);
       }
     });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, [supabaseClient, post.id, post.repost_of_id, user]);
 
   const requireAuth = (action: string): boolean => {
