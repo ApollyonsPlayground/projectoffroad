@@ -7,7 +7,7 @@
     "dev:lan": "next dev --hostname 0.0.0.0 --port 3000",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint",
+    "lint": "eslint . --max-warnings 350",
     "seed:trails": "node --env-file=.env.local scripts/upsert-trails.mjs",
     "trail:onx-coords": "node --env-file=.env.local scripts/fetch-onx-trail-coords.mjs",
     "trail-merge:onx-ca": "node scripts/merge-onx-california-trails.mjs",

@@ -21,8 +21,8 @@ const eslintConfig = defineConfig([
       "@typescript-eslint/no-require-imports": "off",
     },
   },
-  // Many valid patterns (loading gates, URL revoke branches) still trigger this;
-  // keep as warning so CI can tighten over time without blocking every effect.
+  // Baseline: 0 errors; selected rules stay "warn" while refactors land (see block below).
+  // `npm run lint` uses --max-warnings so CI matches the current warning budget.
   {
     rules: {
       "react-hooks/set-state-in-effect": "warn",

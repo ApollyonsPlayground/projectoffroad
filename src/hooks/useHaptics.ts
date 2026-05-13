@@ -34,7 +34,7 @@ export async function hapticLight() {
   if (!hapticAvailable) return;
   try {
     await Haptics.impact({ style: ImpactStyle.Light });
-  } catch (e) {
+  } catch {
     // Fail silently - haptics not critical
   }
 }
@@ -47,7 +47,7 @@ export async function hapticMedium() {
   if (!hapticAvailable) return;
   try {
     await Haptics.impact({ style: ImpactStyle.Medium });
-  } catch (e) {
+  } catch {
     // Fail silently
   }
 }
@@ -60,7 +60,7 @@ export async function hapticHeavy() {
   if (!hapticAvailable) return;
   try {
     await Haptics.impact({ style: ImpactStyle.Heavy });
-  } catch (e) {
+  } catch {
     // Fail silently
   }
 }
@@ -72,7 +72,7 @@ export async function hapticSuccess() {
   if (!hapticAvailable) return;
   try {
     await Haptics.notification({ type: NotificationType.Success });
-  } catch (e) {
+  } catch {
     // Fail silently
   }
 }
@@ -84,7 +84,7 @@ export async function hapticWarning() {
   if (!hapticAvailable) return;
   try {
     await Haptics.notification({ type: NotificationType.Warning });
-  } catch (e) {
+  } catch {
     // Fail silently
   }
 }
@@ -96,7 +96,7 @@ export async function hapticError() {
   if (!hapticAvailable) return;
   try {
     await Haptics.notification({ type: NotificationType.Error });
-  } catch (e) {
+  } catch {
     // Fail silently
   }
 }
@@ -108,7 +108,7 @@ export async function hapticSelection() {
   if (!hapticAvailable) return;
   try {
     await Haptics.selectionStart();
-  } catch (e) {
+  } catch {
     // Fail silently
   }
 }
