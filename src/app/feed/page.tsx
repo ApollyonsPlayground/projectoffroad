@@ -175,6 +175,10 @@ function NewPostDrawer({ open, onClose, onPosted }: {
       showToast('Sign in to post to the community', 'info');
       return;
     }
+    if (!supabaseClient) {
+      showToast('Still connecting — try again in a moment', 'info');
+      return;
+    }
 
     setIsSubmitting(true);
     let imageUrl: string | null = null;
@@ -427,7 +431,7 @@ function NewPostDrawer({ open, onClose, onPosted }: {
         insertPayload.moderation_status = moderationStatus;
       }
 
-      let { error: insertError } = await insertAdaptive(supabaseClient!, 'posts', insertPayload);
+      let { error: insertError } = await insertAdaptive(supabaseClient, 'posts', insertPayload);
       if (
         insertError &&
         String(insertError.message).toLowerCase().includes('moderation') &&
@@ -435,14 +439,14 @@ function NewPostDrawer({ open, onClose, onPosted }: {
       ) {
         const { moderation_status: _m, ...rest } = insertPayload;
         insertPayload = rest;
-        ({ error: insertError } = await insertAdaptive(supabaseClient!, 'posts', insertPayload));
+        ({ error: insertError } = await insertAdaptive(supabaseClient, 'posts', insertPayload));
       }
       if (
         insertError &&
         imageUrl == null &&
         /image_url|not-null|null value/i.test(insertError.message)
       ) {
-        ({ error: insertError } = await insertAdaptive(supabaseClient!, 'posts', {
+        ({ error: insertError } = await insertAdaptive(supabaseClient, 'posts', {
           user_id: user.id,
           user_name: userName,
           caption: text,

@@ -78,9 +78,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Capacitor native: complete OAuth PKCE via deep link in the same app storage context.
     // This avoids "PKCE code verifier not found in storage" which happens when auth
     // was initiated in the WebView but completed in a separate browser context.
-    let removeUrlOpen: (() => void) | null = null
+    let appUrlListener: Promise<{ remove: () => Promise<void> }> | null = null
     if (isCapacitorNative()) {
-      const sub = CapacitorApp.addListener('appUrlOpen', async ({ url }) => {
+      appUrlListener = CapacitorApp.addListener('appUrlOpen', async ({ url }) => {
         try {
           const u = new URL(url)
           const code = u.searchParams.get('code')
@@ -106,7 +106,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           console.warn('[Auth] appUrlOpen parse:', e)
         }
       })
-      removeUrlOpen = () => sub.remove()
     }
 
     // LAN / phone dev: first cookie read + profile can exceed 8s; avoid false "signed out".
@@ -142,7 +141,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     return () => {
       subscription.unsubscribe()
-      if (removeUrlOpen) removeUrlOpen()
+      void appUrlListener?.then((h) => void h.remove())
     }
   }, [])
 

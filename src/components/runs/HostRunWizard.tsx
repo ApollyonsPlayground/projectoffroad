@@ -344,22 +344,26 @@ export function HostRunWizard({ variant = 'drawer', onSuccess, onCancel }: Props
 
       let dirList: ClubOption[] = [];
       if (staff) {
-        let r = await supabaseClient
+        const rVerified = await supabaseClient
           .from('clubs')
           .select('id, name, verified')
           .order('name', { ascending: true })
           .limit(400);
-        if (r.error) {
-          r = await supabaseClient.from('clubs').select('id, name').order('name', { ascending: true }).limit(400);
-          if (!r.error && r.data?.length) {
-            dirList = (r.data as { id: string; name: string }[]).map((row) => ({
+        if (rVerified.error) {
+          const rNames = await supabaseClient
+            .from('clubs')
+            .select('id, name')
+            .order('name', { ascending: true })
+            .limit(400);
+          if (!rNames.error && rNames.data?.length) {
+            dirList = (rNames.data as { id: string; name: string }[]).map((row) => ({
               id: row.id,
               name: row.name,
               verified: false,
             }));
           }
-        } else if (r.data?.length) {
-          dirList = (r.data as { id: string; name: string; verified?: boolean | null }[]).map((row) => ({
+        } else if (rVerified.data?.length) {
+          dirList = (rVerified.data as { id: string; name: string; verified?: boolean | null }[]).map((row) => ({
             id: row.id,
             name: row.name,
             verified: row.verified === true,

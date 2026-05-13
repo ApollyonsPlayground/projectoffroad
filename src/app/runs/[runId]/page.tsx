@@ -313,7 +313,7 @@ export default function RunDetailPage() {
           .eq('id', runIdResolved)
           .maybeSingle();
         if (!error && data) {
-          runPayload = data as Record<string, unknown>;
+          runPayload = data as unknown as Record<string, unknown>;
           break;
         }
         lastRunError = error;
@@ -378,7 +378,7 @@ export default function RunDetailPage() {
         .eq('run_id', runIdResolved);
 
       if (!participantsEmb.error && participantsEmb.data) {
-        parts = participantsEmb.data as Participant[];
+        parts = participantsEmb.data as unknown as Participant[];
       } else {
         const base = await supabaseClient
           .from('run_participants')
@@ -493,7 +493,7 @@ export default function RunDetailPage() {
           .eq('run_id', runIdResolved)
           .order('created_at', { ascending: false });
         if (!error && data != null && !cancelled) {
-          const rows = data as RunReflectionRow[];
+          const rows = data as unknown as RunReflectionRow[];
           setRunReflections(rows);
           const mine = user ? rows.find((r) => r.user_id === user.id) : undefined;
           if (!reflectionTouchedRef.current) {
@@ -910,7 +910,7 @@ export default function RunDetailPage() {
           .order('created_at', { ascending: true })
           .limit(120);
         if (!error && data != null && !cancelled) {
-          setChatMessages((data as RunChatMessage[]).map((m) => enrichChatRow(m)));
+          setChatMessages((data as unknown as RunChatMessage[]).map((m) => enrichChatRow(m)));
           break;
         }
       }
@@ -1001,7 +1001,7 @@ export default function RunDetailPage() {
         .select('id, body, created_at, updated_at, user_id, users(name)')
         .eq('run_id', run.id)
         .order('created_at', { ascending: false });
-      if (again) setRunReflections(again as RunReflectionRow[]);
+      if (again) setRunReflections(again as unknown as RunReflectionRow[]);
     } catch {
       showToast('Could not save trip note — try again after migrations are applied', 'error');
     } finally {

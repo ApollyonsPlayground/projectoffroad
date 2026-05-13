@@ -305,7 +305,11 @@ export default function ProfilePage() {
   const [runsJoinedCount, setRunsJoinedCount] = useState(0);
 
   // Cast profile (Record<string,unknown>) to a typed shape for safe rendering
-  type DisplayProfile = typeof PLACEHOLDER_PROFILE & { avatar_url?: string | null };
+  type DisplayProfile = typeof PLACEHOLDER_PROFILE & {
+    avatar_url?: string | null;
+    username?: string | null;
+    hide_display_name?: boolean | null;
+  };
   const displayProfile: DisplayProfile = (profile as DisplayProfile | null) || PLACEHOLDER_PROFILE;
 
   const displayName = resolveOwnProfileDisplayName({

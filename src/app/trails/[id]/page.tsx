@@ -187,7 +187,7 @@ export default function TrailDetailPage() {
           .order('created_at', { ascending: false })
           .limit(40);
         if (!error && data != null && !cancelled) {
-          setTripNotes(data as TrailTripNoteRow[]);
+          setTripNotes(data as unknown as TrailTripNoteRow[]);
           break;
         }
       }

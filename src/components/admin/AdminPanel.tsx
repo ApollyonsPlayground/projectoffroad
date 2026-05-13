@@ -91,7 +91,7 @@ export function AdminPanel({ variant, onCloseDrawer }: Props) {
   const [users, setUsers] = useState<any[]>([]);
   const [userQuery, setUserQuery] = useState('');
 
-  const authHeaders = useCallback(() => {
+  const authHeaders = useCallback((): Record<string, string> => {
     if (!token) return {};
     return { Authorization: `Bearer ${token}` };
   }, [token]);
