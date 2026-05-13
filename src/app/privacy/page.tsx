@@ -83,7 +83,7 @@ export default function PrivacyPage() {
           <ul className="list-disc pl-6 text-gray-300 space-y-2 mt-2">
             <li><strong>Right to Access:</strong> Request a copy of the personal data we hold about you</li>
             <li><strong>Right to Correction:</strong> Request correction of inaccurate personal data</li>
-            <li><strong>Right to Deletion:</strong> Request deletion of your personal data ("right to be forgotten")</li>
+            <li><strong>Right to Deletion:</strong> Request deletion of your personal data (&quot;right to be forgotten&quot;)</li>
             <li><strong>Right to Restrict Processing:</strong> Request limitation of how we process your data</li>
             <li><strong>Right to Data Portability:</strong> Request your data in a structured, commonly used format</li>
             <li><strong>Right to Opt-Out:</strong> Opt out of the sale of personal data (we do not sell data)</li>
@@ -115,7 +115,7 @@ export default function PrivacyPage() {
           <p className="text-gray-300">Your data may be transferred to and processed in countries other than your country of residence. We ensure appropriate safeguards are in place, including standard contractual clauses or adequacy decisions, to protect your data during such transfers.</p>
 
           <h2 className="text-white mt-8">11. Changes to This Policy</h2>
-          <p className="text-gray-300">We may update this privacy policy from time to time. We will post the updated policy with a revised "Last updated" date. For material changes, we will provide notice through the platform or via email.</p>
+          <p className="text-gray-300">We may update this privacy policy from time to time. We will post the updated policy with a revised &quot;Last updated&quot; date. For material changes, we will provide notice through the platform or via email.</p>
 
           <h2 className="text-white mt-8">12. Contact Information</h2>
           <p className="text-gray-300">For questions about this Privacy Policy or to exercise your rights, contact us at:</p>

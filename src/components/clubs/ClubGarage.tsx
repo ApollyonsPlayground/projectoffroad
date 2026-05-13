@@ -150,7 +150,6 @@ export default function ClubGarage({ clubId, currentUserId, canUpload, isClubOwn
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             {photos.map((photo) => (
               <div key={photo.id} className="relative aspect-square rounded-lg overflow-hidden bg-muted border border-border group">
-                {/* eslint-disable-next-line @next/next/no-img-element -- Supabase project host varies per env */}
                 <img src={publicGarageUrl(photo.storage_path)} alt="" className="absolute inset-0 w-full h-full object-cover" />
                 {currentUserId && (photo.user_id === currentUserId || isClubOwner) && (
                   <button

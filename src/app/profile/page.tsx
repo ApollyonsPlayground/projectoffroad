@@ -24,6 +24,7 @@ import {
   Repeat2,
   Bookmark,
   Zap,
+  type LucideIcon,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -114,12 +115,6 @@ const PLACEHOLDER_VEHICLES: Vehicle[] = [
     modifications: '37" BFG KO2s, 4" TeraFlex lift, Warn winch, rock sliders, skid plates',
     is_primary: true,
   },
-];
-
-const PLACEHOLDER_POSTS: Post[] = [
-  { id: 'p1', image_url: 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=400&q=80', caption: 'Big Bear weekend run', likes_count: 47, created_at: '' },
-  { id: 'p2', image_url: 'https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?w=400&q=80', caption: 'Holcomb Valley', likes_count: 89, created_at: '' },
-  { id: 'p3', image_url: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=400&q=80', caption: 'Morning trails', likes_count: 34, created_at: '' },
 ];
 
 // ─── Edit Rig Modal ────────────────────────────────────────────────────────────
@@ -928,7 +923,7 @@ export default function ProfilePage() {
                 { id: 'reposts',   label: 'Reposts',   Icon: Repeat2 },
                 { id: 'liked',     label: 'Liked',     Icon: Heart },
                 { id: 'favorites', label: 'Favorites', Icon: Bookmark },
-              ] as { id: TabId; label: string; Icon: any }[]
+              ] as { id: TabId; label: string; Icon: LucideIcon }[]
             ).map(({ id, label, Icon }) => (
               <button
                 key={id}

@@ -1,9 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { MapPin, Flag, Heart, MessageCircle, Share2, MoreHorizontal } from 'lucide-react';
-import Link from 'next/link';
-import { hapticMedium, hapticLight } from '@/hooks/useHaptics';
+import { hapticMedium } from '@/hooks/useHaptics';
 import { ensureStoragePublicObjectUrl } from '@/lib/supabase/storagePublicUrl';
 
 interface RigPost {

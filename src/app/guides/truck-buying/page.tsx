@@ -160,7 +160,7 @@ export default function TruckBuyingGuidePage() {
                   <li>• You want warranty coverage</li>
                   <li>• Modern safety tech matters</li>
                   <li>• You want fewer surprises</li>
-                  <li>• Budget isn't a primary concern</li>
+                  <li>• Budget isn&apos;t a primary concern</li>
                 </ul>
               </div>
               <div className="bg-stone-900/50 rounded-xl border border-orange-600/30 p-6">

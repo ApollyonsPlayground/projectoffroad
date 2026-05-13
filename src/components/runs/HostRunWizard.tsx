@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/Toast';
-import { mapDbTrailRow, coordsFromRow } from '@/lib/trails/mapDbTrail';
+import { mapDbTrailRow, coordsFromRow, explorerTrailMatchesSearch, rawDifficultyToTier, type ExplorerTrail } from '@/lib/trails/mapDbTrail';
 import { fetchAllTrailRows } from '@/lib/trails/fetchTrailsPaginated';
 import { isLimitedMediaDevice, resizeImageFileToJpegBlob } from '@/lib/media/mobileSafeCapture';
 
@@ -52,9 +52,30 @@ interface TrailOption {
   name: string;
   location: string | null;
   difficulty: string | null;
+  description?: string | null;
+  tags?: string[];
   latitude?: number | null;
   longitude?: number | null;
   coordinates?: string | null;
+}
+
+function trailOptionToSearchProbe(t: TrailOption): ExplorerTrail {
+  const diff = t.difficulty ?? 'Moderate';
+  return {
+    id: t.id,
+    name: t.name,
+    location: t.location ?? '',
+    difficulty: diff,
+    difficultyLevel: diff,
+    difficultyLabel: rawDifficultyToTier(diff),
+    distance: '—',
+    time: '—',
+    terrain: 'off-road',
+    description: t.description ?? '',
+    tags: t.tags,
+    isVerified: false,
+    vehicleScope: 'unknown',
+  };
 }
 
 /** Align with Trail Explorer: DB may use `title`, `image_url`, etc. — avoid brittle column lists in `.select()`. */
@@ -70,6 +91,8 @@ function trailRowToPickerOption(row: Record<string, unknown>): TrailOption {
     name: m.name,
     location: m.location || null,
     difficulty: m.difficulty || null,
+    description: m.description || null,
+    tags: m.tags,
     latitude: c?.lat ?? null,
     longitude: c?.lng ?? null,
     coordinates: coordStr,
@@ -425,12 +448,9 @@ export function HostRunWizard({ variant = 'drawer', onSuccess, onCancel }: Props
   }, [staffFromDb, mode]);
 
   const filteredTrails = useMemo(() => {
-    const q = trailSearch.trim().toLowerCase();
+    const q = trailSearch.trim();
     if (!q) return trails;
-    return trails.filter((t) => {
-      const blob = `${t.name} ${t.location ?? ''} ${t.difficulty ?? ''}`.toLowerCase();
-      return blob.includes(q);
-    });
+    return trails.filter((t) => explorerTrailMatchesSearch(trailOptionToSearchProbe(t), q));
   }, [trails, trailSearch]);
 
   /** Latest wizard snapshot for debounced / unmount draft saves */

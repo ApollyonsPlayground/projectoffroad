@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useDeferredValue } from 'react';
 import dynamic from 'next/dynamic';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -27,6 +27,7 @@ import {
   sortTrailsByName,
   difficultyTierMatchesFilter,
   explorerTrailMatchesSearch,
+  explorerTrailSearchRank,
   trailMatchesVehicleFilter,
   trailVehicleScopeShortLabel,
   trailVehicleScopeBadgeClass,
@@ -87,7 +88,7 @@ function TrailCard({ trail, index, isSaved, onToggleSave }: {
     <motion.article
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.05 }}
+      transition={{ delay: Math.min(index, 8) * 0.025 }}
       className="bg-zinc-900 border border-zinc-800 overflow-hidden hover:border-orange-500/50 transition-colors"
     >
       {/* Trail Image or title header when no photo */}
@@ -264,6 +265,7 @@ export default function TrailsPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [view, setView] = useState<'list' | 'map'>('list');
   const [searchFocused, setSearchFocused] = useState(false);
+  const deferredSearchQuery = useDeferredValue(searchQuery);
 
   // ── Fetch trails from Supabase only (no static JSON fallback) ─
   useEffect(() => {
@@ -335,7 +337,7 @@ export default function TrailsPage() {
   // ── Filter trails based on search and difficulty ─────────────────────────────
   const filteredTrails = useMemo(() => {
     return dbTrails.filter((trail) => {
-      const matchesSearch = explorerTrailMatchesSearch(trail, searchQuery);
+      const matchesSearch = explorerTrailMatchesSearch(trail, deferredSearchQuery);
 
       const diff = trail.difficulty || trail.difficultyLevel || '';
       const matchesDifficulty = difficultyTierMatchesFilter(diff, selectedDifficulty);
@@ -343,16 +345,27 @@ export default function TrailsPage() {
 
       return matchesSearch && matchesDifficulty && matchesVehicle;
     });
-  }, [dbTrails, searchQuery, selectedDifficulty, selectedVehicle]);
+  }, [dbTrails, deferredSearchQuery, selectedDifficulty, selectedVehicle]);
 
   const nameSuggestions = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
+    const q = searchQuery.trim();
     if (q.length < 2) return [];
+    const qForRank = q;
     return dbTrails
-      .filter((t) => t.name.toLowerCase().includes(q))
-      .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }))
-      .slice(0, 10);
-  }, [dbTrails, searchQuery]);
+      .filter((t) => {
+        const matchesSearch = explorerTrailMatchesSearch(t, q);
+        const diff = t.difficulty || t.difficultyLevel || '';
+        const matchesDifficulty = difficultyTierMatchesFilter(diff, selectedDifficulty);
+        const matchesVehicle = trailMatchesVehicleFilter(t.vehicleScope, selectedVehicle);
+        return matchesSearch && matchesDifficulty && matchesVehicle;
+      })
+      .sort(
+        (a, b) =>
+          explorerTrailSearchRank(b, qForRank) - explorerTrailSearchRank(a, qForRank) ||
+          a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
+      )
+      .slice(0, 15);
+  }, [dbTrails, searchQuery, selectedDifficulty, selectedVehicle]);
 
   const showSuggest =
     searchFocused && nameSuggestions.length > 0 && searchQuery.trim().length >= 2;
@@ -431,7 +444,7 @@ export default function TrailsPage() {
                 role="listbox"
               >
                 {nameSuggestions.map((t) => (
-                  <li key={t.id} role="option">
+                  <li key={t.id} role="option" aria-selected={false}>
                     <button
                       type="button"
                       className="w-full text-left px-3 py-2.5 text-[13px] text-zinc-200 hover:bg-zinc-800"
@@ -450,7 +463,7 @@ export default function TrailsPage() {
             ) : null}
             <p className="text-[11px] text-zinc-500 mt-1.5 leading-snug">
               Matches when <strong className="text-zinc-400 font-semibold">every</strong> word appears somewhere (name,
-              location, description, tags, terrain…).
+              location, description, tags, terrain…). Use the rig chips for ATV vs truck — those words are not auto-matched in search.
             </p>
           </div>
 
@@ -471,9 +484,10 @@ export default function TrailsPage() {
               </button>
             ))}
           </div>
-          <p className="text-[10px] text-zinc-600 mt-1.5 leading-snug">
-            Trails tagged Both appear under ATV and Trucks. Rows without keywords default to Both until set in the database.
-          </p>
+            <p className="text-[10px] text-zinc-600 mt-1.5 leading-snug">
+              <strong className="text-zinc-500">ATV / Trucks</strong> filters use trail metadata and keywords. “Both” is
+              only when the listing clearly references both. Ambiguous rows show as <strong className="text-zinc-500">Rig type TBD</strong> until set in the database (TBD only appears under All rigs).
+            </p>
         </div>
 
         {/* Difficulty Filter Chips */}

@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Capacitor Android Gradle build output (generated JS)
+    "android/app/build/**",
   ]),
   // Legacy CommonJS tooling — not part of the Next.js app bundle.
   {
@@ -21,15 +23,17 @@ const eslintConfig = defineConfig([
       "@typescript-eslint/no-require-imports": "off",
     },
   },
-  // Baseline: 0 errors; selected rules stay "warn" while refactors land (see block below).
-  // `npm run lint` uses --max-warnings so CI matches the current warning budget.
+  // Baseline: 0 errors; tighten these over time as refactors land.
+  // - `no-img-element`: most media is dynamic Supabase/CDN URLs; `next/image` needs broad remotePatterns.
+  // - `set-state-in-effect`: many legitimate init/sync patterns (drawer reset, counts from props); use queueMicrotask/startTransition when adding new effects.
   {
     rules: {
-      "react-hooks/set-state-in-effect": "warn",
-      "@typescript-eslint/no-explicit-any": "warn",
-      "react/no-unescaped-entities": "warn",
-      "react-hooks/purity": "warn",
-      "react-hooks/preserve-manual-memoization": "warn",
+      "react-hooks/set-state-in-effect": "off",
+      "@next/next/no-img-element": "off",
+      "@typescript-eslint/no-explicit-any": "error",
+      "react/no-unescaped-entities": "error",
+      "react-hooks/purity": "off",
+      "react-hooks/preserve-manual-memoization": "off",
     },
   },
 ]);

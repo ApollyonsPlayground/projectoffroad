@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Grid3X3, Bookmark, Heart, Repeat2, BadgeCheck, Loader2, MessageCircle, Ban, UserPlus, UserMinus } from 'lucide-react';
+import { ArrowLeft, Grid3X3, Bookmark, Heart, Repeat2, BadgeCheck, Loader2, MessageCircle, Ban, UserPlus, UserMinus, type LucideIcon } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import BottomNav from '@/components/BottomNav';
@@ -16,6 +16,20 @@ import {
 import { ensureStoragePublicObjectUrl } from '@/lib/supabase/storagePublicUrl';
 
 type Tab = 'posts' | 'reposts' | 'liked' | 'favorites';
+
+/** Minimal public user row from `users` select — fields used by this page. */
+type ViewedUserProfile = {
+  id?: string;
+  name?: string | null;
+  username?: string | null;
+  hide_display_name?: boolean | null;
+  email?: string | null;
+  avatar_url?: string | null;
+  role?: string | null;
+  is_verified?: boolean | null;
+  bio?: string | null;
+  dm_allow_from?: string | null;
+};
 
 interface PostRow {
   id: string;
@@ -69,7 +83,7 @@ export default function UserProfilePage() {
   const { showToast } = useToast();
   const [messagingLoading, setMessagingLoading] = useState(false);
 
-  const [profile, setProfile] = useState<any>(null);
+  const [profile, setProfile] = useState<ViewedUserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -304,7 +318,7 @@ export default function UserProfilePage() {
         .select('conversation_id')
         .eq('user_id', user.id);
 
-      const myConvIds = (myParticipations ?? []).map((r: any) => r.conversation_id);
+      const myConvIds = (myParticipations ?? []).map((r) => String((r as { conversation_id: string }).conversation_id));
 
       let existingConvId: string | null = null;
 
@@ -384,7 +398,7 @@ export default function UserProfilePage() {
     );
   }
 
-  const TABS: { id: Tab; label: string; icon: any }[] = [
+  const TABS: { id: Tab; label: string; icon: LucideIcon }[] = [
     { id: 'posts',     label: 'Posts',     icon: Grid3X3 },
     { id: 'reposts',   label: 'Reposts',   icon: Repeat2 },
     { id: 'liked',     label: 'Liked',     icon: Heart },

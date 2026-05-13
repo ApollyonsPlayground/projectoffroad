@@ -33,7 +33,7 @@ export default function BeginnerGuidePage() {
             Guide
           </span>
           <h1 className="text-4xl md:text-5xl font-serif font-bold text-stone-50 mb-4">
-            Beginner's Guide to <span className="italic text-orange-500">Off-Roading</span>
+            Beginner&apos;s Guide to <span className="italic text-orange-500">Off-Roading</span>
           </h1>
           <p className="text-stone-400 text-lg">
             A practical, no-fluff guide for your first SoCal trail run.
@@ -66,7 +66,7 @@ export default function BeginnerGuidePage() {
               </div>
             </div>
             <p className="text-stone-400 text-sm mt-4">
-              <span className="text-orange-400 font-semibold">Pro tip:</span> Shift into 4L BEFORE you need it — don't try to shift when stuck mid-slope.
+              <span className="text-orange-400 font-semibold">Pro tip:</span> Shift into 4L BEFORE you need it — don&apos;t try to shift when stuck mid-slope.
             </p>
           </section>
 
@@ -141,7 +141,7 @@ export default function BeginnerGuidePage() {
             <div className="bg-stone-900/50 rounded-xl border border-stone-700 p-6">
               <h3 className="font-semibold text-stone-200 mb-3">Minimum Kit</h3>
               <ul className="grid md:grid-cols-2 gap-2 text-stone-300">
-                <li className="flex items-center gap-2"><CheckCircle size={16} className="text-green-500" /> Rated bow shackles (3/4")</li>
+                <li className="flex items-center gap-2"><CheckCircle size={16} className="text-green-500" /> Rated bow shackles (3/4&quot;)</li>
                 <li className="flex items-center gap-2"><CheckCircle size={16} className="text-green-500" /> 10-20 ft soft snatch strap</li>
                 <li className="flex items-center gap-2"><CheckCircle size={16} className="text-green-500" /> Tree saver strap</li>
                 <li className="flex items-center gap-2"><CheckCircle size={16} className="text-green-500" /> Recovery damper</li>
@@ -225,7 +225,7 @@ export default function BeginnerGuidePage() {
             <div className="bg-stone-900/50 rounded-xl border border-stone-700 p-6">
               <ul className="space-y-3 text-stone-300">
                 <li>• <span className="text-orange-400 font-semibold">Yield:</span> Uphill vehicles have right of way on single-track technical lines.</li>
-                <li>• <span className="text-orange-400 font-semibold">Leave no trace:</span> Pack out trash, don't widen the trail, respect wildlife.</li>
+                <li>• <span className="text-orange-400 font-semibold">Leave no trace:</span> Pack out trash, don&apos;t widen the trail, respect wildlife.</li>
                 <li>• <span className="text-orange-400 font-semibold">Respect closures:</span> Many SoCal trails have seasonal closures — check USFS/BLM.</li>
                 <li>• <span className="text-orange-400 font-semibold">Fire restrictions:</span> Follow local fire rules; avoid campfires in extreme seasons.</li>
               </ul>

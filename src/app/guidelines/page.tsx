@@ -31,11 +31,11 @@ export default function GuidelinesPage() {
             <li>Have fun and share your adventures!</li>
           </ul>
 
-          <h2 className="text-white mt-8">❌ Don't</h2>
+          <h2 className="text-white mt-8">❌ Don&apos;t</h2>
           <ul className="list-disc pl-6 text-gray-300 space-y-2">
             <li>Post fake events or mislead participants</li>
             <li>Harass, threaten, or discriminate against others</li>
-            <li>Share others' personal information without consent</li>
+            <li>Share others&apos; personal information without consent</li>
             <li>Spam or commercial solicitations</li>
             <li>Organize runs beyond your skill level without proper preparation</li>
             <li>Damage trails or private property</li>
@@ -43,12 +43,12 @@ export default function GuidelinesPage() {
 
           <h2 className="text-white mt-8">🚙 Run Safety Tips</h2>
           <ul className="list-disc pl-6 text-gray-300 space-y-2">
-            <li>Always tell someone where you're going</li>
+            <li>Always tell someone where you&apos;re going</li>
             <li>Carry recovery gear (shackles, straps, gloves)</li>
             <li>Bring adequate water, food, and supplies</li>
             <li>Check weather conditions before heading out</li>
-            <li>Stay with the group — don't split off alone</li>
-            <li>Know your vehicle's limits</li>
+            <li>Stay with the group — don&apos;t split off alone</li>
+            <li>Know your vehicle&apos;s limits</li>
           </ul>
 
           <h2 className="text-white mt-8">⚠️ Emergency</h2>

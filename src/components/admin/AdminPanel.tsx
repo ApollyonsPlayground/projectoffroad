@@ -39,6 +39,22 @@ type ClubRow = {
   created_at?: string;
 };
 
+type AdminPostRow = {
+  id: string;
+  body: string;
+  hidden: boolean;
+  image_url?: string;
+  user_name?: string;
+  created_at: string;
+};
+
+type AdminUserRow = {
+  id: string;
+  name: string | null;
+  email: string;
+  role: string;
+};
+
 type Props = {
   variant: AdminPanelVariant;
   /** Close the parent drawer (drawer variant only) */
@@ -87,8 +103,8 @@ export function AdminPanel({ variant, onCloseDrawer }: Props) {
 
   const [stats, setStats] = useState<Record<string, number> | null>(null);
   const [clubs, setClubs] = useState<ClubRow[]>([]);
-  const [posts, setPosts] = useState<any[]>([]);
-  const [users, setUsers] = useState<any[]>([]);
+  const [posts, setPosts] = useState<AdminPostRow[]>([]);
+  const [users, setUsers] = useState<AdminUserRow[]>([]);
   const [userQuery, setUserQuery] = useState('');
 
   const authHeaders = useCallback((): Record<string, string> => {

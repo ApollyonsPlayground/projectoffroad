@@ -34,13 +34,20 @@ export default function FeaturedRigs() {
         if (error) throw error;
         
         // Map to FeaturedRig format - handle both JSON and text vehicle
-        const mapped = (data || []).map((post: any) => ({
-          id: post.id,
-          image_url:
-            ensureStoragePublicObjectUrl(post.image_url) || post.image_url,
-          user_name: post.user_name,
-          vehicle: post.rig_specs?.vehicle || post.rig_specs || 'Offroad Rig'
-        }));
+        const mapped = (data || []).map((post: Record<string, unknown>) => {
+          const rigSpecs = post.rig_specs as { vehicle?: string } | string | null | undefined;
+          const vehicleFromJson =
+            rigSpecs && typeof rigSpecs === 'object' && rigSpecs !== null && 'vehicle' in rigSpecs
+              ? String((rigSpecs as { vehicle?: unknown }).vehicle ?? '')
+              : '';
+          return {
+            id: String(post.id ?? ''),
+            image_url:
+              ensureStoragePublicObjectUrl(String(post.image_url ?? '')) || String(post.image_url ?? ''),
+            user_name: String(post.user_name ?? ''),
+            vehicle: vehicleFromJson || (typeof rigSpecs === 'string' ? rigSpecs : '') || 'Offroad Rig',
+          };
+        });
         
         setRigs(mapped);
       } catch (err) {

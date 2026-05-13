@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { MapPin, Mountain, Waves, Palmtree, Flame, ChevronRight } from 'lucide-react';
 import TrailCard from './TrailCard';
+import type { Trail } from './TrailCard';
 
 interface Region {
   id: string;
@@ -49,11 +50,10 @@ const regions: Region[] = [
 ];
 
 interface RegionCardsProps {
-  trails: any[];
-  onBack?: () => void;
+  trails: Trail[];
 }
 
-export default function RegionCards({ trails, onBack }: RegionCardsProps) {
+export default function RegionCards({ trails }: RegionCardsProps) {
   const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
   
   // Filter trails by selected region
@@ -101,8 +101,8 @@ export default function RegionCards({ trails, onBack }: RegionCardsProps) {
 
         {/* Trail cards - 1 column for mobile */}
         <div className="grid grid-cols-1 gap-4">
-          {filteredTrails.map((trail, index) => (
-            <TrailCard key={trail.id} trail={trail} index={index} />
+          {filteredTrails.map((trail) => (
+            <TrailCard key={trail.id} trail={trail} />
           ))}
         </div>
       </div>

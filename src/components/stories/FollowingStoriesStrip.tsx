@@ -121,11 +121,6 @@ export function FollowingStoriesStrip({
 
   const ownBucket = useMemo(() => buckets.find((b) => b.userId === user?.id) ?? null, [buckets, user?.id]);
 
-  const watchBucket = useMemo(
-    () => buckets.find((b) => b.userId === watchUserId) ?? null,
-    [buckets, watchUserId]
-  );
-
   const othersBuckets = useMemo(() => buckets.filter((b) => b.userId !== user?.id), [buckets, user?.id]);
 
   const openWatch = (userId: string) => {

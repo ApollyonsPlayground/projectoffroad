@@ -14,7 +14,7 @@ console.log('-- INSERT TRAILS');
 console.log('-- ============================================');
 console.log('');
 
-trailsData.forEach((trail, index) => {
+trailsData.forEach((trail) => {
   const slug = trail.onxUrl.split('/').pop() || trail.id;
   
   console.log(`INSERT INTO trails (title, location, difficulty, difficulty_level, rig_requirements, onx_slug, coordinates, status, image_url, distance, time_estimate, description, terrain) VALUES (`);
@@ -41,7 +41,7 @@ console.log('-- INSERT RUNS');
 console.log('-- ============================================');
 console.log('');
 
-runsData.forEach((run, index) => {
+runsData.forEach((run) => {
   console.log(`-- Run: ${run.title}`);
   console.log(`-- Link to trail via subquery`);
   console.log(`INSERT INTO runs (title, date, meetup_location, description, difficulty, max_rigs, rigs_joined, trail_id, is_verified, organizer_name, organizer_instagram) VALUES (`);

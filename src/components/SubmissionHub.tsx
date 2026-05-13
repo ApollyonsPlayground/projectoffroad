@@ -126,7 +126,7 @@ export default function SubmissionHub() {
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-orange-500 font-bold">3.</span>
-                  <span>We'll add your photos to the site (with credit!)</span>
+                  <span>We&apos;ll add your photos to the site (with credit!)</span>
                 </li>
               </ol>
             </div>

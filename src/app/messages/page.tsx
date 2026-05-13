@@ -23,6 +23,18 @@ interface Conversation {
   unread: boolean;
 }
 
+type ParticipantRow = { conversation_id: string; is_read?: boolean | null };
+type ConvMetaRow = { id: string; last_message_content?: string | null; last_message_at?: string | null };
+type OtherParticipantRow = { conversation_id: string; user_id: string };
+type MessagesUserRow = {
+  id: string;
+  name?: string | null;
+  username?: string | null;
+  hide_display_name?: boolean | null;
+  email?: string | null;
+  avatar_url?: string | null;
+};
+
 function timeAgo(iso: string | null | undefined) {
   if (!iso) return '';
   const secs = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
@@ -59,9 +71,12 @@ export default function MessagesPage() {
         return;
       }
 
-      const conversationIds = participantRows.map((r: any) => r.conversation_id);
+      const pr = participantRows as ParticipantRow[];
+      const conversationIds = pr.map((r) => r.conversation_id);
       const isReadMap: Record<string, boolean> = {};
-      participantRows.forEach((r: any) => { isReadMap[r.conversation_id] = r.is_read ?? true; });
+      pr.forEach((r) => {
+        isReadMap[r.conversation_id] = r.is_read ?? true;
+      });
 
       // Get conversation metadata
       const { data: convRows, error: cErr } = await supabaseClient
@@ -83,23 +98,29 @@ export default function MessagesPage() {
         .neq('user_id', user.id);
 
       // Collect distinct other user IDs
-      const otherUserIds = [...new Set((allParticipants ?? []).map((r: any) => r.user_id))];
-      const otherUserMap: Record<string, any> = {};
+      const otherUserIds = [
+        ...new Set(((allParticipants ?? []) as OtherParticipantRow[]).map((r) => r.user_id)),
+      ];
+      const otherUserMap: Record<string, MessagesUserRow> = {};
 
       if (otherUserIds.length > 0) {
         const { data: userRows } = await supabaseClient
           .from('users')
           .select('id, name, avatar_url, username, hide_display_name, email')
           .in('id', otherUserIds);
-        (userRows ?? []).forEach((u: any) => { otherUserMap[u.id] = u; });
+        ((userRows ?? []) as MessagesUserRow[]).forEach((u) => {
+          otherUserMap[u.id] = u;
+        });
       }
 
       // Map other participant per conversation
       const participantByConv: Record<string, string> = {};
-      (allParticipants ?? []).forEach((r: any) => { participantByConv[r.conversation_id] = r.user_id; });
+      ((allParticipants ?? []) as OtherParticipantRow[]).forEach((r) => {
+        participantByConv[r.conversation_id] = r.user_id;
+      });
 
-      const result: Conversation[] = convRows.map((c: any) => {
-        const otherUserId = participantByConv[c.id];
+      const result: Conversation[] = (convRows as ConvMetaRow[]).map((c) => {
+        const otherUserId = participantByConv[c.id] ?? '';
         const otherUser = otherUserMap[otherUserId] ?? null;
         return {
           id: c.id,

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { MapPin, Mountain, Clock, Wrench } from 'lucide-react';
 
-interface Trail {
+export interface Trail {
   id: string;
   name: string;
   location: string;
@@ -23,7 +23,6 @@ interface Trail {
 
 interface TrailCardProps {
   trail: Trail;
-  index: number;
 }
 
 const difficultyColors: Record<string, { bg: string; text: string; border: string }> = {
@@ -33,7 +32,7 @@ const difficultyColors: Record<string, { bg: string; text: string; border: strin
   'Extreme': { bg: 'bg-red-900/30', text: 'text-red-400', border: 'border-red-700/50' },
 };
 
-export default function TrailCard({ trail, index }: TrailCardProps) {
+export default function TrailCard({ trail }: TrailCardProps) {
   const colors = difficultyColors[trail.difficulty] || difficultyColors['Advanced'];
   const [imageError, setImageError] = useState(false);
   

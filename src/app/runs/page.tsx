@@ -507,17 +507,17 @@ export default function RunsPage() {
       // Build counts map
       const counts: Record<string, number> = {};
       runIds.forEach((id) => (counts[id] = 0));
-      (countsRes.data ?? []).forEach((r: any) => {
+      (countsRes.data ?? []).forEach((r: { run_id: string }) => {
         counts[r.run_id] = (counts[r.run_id] ?? 0) + 1;
       });
       setParticipantCounts(counts);
-      setJoinedRunIds(new Set((joinedRes.data ?? []).map((r: any) => r.run_id)));
+      setJoinedRunIds(new Set((joinedRes.data ?? []).map((r: { run_id: string }) => r.run_id)));
     } catch {
       showToast('Could not load runs', 'error');
     } finally {
       setIsLoading(false);
     }
-  }, [supabaseClient, user, filter]);
+  }, [supabaseClient, user, filter, showToast]);
 
   useEffect(() => { fetchRuns(); }, [fetchRuns]);
 

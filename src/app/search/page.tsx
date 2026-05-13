@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/context/AuthContext'
 import BottomNav from '@/components/BottomNav'
@@ -28,16 +28,7 @@ export default function SearchPage() {
   const [results, setResults] = useState<SearchResult[]>([])
   const [loading, setLoading] = useState(false)
 
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search)
-    const q = params.get('q')
-    if (q) {
-      setQuery(q)
-      performSearch(q)
-    }
-  }, [])
-
-  async function performSearch(searchQuery: string) {
+  const performSearch = useCallback(async (searchQuery: string) => {
     if (!searchQuery.trim()) {
       setResults([])
       return
@@ -125,7 +116,16 @@ export default function SearchPage() {
 
     setResults(results)
     setLoading(false)
-  }
+  }, [supabaseClient])
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const q = params.get('q')
+    if (q) {
+      setQuery(q)
+      void performSearch(q)
+    }
+  }, [performSearch])
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -204,7 +204,7 @@ export default function SearchPage() {
           </div>
         ) : query ? (
           <div className="text-center py-8 text-gray-400">
-            No results found for "{query}"
+            No results found for {`"${query}"`}
           </div>
         ) : (
           <div className="text-center py-8 text-gray-400">

@@ -1,6 +1,6 @@
 'use client';
 
-import { Mountain, MapPin, Gauge } from 'lucide-react';
+import { MapPin } from 'lucide-react';
 
 interface Trail {
   id: string;

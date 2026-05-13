@@ -1,9 +1,8 @@
 'use client';
 
-import { useState } from 'react';
 import Link from 'next/link';
-import { Home, Map, Users, User, Settings, Compass, X } from 'lucide-react';
-import { motion, useMotionValue, useTransform, AnimatePresence } from 'framer-motion';
+import { Home, Users, User, Settings, Compass, X } from 'lucide-react';
+import { motion, useMotionValue, AnimatePresence } from 'framer-motion';
 
 const navItems = [
   { href: '/', label: 'Home', icon: Home },
@@ -20,8 +19,7 @@ interface LeftNavProps {
 
 export default function LeftNav({ isOpen, onClose }: LeftNavProps) {
   const x = useMotionValue(0);
-  const opacity = useTransform(x, [-300, 0], [0, 1]);
-  
+
   const variants = {
     open: { x: 0, opacity: 1 },
     closed: { x: -300, opacity: 0 },

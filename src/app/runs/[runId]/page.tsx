@@ -265,7 +265,7 @@ export default function RunDetailPage() {
   const [editMeetupLng, setEditMeetupLng] = useState<number>(0);
   const [editMapCenter, setEditMapCenter] = useState<[number, number]>([34.05, -116.8]);
   const [editZoom, setEditZoom] = useState(11);
-  const [editPinTouched, setEditPinTouched] = useState(false);
+  const [, setEditPinTouched] = useState(false);
   const [editFlyerFile, setEditFlyerFile] = useState<File | null>(null);
   const [editFlyerPreviewUrl, setEditFlyerPreviewUrl] = useState('');
   const [editFlyerRemoved, setEditFlyerRemoved] = useState(false);
@@ -723,8 +723,10 @@ export default function RunDetailPage() {
 
       if (error) throw error;
       showToast('SOS alert sent to all riders in this run.', 'success');
-    } catch (err: any) {
-      if (err?.code === 1) {
+    } catch (err: unknown) {
+      const code =
+        err && typeof err === 'object' && 'code' in err ? (err as { code?: unknown }).code : undefined;
+      if (code === 1) {
         // PERMISSION_DENIED — fall back to alert without coords
         const { error } = await supabaseClient.from('sos_alerts').insert({
           run_id: run.id,

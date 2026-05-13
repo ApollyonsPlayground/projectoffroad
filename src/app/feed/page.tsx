@@ -10,7 +10,6 @@ import {
   Share2,
   MoreHorizontal,
   BadgeCheck,
-  Mountain,
   Plus,
   ZoomIn,
   X,
@@ -437,7 +436,8 @@ function NewPostDrawer({ open, onClose, onPosted }: {
         String(insertError.message).toLowerCase().includes('moderation') &&
         'moderation_status' in insertPayload
       ) {
-        const { moderation_status: _m, ...rest } = insertPayload;
+        const { moderation_status: _dropMod, ...rest } = insertPayload;
+        void _dropMod;
         insertPayload = rest;
         ({ error: insertError } = await insertAdaptive(supabaseClient, 'posts', insertPayload));
       }
@@ -1350,7 +1350,9 @@ function RigPostCard({ post, index }: {
       const rows = rawComments ?? [];
       const myLikes = likesRes.error ? [] : (likesRes.data ?? []);
 
-      const distinctUserIds = [...new Set(rows.map((c: any) => c.user_id as string))];
+      const distinctUserIds = [
+        ...new Set(rows.map((c: Record<string, unknown>) => String(c.user_id))),
+      ];
       const roleMap: Record<string, string | null> = {};
       type AuthorProf = {
         name?: string | null;
@@ -1365,20 +1367,21 @@ function RigPostCard({ post, index }: {
           .from('users')
           .select('id, role, name, username, hide_display_name, email, avatar_url')
           .in('id', distinctUserIds);
-        (userRows ?? []).forEach((u: any) => {
-          roleMap[u.id] = u.role ?? null;
-          profileById[u.id] = {
-            name: u.name ?? null,
-            username: u.username ?? null,
-            hide_display_name: u.hide_display_name ?? null,
-            email: u.email ?? null,
-            avatar_url: u.avatar_url ?? null,
+        (userRows ?? []).forEach((u: Record<string, unknown>) => {
+          const id = String(u.id ?? '');
+          roleMap[id] = (u.role as string | null | undefined) ?? null;
+          profileById[id] = {
+            name: (u.name as string | null | undefined) ?? null,
+            username: (u.username as string | null | undefined) ?? null,
+            hide_display_name: (u.hide_display_name as boolean | null | undefined) ?? null,
+            email: (u.email as string | null | undefined) ?? null,
+            avatar_url: (u.avatar_url as string | null | undefined) ?? null,
           };
         });
       }
 
       const viewerId = user?.id ?? null;
-      const commentAuthorLabel = (uid: string, fallbackUserName?: string | null): string => {
+      const commentAuthorLabel = (uid: string, fallbackUserName?: unknown): string => {
         const p = profileById[uid];
         if (!p) return String(fallbackUserName ?? '').trim();
         const base = {
@@ -1394,8 +1397,10 @@ function RigPostCard({ post, index }: {
           : resolvePublicDisplayName(base);
       };
 
-      const likedIds = new Set(myLikes.map((l: any) => l.comment_id));
-      const enriched: Comment[] = rows.map((c: any) => {
+      const likedIds = new Set(
+        myLikes.map((l: Record<string, unknown>) => String(l.comment_id ?? ''))
+      );
+      const enriched: Comment[] = rows.map((c: Record<string, unknown>) => {
         const uid = String(c.user_id);
         const p = profileById[uid];
         const label =
@@ -1414,13 +1419,13 @@ function RigPostCard({ post, index }: {
 
         return {
           ...c,
-          role: roleMap[c.user_id] ?? c.role ?? null,
-          content: c.content ?? '',
+          role: roleMap[uid] ?? (c.role as string | null | undefined) ?? null,
+          content: String(c.content ?? ''),
           user_name: label,
           avatar_url: avatarUrl,
-          liked_by_me: likedIds.has(c.id),
-          likes_count: c.likes_count ?? 0,
-        };
+          liked_by_me: likedIds.has(String(c.id)),
+          likes_count: Number(c.likes_count ?? 0),
+        } as Comment;
       });
 
       setComments(enriched);
@@ -2182,8 +2187,8 @@ function ModerationPanel() {
   const { supabaseClient } = useAuth();
   const { showToast } = useToast();
   const [open, setOpen] = useState(false);
-  const [flaggedPosts, setFlaggedPosts] = useState<any[]>([]);
-  const [flaggedComments, setFlaggedComments] = useState<any[]>([]);
+  const [flaggedPosts, setFlaggedPosts] = useState<Record<string, unknown>[]>([]);
+  const [flaggedComments, setFlaggedComments] = useState<Record<string, unknown>[]>([]);
   const [loading, setLoading] = useState(false);
 
   const load = async () => {
@@ -2208,14 +2213,16 @@ function ModerationPanel() {
     }
 
     const postCounts: Record<string, number> = {};
-    (postFlagData.data ?? []).forEach((r: any) => {
-      postCounts[r.post_id] = (postCounts[r.post_id] ?? 0) + 1;
+    (postFlagData.data ?? []).forEach((r: { post_id?: string }) => {
+      const pid = String(r.post_id ?? '');
+      postCounts[pid] = (postCounts[pid] ?? 0) + 1;
     });
     const flaggedPostIds = Object.entries(postCounts).filter(([, n]) => n >= 3).map(([id]) => id);
 
     const commentCounts: Record<string, number> = {};
-    (commentFlagData.data ?? []).forEach((r: any) => {
-      commentCounts[r.comment_id] = (commentCounts[r.comment_id] ?? 0) + 1;
+    (commentFlagData.data ?? []).forEach((r: { comment_id?: string }) => {
+      const cid = String(r.comment_id ?? '');
+      commentCounts[cid] = (commentCounts[cid] ?? 0) + 1;
     });
     const flaggedCommentIds = Object.entries(commentCounts).filter(([, n]) => n >= 3).map(([id]) => id);
 
@@ -2237,10 +2244,10 @@ function ModerationPanel() {
     if (!supabaseClient) return;
     if (type === 'post') {
       await supabaseClient.from('post_flags').delete().eq('post_id', id);
-      setFlaggedPosts((p) => p.filter((x) => x.id !== id));
+      setFlaggedPosts((p) => p.filter((x) => String(x.id) !== id));
     } else {
       await supabaseClient.from('comment_flags').delete().eq('comment_id', id);
-      setFlaggedComments((p) => p.filter((x) => x.id !== id));
+      setFlaggedComments((p) => p.filter((x) => String(x.id) !== id));
     }
   };
 
@@ -2299,15 +2306,15 @@ function ModerationPanel() {
                         </p>
                         <div className="space-y-2">
                           {flaggedPosts.map((p) => (
-                            <div key={p.id} className="bg-zinc-900 border border-zinc-800 rounded-xl p-3 flex items-start gap-3">
+                            <div key={String(p.id)} className="bg-zinc-900 border border-zinc-800 rounded-xl p-3 flex items-start gap-3">
                               <div className="flex-1 min-w-0">
-                                <p className="text-zinc-400 text-[11px] mb-0.5">{p.user_name ?? 'Unknown'}</p>
+                                <p className="text-zinc-400 text-[11px] mb-0.5">{String(p.user_name ?? 'Unknown')}</p>
                                 <p className="text-white text-[13px] leading-relaxed line-clamp-3">
-                                  {p.body ?? p.content ?? p.caption}
+                                  {String(p.body ?? p.content ?? p.caption ?? '')}
                                 </p>
                               </div>
                               <button
-                                onClick={() => dismiss('post', p.id)}
+                                onClick={() => dismiss('post', String(p.id))}
                                 className="flex-shrink-0 text-[11px] text-zinc-500 hover:text-emerald-400 transition-colors border border-zinc-700 rounded-lg px-2 py-1"
                               >
                                 Dismiss
@@ -2324,15 +2331,15 @@ function ModerationPanel() {
                         </p>
                         <div className="space-y-2">
                           {flaggedComments.map((c) => (
-                            <div key={c.id} className="bg-zinc-900 border border-zinc-800 rounded-xl p-3 flex items-start gap-3">
+                            <div key={String(c.id)} className="bg-zinc-900 border border-zinc-800 rounded-xl p-3 flex items-start gap-3">
                               <div className="flex-1 min-w-0">
-                                <p className="text-zinc-400 text-[11px] mb-0.5">{c.user_name ?? 'Unknown'}</p>
+                                <p className="text-zinc-400 text-[11px] mb-0.5">{String(c.user_name ?? 'Unknown')}</p>
                                 <p className="text-white text-[13px] leading-relaxed line-clamp-3">
-                                  {c.content ?? c.body}
+                                  {String(c.content ?? c.body ?? '')}
                                 </p>
                               </div>
                               <button
-                                onClick={() => dismiss('comment', c.id)}
+                                onClick={() => dismiss('comment', String(c.id))}
                                 className="flex-shrink-0 text-[11px] text-zinc-500 hover:text-emerald-400 transition-colors border border-zinc-700 rounded-lg px-2 py-1"
                               >
                                 Dismiss
@@ -2403,24 +2410,26 @@ export default function HomePage() {
         userRole === 'owner' || userRole === 'admin';
       const viewerId = user?.id ?? null;
 
-      const rawPosts: any[] = (postsResult.data ?? []).filter((p: any) => {
-        if (p.hidden === true) return false;
-        const st = String(p.moderation_status ?? 'approved').trim().toLowerCase();
-        // `pending_no_engine` is a non-blocking state when moderation is not configured.
-        // We still show these posts publicly; actual blocked content returns 422 and never gets inserted.
-        if (!st || st === 'approved' || st === 'pending_no_engine') return true;
-        if (modBypass) return true;
-        if (viewerId && String(p.user_id) === String(viewerId)) return true;
-        return false;
-      });
+      const rawPosts: Record<string, unknown>[] = (postsResult.data ?? []).filter(
+        (p: Record<string, unknown>) => {
+          if (p.hidden === true) return false;
+          const st = String(p.moderation_status ?? 'approved').trim().toLowerCase();
+          // `pending_no_engine` is a non-blocking state when moderation is not configured.
+          // We still show these posts publicly; actual blocked content returns 422 and never gets inserted.
+          if (!st || st === 'approved' || st === 'pending_no_engine') return true;
+          if (modBypass) return true;
+          if (viewerId && String(p.user_id) === String(viewerId)) return true;
+          return false;
+        }
+      );
 
       // Repost rows are not global: the reposter sees their RT, and each account they follow sees it
       // on their feed (broadcast-to-following only). Others keep seeing only the original post thread.
       const reposterIds = [
         ...new Set(
           rawPosts
-            .filter((p: any) => p.repost_of_id)
-            .map((p: any) => String(p.user_id))
+            .filter((p: Record<string, unknown>) => p.repost_of_id)
+            .map((p: Record<string, unknown>) => String(p.user_id))
         ),
       ];
       const followingByReposter = new Map<string, Set<string>>();
@@ -2437,7 +2446,7 @@ export default function HomePage() {
         }
       }
 
-      const feedSource = rawPosts.filter((p: any) => {
+      const feedSource = rawPosts.filter((p: Record<string, unknown>) => {
         if (!p.repost_of_id) return true;
         if (modBypass) return true;
         if (!viewerId) return false;
@@ -2446,8 +2455,8 @@ export default function HomePage() {
         return followingByReposter.get(rid)?.has(String(viewerId)) ?? false;
       });
 
-      const postById = new Map<string, any>(
-        rawPosts.map((p: any) => [String(p.id), p])
+      const postById = new Map<string, Record<string, unknown>>(
+        rawPosts.map((p: Record<string, unknown>) => [String(p.id), p])
       );
 
       const [likesRows, savedRows, repostOriginalIdList] = user
@@ -2459,7 +2468,7 @@ export default function HomePage() {
         : [[], [], []];
 
       const canonicalIds = [
-        ...new Set(feedSource.map((p: any) => String(p.repost_of_id ?? p.id))),
+        ...new Set(feedSource.map((p: Record<string, unknown>) => String(p.repost_of_id ?? p.id))),
       ];
       const canonicalIdSet = new Set(canonicalIds);
       const uuidCanonicalIds = canonicalIds.filter((id) => isLikelyUuid(id));
@@ -2513,7 +2522,7 @@ export default function HomePage() {
       }
 
       const authorIds = new Set<string>();
-      feedSource.forEach((p: any) => {
+      feedSource.forEach((p: Record<string, unknown>) => {
         if (p.user_id) authorIds.add(String(p.user_id));
         if (p.repost_of_id) {
           const orig = postById.get(String(p.repost_of_id));
@@ -2536,15 +2545,16 @@ export default function HomePage() {
           .from('users')
           .select('*')
           .in('id', [...authorIds]);
-        (authorRows ?? []).forEach((u: any) => {
-          authorById[String(u.id)] = {
-            name: u.name ?? null,
-            email: u.email ?? null,
-            username: u.username ?? null,
-            hide_display_name: u.hide_display_name ?? null,
-            role: u.role ?? null,
-            is_verified: u.is_verified ?? null,
-            avatar_url: u.avatar_url ?? null,
+        (authorRows ?? []).forEach((u: Record<string, unknown>) => {
+          const id = String(u.id ?? '');
+          authorById[id] = {
+            name: (u.name as string | null | undefined) ?? null,
+            email: (u.email as string | null | undefined) ?? null,
+            username: (u.username as string | null | undefined) ?? null,
+            hide_display_name: (u.hide_display_name as boolean | null | undefined) ?? null,
+            role: (u.role as string | null | undefined) ?? null,
+            is_verified: (u.is_verified as boolean | null | undefined) ?? null,
+            avatar_url: (u.avatar_url as string | null | undefined) ?? null,
           };
         });
       }
@@ -2564,7 +2574,10 @@ export default function HomePage() {
         }
       }
 
-      const authorAvatarUrl = (postRow: any, au?: AuthorRow): string | undefined => {
+      const authorAvatarUrl = (
+        postRow: Record<string, unknown>,
+        au?: AuthorRow
+      ): string | undefined => {
         const fromUser = au?.avatar_url;
         if (fromUser != null && String(fromUser).trim()) return String(fromUser).trim();
         const fromPost = postRow?.avatar_url;
@@ -2572,7 +2585,10 @@ export default function HomePage() {
         return undefined;
       };
 
-      const authorDisplayName = (authorId: string | undefined | null, postRow: any): string => {
+      const authorDisplayName = (
+        authorId: string | undefined | null,
+        postRow: Record<string, unknown>
+      ): string => {
         const idStr = authorId ? String(authorId) : '';
         const au = idStr ? authorById[idStr] : undefined;
         const isSelf = viewerId != null && idStr !== '' && String(viewerId) === idStr;
@@ -2591,7 +2607,7 @@ export default function HomePage() {
         return 'Rider';
       };
 
-      const authorRole = (userId: string | undefined | null, postRow: any): string =>
+      const authorRole = (userId: string | undefined | null, postRow: Record<string, unknown>): string =>
         String(
           (userId ? authorById[String(userId)]?.role : null) ?? postRow?.role ?? 'user'
         );
@@ -2605,7 +2621,7 @@ export default function HomePage() {
           ? String((profile as { role: string }).role).trim()
           : '';
 
-      const normalised = feedSource.map((p: any) => {
+      const normalised = feedSource.map((p: Record<string, unknown>) => {
         const canonicalId = String(p.repost_of_id ?? p.id);
         const orig = p.repost_of_id ? postById.get(String(p.repost_of_id)) : null;
         const metricsRow = orig ?? p;
@@ -2617,10 +2633,12 @@ export default function HomePage() {
         const roleStr =
           viewerOwn && profileRole
             ? profileRole
-            : authorRole(p.user_id, p);
+            : authorRole(p.user_id != null ? String(p.user_id) : null, p);
 
         const original_user_name =
-          p.repost_of_id && orig ? authorDisplayName(orig.user_id, orig) : null;
+          p.repost_of_id && orig
+            ? authorDisplayName(orig.user_id != null ? String(orig.user_id) : null, orig)
+            : null;
 
         // Repost rows: show the canonical/original caption & media (Twitter-style RT), not a cloned duplicate snapshot.
         const displaySrc = orig ?? p;
@@ -2643,24 +2661,19 @@ export default function HomePage() {
 
         const rc =
           repostCountMap[canonicalId] ??
-          metricsRow.reposts_count ??
-          metricsRow.reposts ??
-          0;
+          Number(metricsRow.reposts_count ?? metricsRow.reposts ?? 0);
 
         const lc =
           likeCountMap[canonicalId] ??
-          metricsRow.likes_count ??
-          metricsRow.likes ??
-          0;
+          Number(metricsRow.likes_count ?? metricsRow.likes ?? 0);
+
         const cc =
           commentCountMap[canonicalId] ??
-          metricsRow.comments_count ??
-          metricsRow.comments ??
-          0;
+          Number(metricsRow.comments_count ?? metricsRow.comments ?? 0);
 
         return {
           ...p,
-          username: authorDisplayName(p.user_id, p),
+          username: authorDisplayName(p.user_id != null ? String(p.user_id) : null, p),
           role: roleStr,
           club_founder_badge: clubFounderIds.has(String(p.user_id)),
           ...(mergedAvatar ? { avatar_url: mergedAvatar } : {}),
@@ -2680,7 +2693,7 @@ export default function HomePage() {
         };
       });
       setPosts(
-        normalised.length ? normalised.slice(0, 30) : PLACEHOLDER_POSTS
+        (normalised.length ? normalised.slice(0, 30) : PLACEHOLDER_POSTS) as Post[]
       );
     } catch {
       setPosts(PLACEHOLDER_POSTS);

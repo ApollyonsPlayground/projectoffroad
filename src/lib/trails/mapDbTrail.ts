@@ -8,8 +8,12 @@ import { sanitizeTrailHeroImageUrl } from '@/lib/trails/trailImageUrl';
 
 export type DifficultyTier = 'Easy' | 'Moderate' | 'Hard';
 
-/** Typical rigs allowed — trucks vs ATV/SXS; both appears under either explorer filter. */
-export type TrailVehicleScope = 'atv' | 'truck' | 'both';
+/**
+ * Typical rigs allowed — trucks vs ATV/SXS.
+ * - `both`: explicitly mixed / documented for both.
+ * - `unknown`: no reliable keywords and no DB scope — only shows under “All rigs” until curated in the database.
+ */
+export type TrailVehicleScope = 'atv' | 'truck' | 'both' | 'unknown';
 
 export type VehicleFilter = 'All' | 'ATV' | 'Truck';
 
@@ -234,29 +238,40 @@ export function normalizeVehicleScopeFromDb(raw: unknown): TrailVehicleScope | n
   if (s === 'atv' || s === 'sxs' || s === 'utv' || s === 'quad') return 'atv';
   if (s === 'truck' || s === 'trucks' || s === '4x4') return 'truck';
   if (s === 'both' || s === 'all' || s === 'mixed' || s === 'either') return 'both';
+  if (s === 'unknown' || s === 'unspecified' || s === 'tbd' || s === 'verify') return 'unknown';
   return null;
 }
 
-/** When DB vehicle_scope is null — keyword hints from catalog copy (best-effort). */
+/**
+ * When DB `vehicle_scope` is null — infer from catalog copy (best-effort).
+ * Prefer false negatives for `both`: only use `both` when both families are clearly referenced.
+ * ATV-only / no-full-size cues win over incidental truck words in disclaimers.
+ */
 export function inferTrailVehicleScopeFromStrings(parts: string[]): TrailVehicleScope {
   const lower = parts.filter(Boolean).join('\n').toLowerCase();
+
+  const atvOnlySignals =
+    /\batv[\s\-/]*only\b|\boutv[\s\-/]*only\b|\bsxs[\s\-/]*only\b|\bohv[\s\-/]*only\b|\bquads?\s+only\b|\bno\s+full[\s-]?size\b|\bno\s+full[\s-]?width\b|\bno\s+pickups?\b|\bno\s+trucks?\b|\btrucks?\s+not\s+allowed\b|\btrucks?\s+prohibited\b|\bnot\s+open\s+to\s+trucks?\b|\bnot\s+suitable\s+for\s+trucks?\b|\b(?:max|maximum)\s+vehicle\s+width\b|\bwidth\s+restriction\b|\b50[\"′']?\s*(?:in|inch|inches)\b|\bunder\s+80[\"′']?\s*(?:in|inch)es?\b/i;
+
+  if (atvOnlySignals.test(lower)) return 'atv';
 
   const atvSignals =
     /\batv\b|\butv\b|\bsxs\b|side[\s-]?by[\s-]?side|\brzr\b|\brzrs\b|\bpolaris\b|\bcan-am\b|\bcan\s?am\b|\btalon\b|\bquad\b|four[\s-]?wheeler|\bwolverine\b|\bwildcat\b|\bmaverick\s*x\b|\b50[\"′']?\s*(inch|in\.?)\b/i;
 
   const truckSignals =
-    /\btruck\b|\bpickup\b|\bf[\s-]?150\b|\bf[\s-]?250\b|\bf[\s-]?350\b|\b3500\b|\btacoma\b|\btundra\b|\b4runner\b|\bsequoia\b|\bbronco\b|\bwrangler\b|\bgladiator\b|\bcolorado\b|\bsilverado\b|\bsierra\b|\bram\s?1500\b|\bfull[\s-]?size\b|\bf[\s-]?550\b/i;
+    /\btruck\b|\bpickup\b|\bf[\s-]?150\b|\bf[\s-]?250\b|\bf[\s-]?350\b|\b3500\b|\btacoma\b|\btundra\b|\b4runner\b|\bsequoia\b|\bbronco\b|\bwrangler\b|\bgladiator\b|\bcolorado\b|\bsilverado\b|\bsierra\b|\bram\s?1500\b|\bfull[\s-]?size\b|\bf[\s-]?550\b|\b4x4\b|\b4wd\b/i;
 
   const hasAtv = atvSignals.test(lower);
   const hasTruck = truckSignals.test(lower);
   if (hasAtv && hasTruck) return 'both';
   if (hasAtv) return 'atv';
   if (hasTruck) return 'truck';
-  return 'both';
+  return 'unknown';
 }
 
 export function trailMatchesVehicleFilter(scope: TrailVehicleScope, selected: VehicleFilter): boolean {
   if (selected === 'All') return true;
+  if (scope === 'unknown') return false;
   if (selected === 'ATV') return scope === 'atv' || scope === 'both';
   return scope === 'truck' || scope === 'both';
 }
@@ -264,6 +279,7 @@ export function trailMatchesVehicleFilter(scope: TrailVehicleScope, selected: Ve
 export function trailVehicleScopeShortLabel(scope: TrailVehicleScope): string {
   if (scope === 'atv') return 'ATV / SXS';
   if (scope === 'truck') return 'Trucks / 4×4';
+  if (scope === 'unknown') return 'Rig type TBD';
   return 'ATV & trucks';
 }
 
@@ -271,17 +287,8 @@ export function trailVehicleScopeShortLabel(scope: TrailVehicleScope): string {
 export function trailVehicleScopeBadgeClass(scope: TrailVehicleScope): string {
   if (scope === 'atv') return 'bg-sky-500/15 text-sky-300 border-sky-500/35';
   if (scope === 'truck') return 'bg-amber-500/15 text-amber-300 border-amber-500/35';
+  if (scope === 'unknown') return 'bg-zinc-600/20 text-zinc-400 border-zinc-500/35';
   return 'bg-violet-500/15 text-violet-300 border-violet-500/35';
-}
-
-export function trailVehicleScopeSearchHay(scope: TrailVehicleScope): string {
-  if (scope === 'atv') {
-    return 'atv utv sxs side-by-side polaris can-am quad four-wheeler';
-  }
-  if (scope === 'truck') {
-    return 'truck pickup 4x4 jeep tacoma bronco full-size';
-  }
-  return 'atv utv sxs truck pickup 4x4';
 }
 
 /** Maps DB difficulty strings to three UI tiers (Easy / Moderate / Hard). */
@@ -523,7 +530,11 @@ export function explorerTrailLngLat(trail: ExplorerTrail): [number, number] | nu
   return null;
 }
 
-/** Multi-token search: every word must appear somewhere in name, location, tags, etc. */
+/**
+ * Multi-token search: every word must appear somewhere in name, location, tags, etc.
+ * Rig type (ATV vs truck) is handled by explorer chips only — not injected keywords here —
+ * so typing “4x4” or “atv” does not implicitly match unrelated trails.
+ */
 export function explorerTrailMatchesSearch(trail: ExplorerTrail, rawQuery: string): boolean {
   const q = rawQuery.trim().toLowerCase();
   if (!q) return true;
@@ -538,12 +549,28 @@ export function explorerTrailMatchesSearch(trail: ExplorerTrail, rawQuery: strin
     trail.distance ?? '',
     trail.time ?? '',
     trail.rigRequirements ?? '',
-    trailVehicleScopeSearchHay(trail.vehicleScope),
     ...(trail.tags ?? []),
   ]
     .join('\n')
     .toLowerCase();
   return tokens.every((tok) => hay.includes(tok));
+}
+
+/** Higher scores sort first for autocomplete / suggestion ordering. */
+export function explorerTrailSearchRank(trail: ExplorerTrail, rawQuery: string): number {
+  const q = rawQuery.trim().toLowerCase();
+  if (!q) return 0;
+  const name = trail.name.toLowerCase();
+  const loc = trail.location.toLowerCase();
+  if (name === q) return 10_000;
+  if (name.startsWith(q)) return 6_000 + Math.min(500, q.length * 40);
+  if (name.includes(q)) return 3_000 + Math.min(400, q.length * 25);
+  if (loc.includes(q)) return 1_200;
+  const tokens = q.split(/\s+/).filter((t) => t.length > 0);
+  if (tokens.length === 0) return 0;
+  const hay = [trail.name, trail.location, trail.description ?? '', ...(trail.tags ?? [])].join('\n').toLowerCase();
+  const matched = tokens.filter((t) => hay.includes(t)).length;
+  return 400 + matched * 80;
 }
 
 export function sortTrailsByName(rows: ExplorerTrail[]): ExplorerTrail[] {
@@ -553,7 +580,7 @@ export function sortTrailsByName(rows: ExplorerTrail[]): ExplorerTrail[] {
 /** Older offline caches may omit vehicle_scope — infer without touching newer rows. */
 export function ensureExplorerTrailVehicleScope(trail: ExplorerTrail): ExplorerTrail {
   const vs = trail.vehicleScope;
-  if (vs === 'atv' || vs === 'truck' || vs === 'both') return trail;
+  if (vs === 'atv' || vs === 'truck' || vs === 'both' || vs === 'unknown') return trail;
   return {
     ...trail,
     vehicleScope: inferTrailVehicleScopeFromStrings([

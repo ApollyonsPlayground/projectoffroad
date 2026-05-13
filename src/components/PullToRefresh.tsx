@@ -18,9 +18,7 @@ export function PullToRefresh({ onRefresh, children, threshold = 100 }: PullToRe
   
   const y = useMotionValue(0);
   const ySpring = useSpring(y, { stiffness: 300, damping: 30 });
-  
-  // Transform for spinner rotation and opacity
-  const rotation = useTransform(y, [0, threshold], [0, 360]);
+
   const opacity = useTransform(y, [0, threshold / 2], [0, 1]);
   const scale = useTransform(y, [0, threshold], [0.5, 1]);
 

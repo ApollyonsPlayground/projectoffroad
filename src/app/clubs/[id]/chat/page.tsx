@@ -74,7 +74,8 @@ export default function ClubChatPage() {
         .eq('club_id', clubId)
         .eq('user_id', user.id)
         .maybeSingle();
-      const ok = !mem.error && String((mem.data as any)?.status ?? '').toLowerCase() === 'approved';
+      const memRow = mem.data as { status?: string } | null;
+      const ok = !mem.error && String(memRow?.status ?? '').toLowerCase() === 'approved';
       if (cancelled) return;
       setAllowed(ok);
       if (!ok) {
@@ -101,7 +102,7 @@ export default function ClubChatPage() {
       if (authorIds.length) {
         const { data: urows } = await supabaseClient.from('users').select('id,name,avatar_url').in('id', authorIds);
         for (const u of urows ?? []) {
-          const r = u as any;
+          const r = u as { id: string; name?: string | null; avatar_url?: string | null };
           authorById[String(r.id)] = { id: String(r.id), name: r.name ?? null, avatar_url: r.avatar_url ?? null };
         }
       }
@@ -125,7 +126,7 @@ export default function ClubChatPage() {
     return () => {
       cancelled = true;
     };
-  }, [supabaseClient, clubId, user?.id]);
+  }, [supabaseClient, clubId, user]);
 
   const send = async () => {
     if (!supabaseClient || !clubId || !user) return;
@@ -206,8 +207,9 @@ export default function ClubChatPage() {
       setFile(null);
       if (previewUrl) URL.revokeObjectURL(previewUrl);
       setPreviewUrl('');
-    } catch (e: any) {
-      showToast(e?.message ? String(e.message) : 'Could not send message', 'error');
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : '';
+      showToast(msg ? String(msg) : 'Could not send message', 'error');
     } finally {
       setSending(false);
     }

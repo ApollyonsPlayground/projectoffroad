@@ -12,7 +12,7 @@ export default function TermsPage() {
 
           <h2 className="text-white mt-8">1. Acceptance of Terms</h2>
           <p className="text-gray-300">
-            By accessing and using SoCalOffroaders ("the Platform"), you accept and agree to be bound by these Terms of Service and our Community Guidelines. If you do not agree to these terms, please do not use our platform.
+            By accessing and using SoCalOffroaders (&quot;the Platform&quot;), you accept and agree to be bound by these Terms of Service and our Community Guidelines. If you do not agree to these terms, please do not use our platform.
           </p>
 
           <h2 className="text-white mt-8">2. Platform Nature</h2>
@@ -49,7 +49,7 @@ export default function TermsPage() {
 
           <h2 className="text-white mt-8">5. Indemnification</h2>
           <p className="text-gray-300">
-            You agree to indemnify, defend, and hold harmless SoCalOffroaders, its officers, directors, employees, and agents from and against any and all claims, liabilities, damages, losses, costs, and expenses (including reasonable attorneys' fees) arising out of or related to:
+            You agree to indemnify, defend, and hold harmless SoCalOffroaders, its officers, directors, employees, and agents from and against any and all claims, liabilities, damages, losses, costs, and expenses (including reasonable attorneys&apos; fees) arising out of or related to:
           </p>
           <ul className="list-disc pl-6 text-gray-300 space-y-2 mt-2">
             <li>Your use of the platform</li>
@@ -117,7 +117,7 @@ export default function TermsPage() {
 
           <h2 className="text-white mt-8">14. Modifications</h2>
           <p className="text-gray-300">
-            We may modify these Terms at any time. We'll post changes with a revised "Last updated" date. Your continued use of the platform after changes constitutes acceptance of the new terms.
+            We may modify these Terms at any time. We&apos;ll post changes with a revised &quot;Last updated&quot; date. Your continued use of the platform after changes constitutes acceptance of the new terms.
           </p>
 
           <h2 className="text-white mt-8">15. Termination</h2>

@@ -1,7 +1,5 @@
 'use client';
 
-import { useState } from 'react';
-
 interface Region {
   id: string;
   name: string;
