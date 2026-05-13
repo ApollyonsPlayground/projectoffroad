@@ -40,6 +40,11 @@ import {
 import { applyCatalogTrailLinks } from '@/lib/trails/staticTrailLinks';
 import { fetchAllTrailRows } from '@/lib/trails/fetchTrailsPaginated';
 import { readTrailsCache, writeTrailsCache } from '@/lib/trails/offlineCache';
+import {
+  EXPLORER_AREA_OPTIONS,
+  trailMatchesExplorerArea,
+  type TrailExplorerAreaId,
+} from '@/lib/trails/trailExplorerArea';
 import { useSavedTrailIds } from '@/lib/hooks/useSavedTrailIds';
 
 // Leaflet requires browser APIs — load with no SSR
@@ -260,6 +265,7 @@ export default function TrailsPage() {
   );
 
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedArea, setSelectedArea] = useState<TrailExplorerAreaId>('all');
   const [selectedDifficulty, setSelectedDifficulty] = useState<DifficultyFilter>('All');
   const [selectedVehicle, setSelectedVehicle] = useState<VehicleFilter>('All');
   const [showFilters, setShowFilters] = useState(false);
@@ -334,9 +340,14 @@ export default function TrailsPage() {
     };
   }, [supabaseClient, isConfigured]);
 
-  // ── Filter trails based on search and difficulty ─────────────────────────────
+  const areaFilteredTrails = useMemo(() => {
+    if (selectedArea === 'all') return dbTrails;
+    return dbTrails.filter((t) => trailMatchesExplorerArea(t, selectedArea));
+  }, [dbTrails, selectedArea]);
+
+  // ── Filter trails: area first, then search / difficulty / vehicle ─────────────
   const filteredTrails = useMemo(() => {
-    return dbTrails.filter((trail) => {
+    return areaFilteredTrails.filter((trail) => {
       const matchesSearch = explorerTrailMatchesSearch(trail, deferredSearchQuery);
 
       const diff = trail.difficulty || trail.difficultyLevel || '';
@@ -345,13 +356,13 @@ export default function TrailsPage() {
 
       return matchesSearch && matchesDifficulty && matchesVehicle;
     });
-  }, [dbTrails, deferredSearchQuery, selectedDifficulty, selectedVehicle]);
+  }, [areaFilteredTrails, deferredSearchQuery, selectedDifficulty, selectedVehicle]);
 
   const nameSuggestions = useMemo(() => {
     const q = searchQuery.trim();
     if (q.length < 2) return [];
     const qForRank = q;
-    return dbTrails
+    return areaFilteredTrails
       .filter((t) => {
         const matchesSearch = explorerTrailMatchesSearch(t, q);
         const diff = t.difficulty || t.difficultyLevel || '';
@@ -365,7 +376,7 @@ export default function TrailsPage() {
           a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
       )
       .slice(0, 15);
-  }, [dbTrails, searchQuery, selectedDifficulty, selectedVehicle]);
+  }, [areaFilteredTrails, searchQuery, selectedDifficulty, selectedVehicle]);
 
   const showSuggest =
     searchFocused && nameSuggestions.length > 0 && searchQuery.trim().length >= 2;
@@ -488,6 +499,30 @@ export default function TrailsPage() {
               <strong className="text-zinc-500">ATV / Trucks</strong> filters use trail metadata and keywords. “Both” is
               only when the listing clearly references both. Ambiguous rows show as <strong className="text-zinc-500">Rig type TBD</strong> until set in the database (TBD only appears under All rigs).
             </p>
+
+          {/* Area — narrows list, suggestions, and map pins before text search */}
+          <div className="mt-3">
+            <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-2">Area</p>
+            <div className="flex gap-2 overflow-x-auto pb-0.5 scrollbar-hide -mx-0.5 px-0.5">
+              {EXPLORER_AREA_OPTIONS.map((opt) => (
+                <button
+                  key={opt.id}
+                  type="button"
+                  onClick={() => setSelectedArea(opt.id)}
+                  className={`shrink-0 px-3 py-2 rounded-lg text-[11px] font-black uppercase tracking-wide border transition-colors ${
+                    selectedArea === opt.id
+                      ? 'bg-orange-500 text-black border-orange-500'
+                      : 'bg-zinc-900 text-zinc-400 border-zinc-700 hover:border-zinc-600 hover:text-zinc-200'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+            <p className="text-[10px] text-zinc-600 mt-1.5 leading-snug">
+              Area chips match keywords in trail name, location, and tags (no dedicated region column yet).
+            </p>
+          </div>
         </div>
 
         {/* Difficulty Filter Chips */}
@@ -589,7 +624,7 @@ export default function TrailsPage() {
               style={{ height: 'calc(100dvh - 168px)' }}
               className="relative"
             >
-              <TrailMap trails={dbTrails} listFilteredCount={filteredTrails.length} />
+              <TrailMap trails={areaFilteredTrails} listFilteredCount={filteredTrails.length} />
             </motion.div>
           ) : isLoading ? (
             <motion.div
@@ -599,6 +634,28 @@ export default function TrailsPage() {
               exit={{ opacity: 0 }}
             >
               <TrailListSkeleton count={6} />
+            </motion.div>
+          ) : dbTrails.length === 0 ? (
+            <motion.div
+              key="empty-db"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-center py-12"
+            >
+              <Mountain size={48} className="mx-auto text-zinc-700 mb-4" />
+              <h3 className="text-lg font-semibold text-zinc-400 mb-2">No trails loaded</h3>
+              <p className="text-sm text-zinc-600">Check your connection or Supabase configuration.</p>
+            </motion.div>
+          ) : selectedArea !== 'all' && areaFilteredTrails.length === 0 ? (
+            <motion.div
+              key="empty-area"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-center py-12"
+            >
+              <Mountain size={48} className="mx-auto text-zinc-700 mb-4" />
+              <h3 className="text-lg font-semibold text-zinc-400 mb-2">No trails in this area</h3>
+              <p className="text-sm text-zinc-600">Try another region or choose All areas.</p>
             </motion.div>
           ) : filteredTrails.length === 0 ? (
             <motion.div

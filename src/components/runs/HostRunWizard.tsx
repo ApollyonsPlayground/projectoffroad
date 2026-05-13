@@ -57,6 +57,8 @@ interface TrailOption {
   latitude?: number | null;
   longitude?: number | null;
   coordinates?: string | null;
+  /** Precomputed search blob from {@link mapDbTrailRow} for fast wizard search. */
+  searchHayLower?: string;
 }
 
 function trailOptionToSearchProbe(t: TrailOption): ExplorerTrail {
@@ -75,6 +77,7 @@ function trailOptionToSearchProbe(t: TrailOption): ExplorerTrail {
     tags: t.tags,
     isVerified: false,
     vehicleScope: 'unknown',
+    searchHayLower: t.searchHayLower,
   };
 }
 
@@ -96,6 +99,7 @@ function trailRowToPickerOption(row: Record<string, unknown>): TrailOption {
     latitude: c?.lat ?? null,
     longitude: c?.lng ?? null,
     coordinates: coordStr,
+    searchHayLower: m.searchHayLower,
   };
 }
 

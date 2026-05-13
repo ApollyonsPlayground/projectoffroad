@@ -44,6 +44,11 @@ export interface ExplorerTrail {
   isVerified: boolean;
   /** DB column vehicle_scope or inferred from rig/description/tags text */
   vehicleScope: TrailVehicleScope;
+  /**
+   * Lowercase concatenation of searchable fields, built once at map time for fast client filters.
+   * Older offline caches may omit this — search helpers rebuild when missing.
+   */
+  searchHayLower?: string;
 }
 
 function pickString(row: Record<string, unknown>, keys: string[], fallback = ''): string {
@@ -475,7 +480,7 @@ export function mapDbTrailRow(row: Record<string, unknown>): ExplorerTrail {
       ...(tags ?? []),
     ]);
 
-  return {
+  const base: ExplorerTrail = {
     id,
     name,
     location,
@@ -497,6 +502,50 @@ export function mapDbTrailRow(row: Record<string, unknown>): ExplorerTrail {
     isVerified,
     vehicleScope,
   };
+
+  return {
+    ...base,
+    searchHayLower: buildExplorerTrailSearchHayLower(base),
+  };
+}
+
+/** Single lowercase blob for multi-field substring search (see explorerTrailMatchesSearch). */
+export function buildExplorerTrailSearchHayLower(
+  trail: Pick<
+    ExplorerTrail,
+    | 'name'
+    | 'location'
+    | 'description'
+    | 'terrain'
+    | 'difficulty'
+    | 'distance'
+    | 'time'
+    | 'rigRequirements'
+  > & {
+    difficultyLevel?: string;
+    tags?: string[];
+  }
+): string {
+  return [
+    trail.name,
+    trail.location,
+    trail.description ?? '',
+    trail.terrain ?? '',
+    trail.difficulty ?? '',
+    trail.difficultyLevel ?? '',
+    trail.distance ?? '',
+    trail.time ?? '',
+    trail.rigRequirements ?? '',
+    ...(trail.tags ?? []),
+  ]
+    .join('\n')
+    .toLowerCase();
+}
+
+/** Ensures `searchHayLower` exists (e.g. after loading older offline caches). */
+export function ensureExplorerTrailSearchHay(trail: ExplorerTrail): ExplorerTrail {
+  if (typeof trail.searchHayLower === 'string' && trail.searchHayLower.length > 0) return trail;
+  return { ...trail, searchHayLower: buildExplorerTrailSearchHayLower(trail) };
 }
 
 /** Lat/lng for map pins — matches DB mapping plus URL fallbacks on the explorer shape. */
@@ -539,20 +588,10 @@ export function explorerTrailMatchesSearch(trail: ExplorerTrail, rawQuery: strin
   const q = rawQuery.trim().toLowerCase();
   if (!q) return true;
   const tokens = q.split(/\s+/).filter((t) => t.length > 0);
-  const hay = [
-    trail.name,
-    trail.location,
-    trail.description ?? '',
-    trail.terrain ?? '',
-    trail.difficulty ?? '',
-    trail.difficultyLevel ?? '',
-    trail.distance ?? '',
-    trail.time ?? '',
-    trail.rigRequirements ?? '',
-    ...(trail.tags ?? []),
-  ]
-    .join('\n')
-    .toLowerCase();
+  const hay =
+    typeof trail.searchHayLower === 'string' && trail.searchHayLower.length > 0
+      ? trail.searchHayLower
+      : buildExplorerTrailSearchHayLower(trail);
   return tokens.every((tok) => hay.includes(tok));
 }
 
@@ -568,7 +607,10 @@ export function explorerTrailSearchRank(trail: ExplorerTrail, rawQuery: string):
   if (loc.includes(q)) return 1_200;
   const tokens = q.split(/\s+/).filter((t) => t.length > 0);
   if (tokens.length === 0) return 0;
-  const hay = [trail.name, trail.location, trail.description ?? '', ...(trail.tags ?? [])].join('\n').toLowerCase();
+  const hay =
+    typeof trail.searchHayLower === 'string' && trail.searchHayLower.length > 0
+      ? trail.searchHayLower
+      : buildExplorerTrailSearchHayLower(trail);
   const matched = tokens.filter((t) => hay.includes(t)).length;
   return 400 + matched * 80;
 }
@@ -580,16 +622,19 @@ export function sortTrailsByName(rows: ExplorerTrail[]): ExplorerTrail[] {
 /** Older offline caches may omit vehicle_scope — infer without touching newer rows. */
 export function ensureExplorerTrailVehicleScope(trail: ExplorerTrail): ExplorerTrail {
   const vs = trail.vehicleScope;
-  if (vs === 'atv' || vs === 'truck' || vs === 'both' || vs === 'unknown') return trail;
-  return {
-    ...trail,
-    vehicleScope: inferTrailVehicleScopeFromStrings([
-      trail.rigRequirements ?? '',
-      trail.terrain ?? '',
-      trail.description ?? '',
-      trail.name ?? '',
-      trail.location ?? '',
-      ...(trail.tags ?? []),
-    ]),
-  };
+  const withScope =
+    vs === 'atv' || vs === 'truck' || vs === 'both' || vs === 'unknown'
+      ? trail
+      : {
+          ...trail,
+          vehicleScope: inferTrailVehicleScopeFromStrings([
+            trail.rigRequirements ?? '',
+            trail.terrain ?? '',
+            trail.description ?? '',
+            trail.name ?? '',
+            trail.location ?? '',
+            ...(trail.tags ?? []),
+          ]),
+        };
+  return ensureExplorerTrailSearchHay(withScope);
 }

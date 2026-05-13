@@ -1,6 +1,6 @@
 import type { ExplorerTrail } from '@/lib/trails/mapDbTrail';
 
-const CACHE_KEY = 'socal_trails_cache_v1';
+const CACHE_KEY = 'socal_trails_cache_v2';
 const MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 
 export function readTrailsCache(): ExplorerTrail[] | null {
