@@ -28,7 +28,7 @@ export default function Navbar() {
                 Runs
               </Link>
               <Link href="/clubs/" className="text-muted-foreground hover:text-primary transition">
-                Clubs
+                CLUB
               </Link>
               <Link href="/menu/" className="text-muted-foreground hover:text-primary transition inline-flex items-center gap-1">
                 <LayoutGrid size={14} className="opacity-80" aria-hidden />

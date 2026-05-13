@@ -33,7 +33,7 @@ const ITEMS: Item[] = [
   { href: '/settings/', label: 'Settings', desc: 'Account & privacy', icon: Settings, auth: true },
   { href: '/trails/', label: 'Trail explorer', desc: 'Browse SoCal trails', icon: Map },
   { href: '/runs/', label: 'Runs', desc: 'Calendar & join runs', icon: Calendar },
-  { href: '/clubs/', label: 'Clubs', desc: 'Find a crew', icon: Users },
+  { href: '/clubs/', label: 'CLUB', desc: 'Find a crew', icon: Users },
   { href: '/messages/', label: 'Messages', desc: 'Direct messages', icon: MessageCircle, auth: true },
 ];
 

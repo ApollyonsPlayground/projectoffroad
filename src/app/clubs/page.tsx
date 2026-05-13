@@ -399,7 +399,11 @@ export default function ClubsPage() {
       <header className="sticky top-0 z-50 glass border-b border-border safe-top">
         <div className="px-4 py-3">
           <div className="flex items-center justify-between gap-2 mb-3">
-            <h1 className="text-xl font-bold text-foreground shrink-0">Clubs</h1>
+            <h1 className="shrink-0" aria-label="Clubs directory">
+              <span className="inline-flex items-center rounded-lg border border-emerald-500/45 bg-emerald-500/15 px-3 py-2 text-base font-black tracking-[0.28em] text-emerald-400">
+                CLUB
+              </span>
+            </h1>
             <Link
               href="/clubs/create"
               className="flex items-center gap-1.5 px-3 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground text-sm font-semibold transition-colors shrink-0"
