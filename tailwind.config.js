@@ -57,5 +57,20 @@ module.exports = {
         },
       });
     },
+    // Phone → tablet → desktop max-width for main shells (replaces flat max-w-md everywhere)
+    function ({ addUtilities }) {
+      addUtilities({
+        '.max-w-app-shell': {
+          maxWidth: '28rem',
+          '@media (min-width: 768px)': { maxWidth: '36rem' },
+          '@media (min-width: 1024px)': { maxWidth: '42rem' },
+        },
+        '.max-w-app-menu': {
+          maxWidth: '32rem',
+          '@media (min-width: 768px)': { maxWidth: '36rem' },
+          '@media (min-width: 1024px)': { maxWidth: '42rem' },
+        },
+      });
+    },
   ],
 };

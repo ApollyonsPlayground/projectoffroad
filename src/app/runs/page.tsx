@@ -80,7 +80,7 @@ function HostRunDrawer({
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', stiffness: 420, damping: 38 }}
-            className="fixed bottom-0 left-0 right-0 z-[9991] max-w-md mx-auto bg-zinc-950 border border-zinc-800 rounded-t-2xl max-h-[92dvh] flex flex-col"
+            className="fixed bottom-0 left-0 right-0 z-[9991] max-w-app-shell mx-auto bg-zinc-950 border border-zinc-800 rounded-t-2xl max-h-[92dvh] flex flex-col"
             style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -567,7 +567,7 @@ export default function RunsPage() {
     <div className="min-h-screen bg-black">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-black/90 backdrop-blur-xl border-b border-zinc-900 safe-top">
-        <div className="px-4 py-3 max-w-md mx-auto">
+        <div className="px-4 py-3 max-w-app-shell mx-auto">
           <div className="flex items-center justify-between mb-3">
             <h1 className="text-[20px] font-black text-white">Runs</h1>
             {user && (
@@ -599,14 +599,14 @@ export default function RunsPage() {
 
       {/* Safety notice */}
       <div className="px-4 py-2.5 bg-orange-500/10 border-b border-orange-500/20">
-        <div className="flex items-center gap-2 text-orange-500 max-w-md mx-auto">
+        <div className="flex items-center gap-2 text-orange-500 max-w-app-shell mx-auto">
           <AlertTriangle size={14} className="flex-shrink-0" />
           <p className="text-[12px] font-medium">Always bring recovery gear and communicate with your group.</p>
         </div>
       </div>
 
       {/* Run list */}
-      <main className="max-w-md mx-auto px-4 pt-4 pb-28">
+      <main className="max-w-app-shell mx-auto px-4 pt-4 pb-28">
         <AnimatePresence mode="wait">
           {isLoading ? (
             <motion.div key="skeleton" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>

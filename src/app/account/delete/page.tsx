@@ -44,7 +44,7 @@ export default function DeleteAccountPage() {
   return (
     <div className="min-h-screen bg-black text-zinc-100 pb-28">
       <header className="sticky top-0 z-30 bg-black/90 backdrop-blur-xl border-b border-zinc-900">
-        <div className="max-w-md mx-auto flex items-center gap-3 px-4 py-3">
+        <div className="max-w-app-shell mx-auto flex items-center gap-3 px-4 py-3">
           <Link
             href="/settings/"
             className="p-1.5 -ml-1.5 text-zinc-400 hover:text-white transition-colors"
@@ -56,7 +56,7 @@ export default function DeleteAccountPage() {
         </div>
       </header>
 
-      <main className="max-w-md mx-auto px-4 pt-6 space-y-6">
+      <main className="max-w-app-shell mx-auto px-4 pt-6 space-y-6">
         {!isConfigured && (
           <p className="text-zinc-500 text-sm">App configuration error — cannot reach authentication.</p>
         )}

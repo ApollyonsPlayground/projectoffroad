@@ -173,7 +173,7 @@ export default function MessagesPage() {
       </div>
 
       {/* Body */}
-      <div className="max-w-md mx-auto">
+      <div className="max-w-app-shell mx-auto">
         {isLoading ? (
           <div className="flex flex-col gap-0">
             {[...Array(6)].map((_, i) => (

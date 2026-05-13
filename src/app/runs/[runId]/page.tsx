@@ -1067,7 +1067,7 @@ export default function RunDetailPage() {
     <div className="min-h-screen bg-black pb-28">
       {/* ── Back header ─────────────────────────────────────────────────── */}
       <header className="sticky top-0 z-50 bg-black/90 backdrop-blur-xl border-b border-zinc-900 safe-top">
-        <div className="px-4 py-3 max-w-md mx-auto flex items-center gap-3">
+        <div className="px-4 py-3 max-w-app-shell mx-auto flex items-center gap-3">
           <button
             onClick={() => router.back()}
             className="w-8 h-8 flex items-center justify-center rounded-full bg-zinc-900 text-zinc-400 hover:text-white transition-colors flex-shrink-0"
@@ -1094,7 +1094,7 @@ export default function RunDetailPage() {
         </div>
       </header>
 
-      <main className="max-w-md mx-auto px-4 pt-5 space-y-5">
+      <main className="max-w-app-shell mx-auto px-4 pt-5 space-y-5">
         <AnimatePresence>
           {editOpen && (
             <>
@@ -1112,7 +1112,7 @@ export default function RunDetailPage() {
                 animate={{ y: 0 }}
                 exit={{ y: '100%' }}
                 transition={{ type: 'spring', stiffness: 420, damping: 38 }}
-                className="fixed bottom-0 left-0 right-0 z-[9991] max-w-md mx-auto bg-zinc-950 border border-zinc-800 rounded-t-2xl max-h-[92dvh] flex flex-col"
+                className="fixed bottom-0 left-0 right-0 z-[9991] max-w-app-shell mx-auto bg-zinc-950 border border-zinc-800 rounded-t-2xl max-h-[92dvh] flex flex-col"
                 style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
                 onClick={(e) => e.stopPropagation()}
               >
@@ -1873,7 +1873,7 @@ export default function RunDetailPage() {
                 initial={{ opacity: 0, scale: 0.92, y: 20 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.92, y: 20 }}
-                className="fixed bottom-0 left-0 right-0 z-50 max-w-md mx-auto px-4 pb-8"
+                className="fixed bottom-0 left-0 right-0 z-50 max-w-app-shell mx-auto px-4 pb-8"
               >
                 <div className="bg-zinc-950 border border-red-500/40 rounded-2xl p-5">
                   <div className="flex items-center justify-center w-12 h-12 rounded-full bg-red-500/15 border border-red-500/30 mx-auto mb-4">

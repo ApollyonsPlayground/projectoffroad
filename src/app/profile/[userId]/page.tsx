@@ -429,7 +429,7 @@ export default function UserProfilePage() {
       </div>
 
       {/* Profile header */}
-      <div className="max-w-md mx-auto px-4 pt-6 pb-4 flex flex-col items-center text-center gap-3">
+      <div className="max-w-app-shell mx-auto px-4 pt-6 pb-4 flex flex-col items-center text-center gap-3">
         <div className="relative">
           <div className="w-20 h-20 rounded-full overflow-hidden bg-zinc-800 border-2 border-zinc-700">
             {profile.avatar_url ? (
@@ -521,7 +521,7 @@ export default function UserProfilePage() {
       </div>
 
       {/* Tabs */}
-      <div className="max-w-md mx-auto border-b border-zinc-800">
+      <div className="max-w-app-shell mx-auto border-b border-zinc-800">
         <div className="flex">
           {TABS.map(({ id, label, icon: Icon }) => (
             <button
@@ -541,7 +541,7 @@ export default function UserProfilePage() {
       </div>
 
       {/* Tab content */}
-      <div className="max-w-md mx-auto pt-1">
+      <div className="max-w-app-shell mx-auto pt-1">
         {tabLoading ? (
           <div className="flex justify-center pt-10">
             <Loader2 size={22} className="animate-spin text-zinc-600" />

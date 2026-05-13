@@ -24,7 +24,7 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-screen bg-black flex flex-col items-center justify-center px-5">
-      <div className="w-full max-w-xs flex flex-col items-center gap-10">
+      <div className="w-full max-w-xs md:max-w-md flex flex-col items-center gap-10">
 
         {/* Logo + wordmark */}
         <div className="flex flex-col items-center gap-4">

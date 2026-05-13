@@ -42,14 +42,14 @@ export default function MenuPage() {
 
   return (
     <div className="min-h-screen bg-background pb-28">
-      <div className="max-w-lg mx-auto px-4 pt-6 pb-4">
+      <div className="max-w-app-menu mx-auto px-4 pt-6 pb-4">
         <h1 className="text-2xl font-black text-foreground tracking-tight">More</h1>
         <p className="text-muted-foreground text-sm mt-1">
           Search, guides, stats, and settings — everything beyond the main tabs.
         </p>
       </div>
 
-      <ul className="max-w-lg mx-auto px-4 space-y-2">
+      <ul className="max-w-app-menu mx-auto px-4 space-y-2">
         {ITEMS.map(({ href, label, desc, icon: Icon, auth }) => {
           const target = auth && !user ? `/login/?next=${encodeURIComponent(href)}` : href;
           const sub = auth && !user ? `${desc} · Sign in to open` : desc;

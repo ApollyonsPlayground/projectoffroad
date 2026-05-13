@@ -234,7 +234,7 @@ export default function ClubChatPage() {
     return (
       <div className="min-h-screen bg-black pb-24">
         <header className="sticky top-0 z-40 bg-black/90 backdrop-blur-xl border-b border-zinc-900 safe-top">
-          <div className="max-w-md mx-auto px-4 py-3 flex items-center gap-3">
+          <div className="max-w-app-shell mx-auto px-4 py-3 flex items-center gap-3">
             <button
               onClick={() => router.back()}
               className="w-9 h-9 rounded-full bg-zinc-900 text-zinc-400 flex items-center justify-center"
@@ -245,7 +245,7 @@ export default function ClubChatPage() {
             <h1 className="text-[16px] font-black text-white truncate flex-1">Club chat</h1>
           </div>
         </header>
-        <div className="max-w-md mx-auto px-4 py-10 text-center text-zinc-500">
+        <div className="max-w-app-shell mx-auto px-4 py-10 text-center text-zinc-500">
           This chat is for approved club members only.
         </div>
         <BottomNav />
@@ -256,7 +256,7 @@ export default function ClubChatPage() {
   return (
     <div className="min-h-screen bg-black pb-28">
       <header className="sticky top-0 z-40 bg-black/90 backdrop-blur-xl border-b border-zinc-900 safe-top">
-        <div className="max-w-md mx-auto px-4 py-3 flex items-center gap-3">
+        <div className="max-w-app-shell mx-auto px-4 py-3 flex items-center gap-3">
           <button
             onClick={() => router.back()}
             className="w-9 h-9 rounded-full bg-zinc-900 text-zinc-400 flex items-center justify-center"
@@ -268,7 +268,7 @@ export default function ClubChatPage() {
         </div>
       </header>
 
-      <main className="max-w-md mx-auto px-4 pt-4 space-y-3">
+      <main className="max-w-app-shell mx-auto px-4 pt-4 space-y-3">
         {messages.length === 0 ? (
           <p className="text-zinc-600 text-[13px] text-center py-10">No messages yet.</p>
         ) : (
@@ -305,7 +305,7 @@ export default function ClubChatPage() {
       </main>
 
       <div className="fixed bottom-[72px] left-0 right-0">
-        <div className="max-w-md mx-auto px-4">
+        <div className="max-w-app-shell mx-auto px-4">
           {previewUrl ? (
             <div className="mb-2 rounded-xl border border-zinc-800 bg-zinc-950 overflow-hidden">
               <div className="flex items-center justify-between px-3 py-2 border-b border-zinc-800">

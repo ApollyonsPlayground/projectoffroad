@@ -758,7 +758,7 @@ export function HostRunWizard({ variant = 'drawer', onSuccess, onCancel }: Props
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [flyerFile]);
 
-  const pad = variant === 'page' ? 'px-4 py-4 max-w-md mx-auto' : 'px-4 py-4';
+  const pad = variant === 'page' ? 'px-4 py-4 max-w-app-shell mx-auto' : 'px-4 py-4';
 
   return (
     <form onSubmit={handleSubmit} className={`${pad} space-y-4`}>

@@ -218,7 +218,7 @@ function EditRigModal({
         animate={{ y: 0 }}
         exit={{ y: '100%' }}
         transition={{ type: 'spring', stiffness: 420, damping: 36 }}
-        className="fixed bottom-0 left-0 right-0 z-[9993] max-w-md mx-auto bg-zinc-950 border border-zinc-800 rounded-t-2xl"
+        className="fixed bottom-0 left-0 right-0 z-[9993] max-w-app-shell mx-auto bg-zinc-950 border border-zinc-800 rounded-t-2xl"
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -567,7 +567,7 @@ export default function ProfilePage() {
   if (isLoading || loading) {
     return (
       <div className="min-h-screen bg-black">
-        <div className="max-w-md mx-auto">
+        <div className="max-w-app-shell mx-auto">
           <ProfileSkeleton />
         </div>
         <BottomNav />
@@ -621,7 +621,7 @@ export default function ProfilePage() {
     <div className="min-h-screen bg-black">
       {/* Header */}
       <header className="sticky top-0 z-30 bg-black/90 backdrop-blur-xl border-b border-zinc-900">
-        <div className="max-w-md mx-auto flex items-center justify-between px-4 py-3">
+        <div className="max-w-app-shell mx-auto flex items-center justify-between px-4 py-3">
           <h1 className="text-[17px] font-bold text-white">Rig Portfolio</h1>
           <div className="flex items-center gap-0.5">
             {(profile?.role === 'owner' || profile?.role === 'admin') && (
@@ -650,7 +650,7 @@ export default function ProfilePage() {
         </div>
       </header>
 
-      <main className="max-w-md mx-auto pb-24">
+      <main className="max-w-app-shell mx-auto pb-24">
         {/* Avatar + Bio ──────────────────────────── */}
         <section className="px-4 pt-5 pb-4 border-b border-zinc-900">
           <div className="flex items-start gap-4">

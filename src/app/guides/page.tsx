@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 export default function GuidesIndexPage() {
   return (
     <main className="min-h-screen bg-zinc-950 text-zinc-100">
-      <div className="max-w-lg mx-auto px-5 py-8">
+      <div className="max-w-app-menu mx-auto px-5 py-8">
         <Link
           href="/settings/"
           className="inline-flex items-center gap-1.5 text-sm text-zinc-500 hover:text-orange-400 mb-8"

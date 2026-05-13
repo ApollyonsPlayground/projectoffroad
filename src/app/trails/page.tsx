@@ -361,7 +361,7 @@ export default function TrailsPage() {
     <div className="min-h-screen bg-black">
       {/* Header */}
       <header className="sticky top-0 z-50 glass border-b border-zinc-800 safe-top">
-        <div className="px-4 py-3">
+        <div className="max-w-7xl mx-auto w-full px-4 md:px-8 py-3">
           <div className="flex items-center justify-between mb-3">
             <h1 className="text-xl font-bold text-white">Trail Explorer</h1>
             <div className="flex items-center gap-2">
@@ -559,7 +559,9 @@ export default function TrailsPage() {
       {/* Main content — List or Map */}
       <main
         className={
-          view === 'map' ? 'px-3 pt-3 pb-24' : 'max-w-7xl mx-auto w-full px-4 pt-4 pb-24'
+          view === 'map'
+            ? 'px-3 md:px-6 lg:px-10 pt-3 pb-24'
+            : 'max-w-7xl mx-auto w-full px-4 md:px-8 lg:px-10 pt-4 pb-24'
         }
       >
         <AnimatePresence mode="wait">

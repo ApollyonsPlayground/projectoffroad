@@ -33,7 +33,7 @@ export default function CreateRunPage() {
   return (
     <div className="min-h-screen bg-black pb-24">
       <header className="sticky top-0 z-20 bg-black/90 backdrop-blur-xl border-b border-zinc-900 safe-top">
-        <div className="max-w-md mx-auto px-4 py-3 flex items-center gap-3">
+        <div className="max-w-app-shell mx-auto px-4 py-3 flex items-center gap-3">
           <Link
             href="/runs"
             className="w-10 h-10 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full bg-zinc-900 text-zinc-300 hover:text-white border border-zinc-800 touch-manipulation"

@@ -345,7 +345,7 @@ export default function TrailDetailPage() {
     <div className="min-h-screen bg-black">
       {/* Sticky header */}
       <header className="sticky top-0 z-30 bg-black/90 backdrop-blur-xl border-b border-zinc-900">
-        <div className="max-w-md mx-auto flex items-center justify-between px-4 py-3">
+        <div className="max-w-app-shell mx-auto flex items-center justify-between px-4 py-3">
           <button
             onClick={() => router.back()}
             className="p-1.5 -ml-1.5 text-zinc-400 hover:text-white transition-colors"
@@ -375,7 +375,7 @@ export default function TrailDetailPage() {
         </div>
       </header>
 
-      <main className="max-w-md mx-auto pb-28">
+      <main className="max-w-app-shell mx-auto pb-28">
         {/* Hero image */}
         {trail.image && !imageError ? (
           <div className="relative h-52 bg-zinc-900 overflow-hidden">

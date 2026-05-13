@@ -48,7 +48,7 @@ export default function RigPostCard({ post }: RigPostCardProps) {
   };
 
   return (
-    <div className="bg-neutral-900 border-2 border-neutral-800 mb-6 max-w-md mx-auto">
+    <div className="bg-neutral-900 border-2 border-neutral-800 mb-6 max-w-app-shell mx-auto">
       {/* Header */}
       <div className="flex items-center justify-between p-3 border-b border-neutral-800">
         <div className="flex items-center gap-2">

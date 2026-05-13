@@ -121,7 +121,7 @@ export default function EditProfilePage() {
   return (
     <div className="min-h-screen bg-background pb-28">
       <header className="sticky top-0 z-40 bg-background/90 backdrop-blur-xl border-b border-border">
-        <div className="max-w-md mx-auto flex items-center justify-between px-4 py-3">
+        <div className="max-w-app-shell mx-auto flex items-center justify-between px-4 py-3">
           <Link href="/profile" className="p-2 -ml-2 text-muted-foreground hover:text-foreground" aria-label="Back">
             <ArrowLeft size={22} />
           </Link>
@@ -138,7 +138,7 @@ export default function EditProfilePage() {
         </div>
       </header>
 
-      <main className="max-w-md mx-auto px-4 py-6 space-y-5">
+      <main className="max-w-app-shell mx-auto px-4 py-6 space-y-5">
         <div>
           <label className="block text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
             Appearance

@@ -491,7 +491,7 @@ function NewPostDrawer({ open, onClose, onPosted }: {
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', stiffness: 420, damping: 36 }}
-            className="fixed bottom-0 left-0 right-0 z-[9991] max-w-md mx-auto bg-zinc-950 border border-zinc-800 rounded-t-2xl overflow-hidden"
+            className="fixed bottom-0 left-0 right-0 z-[9991] max-w-app-shell mx-auto bg-zinc-950 border border-zinc-800 rounded-t-2xl overflow-hidden"
             style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -2068,7 +2068,7 @@ function RigPostCard({ post, index }: {
             <motion.div
               initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
               transition={{ type: 'spring', stiffness: 420, damping: 36 }}
-              className="fixed bottom-0 left-0 right-0 z-[9993] max-w-md mx-auto bg-zinc-950 border border-zinc-800 rounded-t-2xl p-5"
+              className="fixed bottom-0 left-0 right-0 z-[9993] max-w-app-shell mx-auto bg-zinc-950 border border-zinc-800 rounded-t-2xl p-5"
               style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
               onClick={(e) => e.stopPropagation()}
             >
@@ -2268,7 +2268,7 @@ function ModerationPanel() {
             <motion.div
               initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
               transition={{ type: 'spring', stiffness: 420, damping: 36 }}
-              className="fixed bottom-0 left-0 right-0 z-[9991] max-w-md mx-auto bg-zinc-950 border border-zinc-800 rounded-t-2xl max-h-[80dvh] flex flex-col"
+              className="fixed bottom-0 left-0 right-0 z-[9991] max-w-app-shell mx-auto bg-zinc-950 border border-zinc-800 rounded-t-2xl max-h-[80dvh] flex flex-col"
               style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
               onClick={(e) => e.stopPropagation()}
             >
@@ -2694,7 +2694,7 @@ export default function HomePage() {
 
       {/* ── Sticky Top Header ─────────────────────── */}
       <header className="sticky top-0 z-50 bg-black/90 backdrop-blur-xl border-b border-zinc-900">
-        <div className="flex items-center justify-between px-4 py-3 max-w-md mx-auto">
+        <div className="flex items-center justify-between px-4 py-3 max-w-app-shell mx-auto">
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-lg bg-orange-500 flex items-center justify-center flex-shrink-0">
               <span className="text-black font-black text-[10px] tracking-tight">SO</span>
@@ -2708,7 +2708,7 @@ export default function HomePage() {
       </header>
 
       {/* ── Main ──────────────────────────────────── */}
-      <main className="max-w-md mx-auto min-h-screen bg-black pb-24">
+      <main className="max-w-app-shell mx-auto min-h-screen bg-black pb-24">
         <HomeStoriesRunsPager supabaseClient={supabaseClient} user={user} />
 
         {/* Feed — avoid Framer opacity-from-0 here (can stick invisible on some mobile Chrome builds). */}
