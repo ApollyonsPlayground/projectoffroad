@@ -408,7 +408,7 @@ export default function ClubDetailPage() {
       case 'Moderate':
         return 'bg-yellow-500/20 text-yellow-700 dark:text-yellow-400';
       case 'Challenging':
-        return 'bg-orange-500/20 text-orange-600 dark:text-orange-400';
+        return 'bg-primary/20 text-primary dark:text-primary/90';
       case 'Extreme':
         return 'bg-red-500/20 text-red-600 dark:text-red-400';
       default:
@@ -682,7 +682,7 @@ export default function ClubDetailPage() {
               {isMember && clubId ? (
                 <Link
                   href={`/clubs/${clubId}/chat/`}
-                  className="inline-flex items-center gap-2 text-sm font-semibold text-orange-400 hover:text-orange-300"
+                  className="inline-flex items-center gap-2 text-sm font-semibold text-primary/90 hover:text-primary/80"
                 >
                   <MessageCircle size={16} />
                   Club chat

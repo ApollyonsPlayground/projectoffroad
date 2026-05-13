@@ -19,7 +19,7 @@ export default function BetaPage() {
       <header className="border-b border-zinc-900">
         <div className="max-w-2xl mx-auto px-5 py-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-xl bg-orange-500 flex items-center justify-center shadow-lg shadow-orange-500/25">
+            <div className="w-11 h-11 rounded-xl bg-primary flex items-center justify-center shadow-lg shadow-primary/25">
               <span className="text-black font-black text-sm tracking-tight">SO</span>
             </div>
             <div>
@@ -29,7 +29,7 @@ export default function BetaPage() {
           </div>
           <Link
             href="/"
-            className="text-sm font-bold text-zinc-400 hover:text-orange-400 transition-colors sm:self-center"
+            className="text-sm font-bold text-zinc-400 hover:text-primary/90 transition-colors sm:self-center"
           >
             ← Home
           </Link>
@@ -56,7 +56,7 @@ export default function BetaPage() {
             href={TESTFLIGHT_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center justify-center w-full sm:w-auto px-5 py-3 rounded-xl bg-orange-500 text-black text-sm font-black hover:bg-orange-400 transition-colors"
+            className="inline-flex items-center justify-center w-full sm:w-auto px-5 py-3 rounded-xl bg-primary text-black text-sm font-black hover:bg-primary/90 transition-colors"
           >
             Join on TestFlight
           </a>
@@ -83,7 +83,7 @@ export default function BetaPage() {
 
           <div className="rounded-xl border border-zinc-800 bg-black/40 px-4 py-3 text-[13px] text-zinc-400">
             <p className="mb-2">Prefer to write your own email? Contact</p>
-            <a className="text-orange-400 font-semibold hover:underline break-all" href={`mailto:${SITE_SUPPORT_EMAIL}`}>
+            <a className="text-primary/90 font-semibold hover:underline break-all" href={`mailto:${SITE_SUPPORT_EMAIL}`}>
               {SITE_SUPPORT_EMAIL}
             </a>
             <p className="mt-2">
@@ -103,7 +103,7 @@ export default function BetaPage() {
               href={PLAY_INTERNAL_TEST_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center justify-center w-full sm:w-auto px-5 py-3 rounded-xl border border-zinc-600 text-zinc-100 text-sm font-bold hover:border-orange-500/50 hover:text-white transition-colors"
+              className="inline-flex items-center justify-center w-full sm:w-auto px-5 py-3 rounded-xl border border-zinc-600 text-zinc-100 text-sm font-bold hover:border-primary/50 hover:text-white transition-colors"
             >
               Open Google Play internal test
             </a>
