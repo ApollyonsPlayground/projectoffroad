@@ -62,7 +62,7 @@ function ToastBubble({ toast, onClose }: { toast: ToastItem; onClose: () => void
   const icons: Record<ToastType, React.ReactNode> = {
     success: <CheckCircle size={15} className="text-green-400 flex-shrink-0" />,
     error:   <AlertCircle size={15} className="text-red-400 flex-shrink-0" />,
-    info:    <Info        size={15} className="text-orange-400 flex-shrink-0" />,
+    info:    <Info        size={15} className="text-primary/90 flex-shrink-0" />,
   };
 
   return (

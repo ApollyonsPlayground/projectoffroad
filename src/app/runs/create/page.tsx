@@ -21,7 +21,7 @@ export default function CreateRunPage() {
   if (authLoading) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="text-orange-500 text-sm font-semibold">Loading…</div>
+        <div className="text-primary text-sm font-semibold">Loading…</div>
       </div>
     );
   }

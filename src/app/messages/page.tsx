@@ -187,7 +187,7 @@ export default function MessagesPage() {
               placeholder="Search conversations..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full bg-zinc-900 border border-zinc-800 rounded-xl pl-9 pr-4 py-2.5 text-[13px] text-white placeholder-zinc-600 focus:outline-none focus:border-orange-500/60 transition-colors"
+              className="w-full bg-zinc-900 border border-zinc-800 rounded-xl pl-9 pr-4 py-2.5 text-[13px] text-white placeholder-zinc-600 focus:outline-none focus:border-primary/60 transition-colors"
             />
           </div>
         </div>
@@ -251,7 +251,7 @@ export default function MessagesPage() {
                     </div>
                     {/* Unread dot */}
                     {conv.unread && (
-                      <span className="absolute top-0 right-0 w-3 h-3 rounded-full bg-orange-500 border-2 border-black" />
+                      <span className="absolute top-0 right-0 w-3 h-3 rounded-full bg-primary border-2 border-black" />
                     )}
                   </div>
 

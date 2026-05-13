@@ -219,7 +219,7 @@ export default function ClubChatPage() {
     return (
       <div className="min-h-screen bg-black flex flex-col items-center justify-center gap-3 px-6 text-center">
         <p className="text-zinc-400">Sign in to open club chat.</p>
-        <Link href="/login/" className="text-orange-400 font-bold">Sign in</Link>
+        <Link href="/login/" className="text-primary/90 font-bold">Sign in</Link>
       </div>
     );
   }
@@ -227,7 +227,7 @@ export default function ClubChatPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
-        <Loader2 size={28} className="animate-spin text-orange-500" />
+        <Loader2 size={28} className="animate-spin text-primary" />
       </div>
     );
   }
@@ -279,7 +279,7 @@ export default function ClubChatPage() {
             const label = (m.author?.name ?? 'Member').trim() || 'Member';
             return (
               <div key={m.id} className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[86%] rounded-2xl border ${mine ? 'bg-orange-500/15 border-orange-500/25' : 'bg-zinc-950 border-zinc-800'} overflow-hidden`}>
+                <div className={`max-w-[86%] rounded-2xl border ${mine ? 'bg-primary/15 border-primary/25' : 'bg-zinc-950 border-zinc-800'} overflow-hidden`}>
                   <div className="px-3 pt-2">
                     {!mine && <p className="text-[11px] font-bold text-zinc-400">{label}</p>}
                     {m.content?.trim() ? (
@@ -312,7 +312,7 @@ export default function ClubChatPage() {
             <div className="mb-2 rounded-xl border border-zinc-800 bg-zinc-950 overflow-hidden">
               <div className="flex items-center justify-between px-3 py-2 border-b border-zinc-800">
                 <p className="text-[12px] text-zinc-300 flex items-center gap-2">
-                  <ImageIcon size={14} className="text-orange-400" />
+                  <ImageIcon size={14} className="text-primary/90" />
                   Attachment ready
                 </p>
                 <button
@@ -354,7 +354,7 @@ export default function ClubChatPage() {
               type="button"
               onClick={send}
               disabled={sending}
-              className="w-10 h-10 rounded-xl bg-orange-500 text-black flex items-center justify-center disabled:opacity-50"
+              className="w-10 h-10 rounded-xl bg-primary text-black flex items-center justify-center disabled:opacity-50"
               aria-label="Send"
             >
               {sending ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}

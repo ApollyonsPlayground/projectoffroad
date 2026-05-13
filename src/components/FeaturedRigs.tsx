@@ -97,7 +97,7 @@ export default function FeaturedRigs() {
           </p>
           <Link
             href="/feed/"
-            className="inline-flex items-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-black text-xs font-black uppercase transition-colors rounded"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-primary hover:opacity-90 text-black text-xs font-black uppercase transition-colors rounded"
           >
             <Plus size={14} />
             Share Your Rig

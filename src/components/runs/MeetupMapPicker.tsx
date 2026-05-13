@@ -80,7 +80,7 @@ export default function MeetupMapPicker({
 
   return (
     <div
-      className="w-full rounded-xl overflow-hidden border border-zinc-700 ring-1 ring-orange-500/20"
+      className="w-full rounded-xl overflow-hidden border border-zinc-700 ring-1 ring-primary/20"
       style={{ height: heightPx }}
     >
       <MapContainer

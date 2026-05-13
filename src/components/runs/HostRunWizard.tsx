@@ -585,7 +585,7 @@ export function HostRunWizard({ variant = 'drawer', onSuccess, onCancel }: Props
       setForm((prev) => ({ ...prev, [key]: e.target.value }));
 
   const inputClass =
-    'w-full min-h-[44px] bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2.5 text-[15px] text-white placeholder-zinc-600 focus:outline-none focus:border-orange-500/60 transition-colors touch-manipulation';
+    'w-full min-h-[44px] bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2.5 text-[15px] text-white placeholder-zinc-600 focus:outline-none focus:border-primary/60 transition-colors touch-manipulation';
   const labelClass = 'block text-[12px] font-semibold text-zinc-400 uppercase tracking-wider mb-1.5';
 
   const applyGeocodeHit = (r: { lat: number; lng: number }) => {
@@ -819,11 +819,11 @@ export function HostRunWizard({ variant = 'drawer', onSuccess, onCancel }: Props
             }}
             className={`flex flex-col items-center justify-center gap-1.5 min-h-[88px] rounded-xl border-2 transition-colors touch-manipulation disabled:opacity-40 disabled:cursor-not-allowed ${
               mode === 'club_official'
-                ? 'border-orange-500 bg-orange-500/10 text-white'
+                ? 'border-primary bg-primary/10 text-white'
                 : 'border-zinc-800 bg-zinc-900 text-zinc-400 active:bg-zinc-800'
             }`}
           >
-            <Building2 size={22} className={mode === 'club_official' ? 'text-orange-400' : ''} />
+            <Building2 size={22} className={mode === 'club_official' ? 'text-primary/90' : ''} />
             <span className="text-[13px] font-bold text-center leading-tight">Club Run</span>
             <span className="text-[10px] text-zinc-500 text-center leading-tight px-1">
               {staffFromDb
@@ -900,7 +900,7 @@ export function HostRunWizard({ variant = 'drawer', onSuccess, onCancel }: Props
               type="checkbox"
               checked={disclaimerAck}
               onChange={(e) => setDisclaimerAck(e.target.checked)}
-              className="mt-1 h-5 w-5 rounded border-zinc-600 text-orange-500 focus:ring-orange-500"
+              className="mt-1 h-5 w-5 rounded border-zinc-600 text-primary focus:ring-primary"
             />
             <span className="text-[13px] text-zinc-200 leading-snug">
               I understand this is a community listing, not a verified club run, and I accept responsibility
@@ -1044,7 +1044,7 @@ export function HostRunWizard({ variant = 'drawer', onSuccess, onCancel }: Props
             type="button"
             onClick={() => setForm((f) => ({ ...f, trail_id: '' }))}
             className={`w-full text-left py-3.5 px-3 text-[14px] touch-manipulation border-b border-zinc-800/80 ${
-              !form.trail_id ? 'bg-orange-500/15 text-orange-300' : 'text-zinc-300 active:bg-zinc-900'
+              !form.trail_id ? 'bg-primary/15 text-primary/80' : 'text-zinc-300 active:bg-zinc-900'
             }`}
           >
             No trail selected — meetup only
@@ -1066,7 +1066,7 @@ export function HostRunWizard({ variant = 'drawer', onSuccess, onCancel }: Props
               }}
               className={`w-full text-left py-3.5 px-3 text-[14px] touch-manipulation border-b border-zinc-800/80 last:border-0 ${
                 form.trail_id === t.id
-                  ? 'bg-orange-500/15 text-orange-300'
+                  ? 'bg-primary/15 text-primary/80'
                   : 'text-zinc-200 active:bg-zinc-900'
               }`}
             >
@@ -1285,7 +1285,7 @@ export function HostRunWizard({ variant = 'drawer', onSuccess, onCancel }: Props
         <button
           type="submit"
           disabled={submitting}
-          className="w-full flex items-center justify-center gap-2 min-h-[48px] py-3 bg-orange-500 hover:bg-orange-600 disabled:bg-zinc-700 text-black disabled:text-zinc-500 text-[15px] font-black rounded-xl transition-colors touch-manipulation"
+          className="w-full flex items-center justify-center gap-2 min-h-[48px] py-3 bg-primary hover:opacity-90 disabled:bg-zinc-700 text-black disabled:text-zinc-500 text-[15px] font-black rounded-xl transition-colors touch-manipulation"
         >
           {submitting ? <Loader2 size={18} className="animate-spin" /> : <Flag size={18} />}
           {submitting ? 'Publishing…' : 'Publish run'}

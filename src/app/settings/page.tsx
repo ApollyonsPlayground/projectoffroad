@@ -203,7 +203,7 @@ export default function SettingsPage() {
               </div>
               <Link
                 href="/profile/edit"
-                className="flex items-center justify-between text-orange-400 hover:text-orange-300 py-2 border-t border-neutral-800 mt-2 pt-3"
+                className="flex items-center justify-between text-primary/90 hover:text-primary/80 py-2 border-t border-neutral-800 mt-2 pt-3"
               >
                 <span>Edit profile</span>
                 <span className="text-neutral-600">→</span>
@@ -278,7 +278,7 @@ export default function SettingsPage() {
             <div className="space-y-4">
               <p className="text-neutral-600 text-[12px] leading-relaxed">
                 Set your display name and optional @username under{' '}
-                <Link href="/profile/edit" className="text-orange-400 hover:text-orange-300">
+                <Link href="/profile/edit" className="text-primary/90 hover:text-primary/80">
                   Edit profile
                 </Link>
                 . New posts and comments use your current public label (not stale Google metadata).
@@ -360,7 +360,7 @@ export default function SettingsPage() {
                   <button
                     type="button"
                     onClick={() => void unblock(row.blocked_id)}
-                    className="text-[11px] font-bold uppercase text-orange-400 hover:text-orange-300 flex-shrink-0"
+                    className="text-[11px] font-bold uppercase text-primary/90 hover:text-primary/80 flex-shrink-0"
                   >
                     Unblock
                   </button>

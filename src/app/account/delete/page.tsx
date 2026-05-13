@@ -79,20 +79,20 @@ export default function DeleteAccountPage() {
 
         {authLoading ? (
           <div className="flex justify-center py-10">
-            <Loader2 className="animate-spin text-orange-500" size={28} />
+            <Loader2 className="animate-spin text-primary" size={28} />
           </div>
         ) : !user ? (
           <div className="space-y-4 text-[14px] text-zinc-400 leading-relaxed">
             <p>
               Sign in first, then return here to delete your account in one step. You can also email{' '}
-              <a className="text-orange-400 hover:underline" href={`mailto:${SITE_SUPPORT_EMAIL}`}>
+              <a className="text-primary/90 hover:underline" href={`mailto:${SITE_SUPPORT_EMAIL}`}>
                 {SITE_SUPPORT_EMAIL}
               </a>{' '}
               from the address on your account and ask us to delete it — include “Delete my account” in the subject.
             </p>
             <Link
               href={`/login/?next=${encodeURIComponent('/account/delete/')}`}
-              className="inline-flex items-center justify-center w-full py-3.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-black font-bold text-[15px] transition-colors"
+              className="inline-flex items-center justify-center w-full py-3.5 rounded-xl bg-primary hover:opacity-90 text-black font-bold text-[15px] transition-colors"
             >
               Sign in to continue
             </Link>
@@ -108,7 +108,7 @@ export default function DeleteAccountPage() {
                 type="checkbox"
                 checked={confirmed}
                 onChange={(e) => setConfirmed(e.target.checked)}
-                className="mt-1 w-5 h-5 accent-orange-500 rounded border-zinc-600 shrink-0"
+                className="mt-1 w-5 h-5 accent-primary rounded border-zinc-600 shrink-0"
               />
               <span>I understand this permanently deletes my account and associated personal data as described above.</span>
             </label>
@@ -133,11 +133,11 @@ export default function DeleteAccountPage() {
 
         <p className="text-[12px] text-zinc-600 pt-2">
           Questions?{' '}
-          <a className="text-orange-500/90 hover:underline" href={`mailto:${SITE_SUPPORT_EMAIL}`}>
+          <a className="text-primary/90 hover:underline" href={`mailto:${SITE_SUPPORT_EMAIL}`}>
             {SITE_SUPPORT_EMAIL}
           </a>{' '}
           ·{' '}
-          <Link href="/privacy/" className="text-orange-500/90 hover:underline">
+          <Link href="/privacy/" className="text-primary/90 hover:underline">
             Privacy policy
           </Link>
         </p>

@@ -60,7 +60,7 @@ function PostGrid({ posts }: { posts: PostRow[] }) {
         <Link
           key={p.id}
           href={`/posts/${p.id}`}
-          className="aspect-square bg-zinc-900 overflow-hidden relative block focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500"
+          className="aspect-square bg-zinc-900 overflow-hidden relative block focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
           {p.image_url ? (
             <img src={p.image_url} alt="" className="w-full h-full object-cover" loading="lazy" />
@@ -390,7 +390,7 @@ export default function UserProfilePage() {
       <div className="min-h-screen bg-black flex flex-col items-center justify-center px-6 gap-6">
         <h2 className="text-[22px] font-black text-white">Profile Not Found</h2>
         <p className="text-zinc-500 text-[14px]">{error ?? 'This user does not exist.'}</p>
-        <Link href="/feed/" className="px-5 py-3 bg-orange-500 text-black font-bold rounded-xl text-[14px]">
+        <Link href="/feed/" className="px-5 py-3 bg-primary text-black font-bold rounded-xl text-[14px]">
           Back to Feed
         </Link>
         <BottomNav />
@@ -463,7 +463,7 @@ export default function UserProfilePage() {
 
         <div className="flex items-center gap-1.5">
           <h1 className="text-[20px] font-black text-white leading-none">{memberDisplayName}</h1>
-          {profile.is_verified && <BadgeCheck size={17} className="text-orange-500 flex-shrink-0" />}
+          {profile.is_verified && <BadgeCheck size={17} className="text-primary flex-shrink-0" />}
         </div>
 
         {profile.bio && (
@@ -510,7 +510,7 @@ export default function UserProfilePage() {
                   type="button"
                   onClick={() => void handleMessage()}
                   disabled={messagingLoading}
-                  className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-orange-500 hover:bg-orange-600 disabled:bg-zinc-800 disabled:text-zinc-500 text-black text-[13px] font-black rounded-xl transition-colors"
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-primary hover:opacity-90 disabled:bg-zinc-800 disabled:text-zinc-500 text-black text-[13px] font-black rounded-xl transition-colors"
                 >
                   {messagingLoading ? (
                     <Loader2 size={15} className="animate-spin" />
@@ -543,7 +543,7 @@ export default function UserProfilePage() {
               onClick={() => setActiveTab(id)}
               className={`flex-1 flex items-center justify-center gap-1 py-3 text-[12px] font-semibold transition-colors border-b-2 ${
                 activeTab === id
-                  ? 'border-orange-500 text-white'
+                  ? 'border-primary text-white'
                   : 'border-transparent text-zinc-500 hover:text-zinc-300'
               }`}
             >

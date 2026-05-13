@@ -407,7 +407,7 @@ export default function ConversationPage() {
                           <div
                             className={`max-w-[75%] rounded-2xl overflow-hidden ${
                               isMe
-                                ? 'bg-orange-500 text-black rounded-br-md'
+                                ? 'bg-primary text-black rounded-br-md'
                                 : 'bg-zinc-900 text-white rounded-bl-md border border-zinc-800'
                             }`}
                           >
@@ -474,7 +474,7 @@ export default function ConversationPage() {
           type="button"
           onClick={() => mediaInputRef.current?.click()}
           disabled={uploadingMedia || sending}
-          className="w-10 h-10 flex-shrink-0 flex items-center justify-center rounded-full bg-zinc-900 border border-zinc-800 text-orange-400 hover:bg-zinc-800 disabled:opacity-40 transition-colors"
+          className="w-10 h-10 flex-shrink-0 flex items-center justify-center rounded-full bg-zinc-900 border border-zinc-800 text-primary/90 hover:bg-zinc-800 disabled:opacity-40 transition-colors"
           aria-label="Attach photo or video"
         >
           {uploadingMedia ? <Loader2 size={18} className="animate-spin" /> : <ImagePlus size={18} strokeWidth={2.2} />}
@@ -490,14 +490,14 @@ export default function ConversationPage() {
           onKeyDown={handleKeyDown}
           placeholder="Message..."
           rows={1}
-          className="flex-1 bg-zinc-900 border border-zinc-800 rounded-2xl px-4 py-2.5 text-[14px] text-white placeholder-zinc-600 resize-none focus:outline-none focus:border-orange-500/60 transition-colors leading-relaxed overflow-hidden"
+          className="flex-1 bg-zinc-900 border border-zinc-800 rounded-2xl px-4 py-2.5 text-[14px] text-white placeholder-zinc-600 resize-none focus:outline-none focus:border-primary/60 transition-colors leading-relaxed overflow-hidden"
           style={{ minHeight: '42px', maxHeight: '120px' }}
         />
         <button
           type="button"
           onClick={() => void handleSend()}
           disabled={!text.trim() || sending}
-          className="w-10 h-10 flex-shrink-0 flex items-center justify-center rounded-full bg-orange-500 hover:bg-orange-600 disabled:bg-zinc-800 disabled:text-zinc-600 text-black transition-colors"
+          className="w-10 h-10 flex-shrink-0 flex items-center justify-center rounded-full bg-primary hover:opacity-90 disabled:bg-zinc-800 disabled:text-zinc-600 text-black transition-colors"
           aria-label="Send message"
         >
           {sending ? (

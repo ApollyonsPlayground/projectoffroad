@@ -141,7 +141,7 @@ function ClubPosterCard({ club, index }: { club: Club; index: number }) {
             </span>
           )}
           {club.premium && (
-            <span className="flex items-center gap-1 px-2 py-1 bg-orange-500/30 backdrop-blur-sm text-orange-400 text-xs font-bold border border-orange-500/40 rounded">
+            <span className="flex items-center gap-1 px-2 py-1 bg-primary/30 backdrop-blur-sm text-primary/90 text-xs font-bold border border-primary/40 rounded">
               <Star size={12} />
               Premium
             </span>
@@ -149,7 +149,7 @@ function ClubPosterCard({ club, index }: { club: Club; index: number }) {
         </div>
         {club.distance !== undefined && (
           <span className="flex items-center gap-1 px-2 py-1 bg-black/50 backdrop-blur-sm text-white text-xs font-semibold rounded">
-            <Navigation size={12} className="text-orange-500" />
+            <Navigation size={12} className="text-primary" />
             {club.distance < 1 ? '<1' : Math.round(club.distance)} mi
           </span>
         )}
@@ -158,7 +158,7 @@ function ClubPosterCard({ club, index }: { club: Club; index: number }) {
       {/* Content at Bottom */}
       <div className="absolute bottom-0 left-0 right-0 p-4">
         {/* Logo */}
-        <div className="w-16 h-16 rounded-full bg-zinc-900/90 backdrop-blur-sm border-2 border-orange-500/50 overflow-hidden mb-3 shadow-xl">
+        <div className="w-16 h-16 rounded-full bg-zinc-900/90 backdrop-blur-sm border-2 border-primary/50 overflow-hidden mb-3 shadow-xl">
           {club.logo ? (
             <img
               src={club.logo}
@@ -166,7 +166,7 @@ function ClubPosterCard({ club, index }: { club: Club; index: number }) {
               className="w-full h-full object-cover"
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center text-orange-500 text-2xl font-bold">
+            <div className="w-full h-full flex items-center justify-center text-primary text-2xl font-bold">
               {club.name[0]}
             </div>
           )}
@@ -175,7 +175,7 @@ function ClubPosterCard({ club, index }: { club: Club; index: number }) {
         {/* Name & Location */}
         <h3 className="text-xl font-bold text-white mb-1 text-balance">{club.name}</h3>
         <div className="flex items-center gap-1.5 text-sm text-zinc-300 mb-2">
-          <MapPin size={14} className="text-orange-500" />
+          <MapPin size={14} className="text-primary" />
           <span>{club.location}</span>
         </div>
 
@@ -421,13 +421,13 @@ export default function ClubsPage() {
           {/* Location status */}
           {isLoadingLocation && (
             <div className="flex items-center gap-1.5 mb-2 text-[11px] text-muted-foreground">
-              <Loader2 size={11} className="animate-spin text-orange-500" />
+              <Loader2 size={11} className="animate-spin text-primary" />
               Finding nearby clubs...
             </div>
           )}
           {userLocation && !isLoadingLocation && (
             <div className="flex items-center gap-1.5 mb-2 text-[11px] text-muted-foreground">
-              <Navigation size={11} className="text-orange-500" />
+              <Navigation size={11} className="text-primary" />
               Sorted by distance from you
             </div>
           )}
@@ -437,7 +437,7 @@ export default function ClubsPage() {
               onClick={() => requestLocation()}
               className="w-full mb-2 flex items-center justify-center gap-2 px-3 py-2 bg-card border border-border text-[12px] text-foreground hover:bg-muted transition-colors"
             >
-              <Navigation size={14} className="text-orange-500" />
+              <Navigation size={14} className="text-primary" />
               Use my location to sort nearby clubs
             </button>
           )}
@@ -461,7 +461,7 @@ export default function ClubsPage() {
               className="flex items-center justify-between w-full px-3 py-2 bg-card border border-border text-sm text-foreground"
             >
               <div className="flex items-center gap-2">
-                <MapPin size={16} className="text-orange-500" />
+                <MapPin size={16} className="text-primary" />
                 <span>{selectedRegion}</span>
               </div>
               <ChevronDown size={16} className={`transition-transform ${showRegionDropdown ? 'rotate-180' : ''}`} />
@@ -585,7 +585,7 @@ export default function ClubsPage() {
                 <div key={region} className="mb-6">
                   {selectedRegion === 'All Regions' && (
                     <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
-                      <MapPin size={14} className="text-orange-500" />
+                      <MapPin size={14} className="text-primary" />
                       {region}
                     </h2>
                   )}

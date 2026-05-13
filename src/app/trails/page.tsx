@@ -53,7 +53,7 @@ const TrailMap = dynamic(() => import('@/components/TrailMap'), {
   loading: () => (
     <div className="w-full h-full flex items-center justify-center bg-zinc-900 rounded-xl border border-zinc-800">
       <div className="flex flex-col items-center gap-2">
-        <div className="w-8 h-8 rounded-full border-2 border-orange-500/30 border-t-orange-500 animate-spin" />
+        <div className="w-8 h-8 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
         <p className="text-zinc-500 text-[12px]">Loading map…</p>
       </div>
     </div>
@@ -94,7 +94,7 @@ function TrailCard({ trail, index, isSaved, onToggleSave }: {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: Math.min(index, 8) * 0.025 }}
-      className="bg-zinc-900 border border-zinc-800 overflow-hidden hover:border-orange-500/50 transition-colors"
+      className="bg-zinc-900 border border-zinc-800 overflow-hidden hover:border-primary/50 transition-colors"
     >
       {/* Trail Image or title header when no photo */}
       {trail.image ? (
@@ -180,7 +180,7 @@ function TrailCard({ trail, index, isSaved, onToggleSave }: {
 
         {/* Rig Requirements */}
         {trail.rigRequirements && (
-          <p className="text-xs text-orange-500/80 mb-4">
+          <p className="text-xs text-primary/80 mb-4">
             Requires: {trail.rigRequirements}
           </p>
         )}
@@ -211,16 +211,16 @@ function TrailCard({ trail, index, isSaved, onToggleSave }: {
             onClick={handleSave}
             className={`flex items-center justify-center px-3 py-2.5 transition-colors ${
               isSaved
-                ? 'bg-orange-500/15 text-orange-400 border border-orange-500/40'
+                ? 'bg-primary/15 text-primary/90 border border-primary/40'
                 : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-400'
             }`}
             aria-label={isSaved ? 'Unsave trail' : 'Save trail'}
           >
-            <MapPin size={15} className={isSaved ? 'fill-orange-400' : ''} />
+            <MapPin size={15} className={isSaved ? 'fill-primary/90' : ''} />
           </button>
           <Link
             href={`/trails/${trail.id}`}
-            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-orange-500 hover:bg-orange-600 text-zinc-950 text-sm font-semibold transition-colors"
+            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-primary hover:opacity-90 text-zinc-950 text-sm font-semibold transition-colors"
             onClick={(e) => e.stopPropagation()}
           >
             <ChevronRight size={15} />
@@ -395,7 +395,7 @@ export default function TrailsPage() {
                   whileTap={{ scale: 0.92 }}
                   onClick={() => setView('list')}
                   className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[12px] font-semibold transition-colors ${
-                    view === 'list' ? 'bg-orange-500 text-black' : 'text-zinc-400 hover:text-zinc-200'
+                    view === 'list' ? 'bg-primary text-black' : 'text-zinc-400 hover:text-zinc-200'
                   }`}
                 >
                   <List size={14} />
@@ -405,7 +405,7 @@ export default function TrailsPage() {
                   whileTap={{ scale: 0.92 }}
                   onClick={() => setView('map')}
                   className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[12px] font-semibold transition-colors ${
-                    view === 'map' ? 'bg-orange-500 text-black' : 'text-zinc-400 hover:text-zinc-200'
+                    view === 'map' ? 'bg-primary text-black' : 'text-zinc-400 hover:text-zinc-200'
                   }`}
                 >
                   <Map size={14} />
@@ -416,7 +416,7 @@ export default function TrailsPage() {
                 whileTap={{ scale: 0.95 }}
                 onClick={() => setShowFilters(!showFilters)}
                 className={`p-2 rounded-lg transition-colors ${
-                  showFilters ? 'bg-orange-500 text-zinc-950' : 'bg-zinc-800 text-zinc-400'
+                  showFilters ? 'bg-primary text-zinc-950' : 'bg-zinc-800 text-zinc-400'
                 }`}
               >
                 <Filter size={18} />
@@ -436,7 +436,7 @@ export default function TrailsPage() {
               onChange={(e) => setSearchQuery(e.target.value)}
               onFocus={() => setSearchFocused(true)}
               onBlur={() => window.setTimeout(() => setSearchFocused(false), 160)}
-              className="w-full pl-10 pr-10 py-2.5 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-orange-500 transition-colors"
+              className="w-full pl-10 pr-10 py-2.5 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-primary transition-colors"
             />
             {searchQuery.trim().length > 0 && (
               <button
@@ -487,7 +487,7 @@ export default function TrailsPage() {
                 onClick={() => setSelectedVehicle(v)}
                 className={`shrink-0 px-3 py-2 rounded-lg text-[11px] font-black uppercase tracking-wide border transition-colors ${
                   selectedVehicle === v
-                    ? 'bg-orange-500 text-black border-orange-500'
+                    ? 'bg-primary text-black border-primary'
                     : 'bg-zinc-900 text-zinc-400 border-zinc-700 hover:border-zinc-600 hover:text-zinc-200'
                 }`}
               >
@@ -511,7 +511,7 @@ export default function TrailsPage() {
                   onClick={() => setSelectedArea(opt.id)}
                   className={`shrink-0 px-3 py-2 rounded-lg text-[11px] font-black uppercase tracking-wide border transition-colors ${
                     selectedArea === opt.id
-                      ? 'bg-orange-500 text-black border-orange-500'
+                      ? 'bg-primary text-black border-primary'
                       : 'bg-zinc-900 text-zinc-400 border-zinc-700 hover:border-zinc-600 hover:text-zinc-200'
                   }`}
                 >
@@ -545,7 +545,7 @@ export default function TrailsPage() {
                         onClick={() => setSelectedVehicle(v)}
                         className={`px-3 py-1.5 text-xs font-semibold uppercase tracking-wider transition-all ${
                           selectedVehicle === v
-                            ? 'bg-orange-500 text-zinc-950'
+                            ? 'bg-primary text-zinc-950'
                             : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
                         }`}
                       >
@@ -563,7 +563,7 @@ export default function TrailsPage() {
                         onClick={() => setSelectedDifficulty(difficulty)}
                         className={`px-3 py-1.5 text-xs font-semibold uppercase tracking-wider transition-all ${
                           selectedDifficulty === difficulty
-                            ? 'bg-orange-500 text-zinc-950'
+                            ? 'bg-primary text-zinc-950'
                             : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
                         }`}
                       >
@@ -579,8 +579,8 @@ export default function TrailsPage() {
       </header>
 
       {/* Trail Warning */}
-      <div className="px-4 py-3 bg-orange-500/10 border-b border-orange-500/20">
-        <div className="flex items-center gap-2 text-orange-500">
+      <div className="px-4 py-3 bg-primary/10 border-b border-primary/20">
+        <div className="flex items-center gap-2 text-primary">
           <AlertTriangle size={16} />
           <p className="text-xs font-medium">
             Always verify trail status before visiting. Conditions change.

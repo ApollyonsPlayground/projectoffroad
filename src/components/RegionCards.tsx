@@ -42,7 +42,7 @@ const regions: Region[] = [
   { 
     id: 'joshua-tree', 
     name: 'Joshua Tree', 
-    icon: <Flame className="text-orange-400" size={32} />,
+    icon: <Flame className="text-primary/90" size={32} />,
     color: 'orange',
     count: 10,
     description: 'Desert landscapes & rock formations'
@@ -84,7 +84,7 @@ export default function RegionCards({ trails }: RegionCardsProps) {
         {/* Back button */}
         <button 
           onClick={() => setSelectedRegion(null)}
-          className="flex items-center gap-2 text-orange-400 hover:text-orange-300 font-medium"
+          className="flex items-center gap-2 text-primary/90 hover:text-primary/80 font-medium"
         >
           <ChevronRight className="rotate-180" size={20} />
           Back to Regions
@@ -127,7 +127,7 @@ export default function RegionCards({ trails }: RegionCardsProps) {
             <div className="w-14 h-14 bg-stone-800 rounded-xl flex items-center justify-center">
               {region.icon}
             </div>
-            <ChevronRight className="text-stone-600 group-hover:text-orange-400 transition-colors" />
+            <ChevronRight className="text-stone-600 group-hover:text-primary/90 transition-colors" />
           </div>
 
           {/* Info */}
@@ -136,8 +136,8 @@ export default function RegionCards({ trails }: RegionCardsProps) {
           
           {/* Count badge */}
           <div className="inline-flex items-center gap-1 px-3 py-1 bg-stone-800 rounded-full">
-            <MapPin size={14} className="text-orange-400" />
-            <span className="text-orange-400 font-semibold">{region.count}</span>
+            <MapPin size={14} className="text-primary/90" />
+            <span className="text-primary/90 font-semibold">{region.count}</span>
             <span className="text-stone-500 text-sm">trails</span>
           </div>
         </button>

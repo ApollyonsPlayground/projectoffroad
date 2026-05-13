@@ -194,7 +194,7 @@ function EditRigModal({
         type={type}
         value={form[key] as string}
         onChange={(e) => setForm((p) => ({ ...p, [key]: type === 'number' ? Number(e.target.value) : e.target.value }))}
-        className="w-full bg-zinc-900 border border-zinc-800 focus:border-orange-500/60 rounded-xl px-3 py-2.5 text-[14px] text-zinc-200 placeholder:text-zinc-600 outline-none transition-colors"
+        className="w-full bg-zinc-900 border border-zinc-800 focus:border-primary/60 rounded-xl px-3 py-2.5 text-[14px] text-zinc-200 placeholder:text-zinc-600 outline-none transition-colors"
       />
     </div>
   );
@@ -234,7 +234,7 @@ function EditRigModal({
             whileTap={{ scale: 0.92 }}
             onClick={handleSave}
             disabled={saving}
-            className="flex items-center gap-1.5 px-4 py-1.5 bg-orange-500 disabled:bg-zinc-800 disabled:text-zinc-600 text-black font-bold text-[13px] rounded-full transition-colors min-w-[68px] justify-center"
+            className="flex items-center gap-1.5 px-4 py-1.5 bg-primary disabled:bg-zinc-800 disabled:text-zinc-600 text-black font-bold text-[13px] rounded-full transition-colors min-w-[68px] justify-center"
           >
             {saving
               ? <Loader2 size={14} className="animate-spin" />
@@ -256,7 +256,7 @@ function EditRigModal({
               value={form.modifications}
               onChange={(e) => setForm((p) => ({ ...p, modifications: e.target.value }))}
               placeholder="Lift kit, tires, armor, recovery gear..."
-              className="w-full bg-zinc-900 border border-zinc-800 focus:border-orange-500/60 rounded-xl px-3 py-2.5 text-[14px] text-zinc-200 placeholder:text-zinc-600 outline-none resize-none transition-colors"
+              className="w-full bg-zinc-900 border border-zinc-800 focus:border-primary/60 rounded-xl px-3 py-2.5 text-[14px] text-zinc-200 placeholder:text-zinc-600 outline-none resize-none transition-colors"
             />
           </div>
         </div>
@@ -596,14 +596,14 @@ export default function ProfilePage() {
           {isProfileMissing ? (
             <button
               onClick={async () => { await signOut(); router.push('/login'); }}
-              className="w-full flex items-center justify-center gap-3 py-5 rounded-2xl bg-zinc-900 border-2 border-zinc-700 hover:border-orange-500 text-white font-black text-[17px] transition-colors"
+              className="w-full flex items-center justify-center gap-3 py-5 rounded-2xl bg-zinc-900 border-2 border-zinc-700 hover:border-primary text-white font-black text-[17px] transition-colors"
             >
               Sign Out and Try Again
             </button>
           ) : (
             <Link
               href="/login"
-              className="w-full flex items-center justify-center gap-3 py-5 rounded-2xl bg-orange-500 hover:bg-orange-600 text-black font-black text-[17px] transition-colors shadow-lg shadow-orange-500/30"
+              className="w-full flex items-center justify-center gap-3 py-5 rounded-2xl bg-primary hover:opacity-90 text-black font-black text-[17px] transition-colors shadow-lg shadow-primary/30"
             >
               Sign In to View Profile
             </Link>
@@ -627,7 +627,7 @@ export default function ProfilePage() {
               <button
                 type="button"
                 onClick={() => window.dispatchEvent(new CustomEvent('open-admin-panel'))}
-                className="p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center text-orange-500 hover:text-orange-400 transition-colors touch-manipulation"
+                className="p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center text-primary hover:text-primary/90 transition-colors touch-manipulation"
                 aria-label="Open admin tools"
               >
                 <Shield size={20} />
@@ -635,7 +635,7 @@ export default function ProfilePage() {
             )}
             <Link
               href="/profile/edit"
-              className="px-3 py-1.5 mr-1 text-[12px] font-bold text-orange-500 hover:text-orange-400 border border-orange-500/40 rounded-full touch-manipulation"
+              className="px-3 py-1.5 mr-1 text-[12px] font-bold text-primary hover:text-primary/90 border border-primary/40 rounded-full touch-manipulation"
             >
               Edit
             </Link>
@@ -659,7 +659,7 @@ export default function ProfilePage() {
                 onClick={() => avatarInputRef.current?.click()}
                 disabled={avatarUploading}
                 aria-label="Change avatar"
-                className="relative w-20 h-20 rounded-full bg-zinc-900 overflow-hidden ring-2 ring-orange-500/40 block focus:outline-none focus-visible:ring-4 focus-visible:ring-orange-500"
+                className="relative w-20 h-20 rounded-full bg-zinc-900 overflow-hidden ring-2 ring-primary/40 block focus:outline-none focus-visible:ring-4 focus-visible:ring-primary"
               >
                 {(localAvatarUrl ?? displayProfile.avatar_url) ? (
                   <img
@@ -675,14 +675,14 @@ export default function ProfilePage() {
                 {/* Uploading overlay */}
                 {avatarUploading && (
                   <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-                    <Loader2 size={20} className="animate-spin text-orange-500" />
+                    <Loader2 size={20} className="animate-spin text-primary" />
                   </div>
                 )}
               </button>
               <button
                 onClick={() => avatarInputRef.current?.click()}
                 disabled={avatarUploading}
-                className="absolute -bottom-1 -right-1 w-7 h-7 bg-orange-500 disabled:bg-zinc-700 rounded-full flex items-center justify-center transition-colors"
+                className="absolute -bottom-1 -right-1 w-7 h-7 bg-primary disabled:bg-zinc-700 rounded-full flex items-center justify-center transition-colors"
                 aria-label="Change avatar"
                 tabIndex={-1}
               >
@@ -707,12 +707,12 @@ export default function ProfilePage() {
                 {isVerified && (
                   <div className="relative flex items-center" aria-label="Verified member">
                     <motion.div
-                      className="absolute inset-0 rounded-full bg-orange-500/40"
+                      className="absolute inset-0 rounded-full bg-primary/40"
                       animate={{ scale: [1, 1.7, 1], opacity: [0.6, 0, 0.6] }}
                       transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
                     />
-                    <BadgeCheck size={17} className="relative text-orange-500 fill-orange-500/20 flex-shrink-0" />
-                    <span className="relative ml-1 text-[10px] font-black text-orange-500 uppercase tracking-wider">Verified</span>
+                    <BadgeCheck size={17} className="relative text-primary fill-primary/20 flex-shrink-0" />
+                    <span className="relative ml-1 text-[10px] font-black text-primary uppercase tracking-wider">Verified</span>
                   </div>
                 )}
                 {(profile?.role ?? displayProfile.role) === 'owner' && (
@@ -732,7 +732,7 @@ export default function ProfilePage() {
                   displayProfile.experience_level === 'Beginner'
                     ? 'bg-green-500/15 text-green-400 border border-green-500/30'
                     : displayProfile.experience_level === 'Advanced' || displayProfile.experience_level === 'Expert'
-                    ? 'bg-orange-500/15 text-orange-400 border border-orange-500/30'
+                    ? 'bg-primary/15 text-primary/90 border border-primary/30'
                     : 'bg-yellow-500/15 text-yellow-500 border border-yellow-500/30'
                 }`}>
                   {String(displayProfile.experience_level)}
@@ -767,16 +767,16 @@ export default function ProfilePage() {
         <section className="px-4 py-4 border-b border-zinc-900">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-[14px] font-bold text-white flex items-center gap-2">
-              <Truck size={16} className="text-orange-500" />
+              <Truck size={16} className="text-primary" />
               Your Garage
               {vehicles.filter((v) => v.is_primary).length > 0 && (
-                <span className="text-[10px] font-bold text-orange-400 bg-orange-500/10 border border-orange-500/25 px-1.5 py-0.5 rounded-full ml-1">Primary Rig Active</span>
+                <span className="text-[10px] font-bold text-primary/90 bg-primary/10 border border-primary/25 px-1.5 py-0.5 rounded-full ml-1">Primary Rig Active</span>
               )}
             </h3>
             <motion.button
               whileTap={{ scale: 0.92 }}
               onClick={() => setEditingVehicle(null)}
-              className="flex items-center gap-1 text-[13px] text-orange-500 hover:text-orange-400 transition-colors"
+              className="flex items-center gap-1 text-[13px] text-primary hover:text-primary/90 transition-colors"
             >
               <Plus size={15} /> Add Rig
             </motion.button>
@@ -800,7 +800,7 @@ export default function ProfilePage() {
                           {v.trim ? ` ${v.trim}` : ''}
                         </span>
                         {v.is_primary && (
-                          <span className="px-1.5 py-0.5 bg-orange-500/15 text-orange-400 text-[10px] font-bold uppercase rounded">
+                          <span className="px-1.5 py-0.5 bg-primary/15 text-primary/90 text-[10px] font-bold uppercase rounded">
                             Primary
                           </span>
                         )}
@@ -819,7 +819,7 @@ export default function ProfilePage() {
                               showToast('Primary rig updated', 'success');
                             } catch { showToast('Could not set primary rig', 'error'); }
                           }}
-                          className="mt-2 text-[11px] text-zinc-600 hover:text-orange-400 transition-colors"
+                          className="mt-2 text-[11px] text-zinc-600 hover:text-primary/90 transition-colors"
                         >
                           Set as Primary
                         </button>
@@ -827,7 +827,7 @@ export default function ProfilePage() {
                     </div>
                     <button
                       onClick={() => setEditingVehicle(v)}
-                      className="p-1.5 text-zinc-600 hover:text-orange-400 transition-colors ml-2 flex-shrink-0"
+                      className="p-1.5 text-zinc-600 hover:text-primary/90 transition-colors ml-2 flex-shrink-0"
                       aria-label="Edit rig"
                     >
                       <Edit2 size={15} />
@@ -839,7 +839,7 @@ export default function ProfilePage() {
           ) : (
             <button
               onClick={() => setEditingVehicle(null)}
-              className="w-full py-6 border border-dashed border-zinc-800 rounded-xl text-[13px] text-zinc-600 hover:text-orange-400 hover:border-orange-500/30 transition-colors flex flex-col items-center gap-2"
+              className="w-full py-6 border border-dashed border-zinc-800 rounded-xl text-[13px] text-zinc-600 hover:text-primary/90 hover:border-primary/30 transition-colors flex flex-col items-center gap-2"
             >
               <Truck size={24} className="text-zinc-700" />
               Tap to add your first rig
@@ -851,12 +851,12 @@ export default function ProfilePage() {
         <section className="px-4 py-4 border-b border-zinc-900">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-[14px] font-bold text-white flex items-center gap-2">
-              <Calendar size={16} className="text-orange-500" />
+              <Calendar size={16} className="text-primary" />
               My runs
             </h3>
             <Link
               href="/runs/create"
-              className="flex items-center gap-1 text-[13px] font-semibold text-orange-500 hover:text-orange-400 transition-colors"
+              className="flex items-center gap-1 text-[13px] font-semibold text-primary hover:text-primary/90 transition-colors"
             >
               <Plus size={14} />
               Host
@@ -869,7 +869,7 @@ export default function ProfilePage() {
           ) : myRuns.length === 0 ? (
             <div className="rounded-xl border border-dashed border-zinc-800 py-8 px-4 text-center">
               <p className="text-[13px] text-zinc-600 mb-3">Join or host a run — it will show up here.</p>
-              <Link href="/runs" className="text-[13px] font-bold text-orange-500 hover:text-orange-400">
+              <Link href="/runs" className="text-[13px] font-bold text-primary hover:text-primary/90">
                 Browse runs
               </Link>
             </div>
@@ -879,10 +879,10 @@ export default function ProfilePage() {
                 <Link
                   key={`${r.role}-${r.id}`}
                   href={`/runs/${r.id}`}
-                  className="flex items-center gap-3 bg-zinc-900 border border-zinc-800 rounded-xl p-3 hover:border-orange-500/35 transition-colors"
+                  className="flex items-center gap-3 bg-zinc-900 border border-zinc-800 rounded-xl p-3 hover:border-primary/35 transition-colors"
                 >
                   <div className="w-10 h-10 rounded-full bg-zinc-950 border border-zinc-800 flex items-center justify-center flex-shrink-0">
-                    <Zap size={18} className={r.status === 'active' ? 'text-orange-400' : 'text-zinc-600'} />
+                    <Zap size={18} className={r.status === 'active' ? 'text-primary/90' : 'text-zinc-600'} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-[14px] font-semibold text-white truncate">{r.title}</p>
@@ -900,7 +900,7 @@ export default function ProfilePage() {
                   <span
                     className={`flex-shrink-0 px-2 py-1 rounded-lg text-[10px] font-black uppercase ${
                       r.role === 'hosting'
-                        ? 'bg-orange-500/15 text-orange-400 border border-orange-500/30'
+                        ? 'bg-primary/15 text-primary/90 border border-primary/30'
                         : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/25'
                     }`}
                   >
@@ -930,7 +930,7 @@ export default function ProfilePage() {
                 onClick={() => setActiveTab(id)}
                 className={`flex-1 flex items-center justify-center gap-1 py-3 text-[12px] font-semibold transition-colors border-b-2 ${
                   activeTab === id
-                    ? 'border-orange-500 text-orange-500'
+                    ? 'border-primary text-primary'
                     : 'border-transparent text-zinc-500 hover:text-zinc-300'
                 }`}
               >
@@ -1013,7 +1013,7 @@ export default function ProfilePage() {
           ].map(({ href, icon: Icon, label }) => (
             <Link key={href} href={href} className="flex items-center justify-between p-3.5 bg-zinc-900 border border-zinc-800 rounded-xl hover:border-zinc-700 transition-colors">
               <div className="flex items-center gap-3">
-                <Icon size={18} className="text-orange-500" />
+                <Icon size={18} className="text-primary" />
                 <span className="text-[14px] text-zinc-200">{label}</span>
               </div>
               <ChevronRight size={16} className="text-zinc-600" />

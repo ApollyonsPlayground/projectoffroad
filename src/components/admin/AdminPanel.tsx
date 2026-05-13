@@ -336,7 +336,7 @@ export function AdminPanel({ variant, onCloseDrawer }: Props) {
   if (authLoading || !user || role === null) {
     return (
       <div className="min-h-[40vh] flex items-center justify-center">
-        <Loader2 className="w-8 h-8 text-orange-500 animate-spin" />
+        <Loader2 className="w-8 h-8 text-primary animate-spin" />
       </div>
     );
   }
@@ -381,7 +381,7 @@ export function AdminPanel({ variant, onCloseDrawer }: Props) {
             </button>
           )}
           <div className="flex items-center gap-2 flex-1 min-w-0">
-            <ShieldAlert className="text-orange-500 shrink-0" size={22} />
+            <ShieldAlert className="text-primary shrink-0" size={22} />
             <div className="min-w-0">
               <h1 className="text-lg font-black text-white truncate">{headerTitle}</h1>
               <p className="text-[11px] text-zinc-500 truncate">{headerSubtitle}</p>
@@ -391,7 +391,7 @@ export function AdminPanel({ variant, onCloseDrawer }: Props) {
             {variant === 'drawer' && (
               <Link
                 href="/admin"
-                className="text-[11px] font-bold text-orange-500 flex items-center gap-0.5"
+                className="text-[11px] font-bold text-primary flex items-center gap-0.5"
                 onClick={() => onCloseDrawer?.()}
               >
                 Full page <ExternalLink size={12} />
@@ -410,7 +410,7 @@ export function AdminPanel({ variant, onCloseDrawer }: Props) {
               type="button"
               onClick={() => setTab(id)}
               className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-[12px] font-bold whitespace-nowrap transition-colors touch-manipulation min-h-[40px] ${
-                tab === id ? 'bg-orange-500 text-black' : 'bg-zinc-900 text-zinc-400'
+                tab === id ? 'bg-primary text-black' : 'bg-zinc-900 text-zinc-400'
               }`}
             >
               <Icon size={14} />
@@ -443,7 +443,7 @@ export function AdminPanel({ variant, onCloseDrawer }: Props) {
 
             <Link
               href="/admin/monitoring"
-              className="block w-full text-left bg-zinc-900 border border-zinc-800 hover:border-orange-500/40 rounded-xl p-4 transition-colors"
+              className="block w-full text-left bg-zinc-900 border border-zinc-800 hover:border-primary/40 rounded-xl p-4 transition-colors"
             >
               <p className="font-bold text-white mb-1">Infrastructure monitoring</p>
               <p className="text-[12px] text-zinc-500">
@@ -482,7 +482,7 @@ export function AdminPanel({ variant, onCloseDrawer }: Props) {
                   onClick={() => setClubFilter(id)}
                   className={`px-3 py-2 rounded-lg text-[12px] font-bold touch-manipulation min-h-[40px] ${
                     clubFilter === id
-                      ? 'bg-orange-500 text-black'
+                      ? 'bg-primary text-black'
                       : 'bg-zinc-900 text-zinc-400 border border-zinc-800'
                   }`}
                 >
@@ -499,7 +499,7 @@ export function AdminPanel({ variant, onCloseDrawer }: Props) {
             <button
               type="button"
               onClick={() => loadClubs()}
-              className="text-[12px] text-orange-500 font-semibold touch-manipulation py-1"
+              className="text-[12px] text-primary font-semibold touch-manipulation py-1"
             >
               Refresh list
             </button>
@@ -571,7 +571,7 @@ export function AdminPanel({ variant, onCloseDrawer }: Props) {
 
                 <Link
                   href={`/clubs/${c.id}`}
-                  className="text-[12px] font-semibold text-orange-500 flex items-center gap-1 touch-manipulation py-1"
+                  className="text-[12px] font-semibold text-primary flex items-center gap-1 touch-manipulation py-1"
                 >
                   View club page <ExternalLink size={12} />
                 </Link>
@@ -587,7 +587,7 @@ export function AdminPanel({ variant, onCloseDrawer }: Props) {
 
         {tab === 'posts' && (
           <div className="space-y-3">
-            <button type="button" onClick={() => loadPosts()} className="text-[12px] text-orange-500 font-semibold">
+            <button type="button" onClick={() => loadPosts()} className="text-[12px] text-primary font-semibold">
               Refresh
             </button>
             {posts.map((p) => (
@@ -650,7 +650,7 @@ export function AdminPanel({ variant, onCloseDrawer }: Props) {
               <button
                 type="button"
                 onClick={() => loadUsers()}
-                className="px-4 py-2 min-h-[44px] bg-orange-500 text-black font-bold rounded-lg text-[13px] touch-manipulation"
+                className="px-4 py-2 min-h-[44px] bg-primary text-black font-bold rounded-lg text-[13px] touch-manipulation"
               >
                 Search
               </button>
@@ -663,7 +663,7 @@ export function AdminPanel({ variant, onCloseDrawer }: Props) {
                 <p className="font-semibold text-white truncate">{u.name ?? '—'}</p>
                 <p className="text-[12px] text-zinc-500 truncate">{u.email}</p>
                 <p className="text-[11px] text-zinc-600">
-                  Role: <span className="text-orange-400 font-bold">{u.role ?? 'user'}</span>
+                  Role: <span className="text-primary/90 font-bold">{u.role ?? 'user'}</span>
                 </p>
                 {role === 'owner' && u.id !== user.id && (
                   <div className="flex flex-wrap gap-2 pt-2">

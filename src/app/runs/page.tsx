@@ -86,7 +86,7 @@ function HostRunDrawer({
           >
             <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-zinc-800 flex-shrink-0">
               <div className="flex items-center gap-2">
-                <Flag size={16} className="text-orange-500" />
+                <Flag size={16} className="text-primary" />
                 <h2 className="text-[16px] font-black text-white">Host a Run</h2>
               </div>
               <button
@@ -119,7 +119,7 @@ function getDifficultyColor(difficulty: string): string {
   const level = (difficulty ?? '').toLowerCase();
   if (level === 'beginner' || level === 'easy') return 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30';
   if (level === 'moderate' || level === 'intermediate') return 'bg-yellow-500/15 text-yellow-500 border border-yellow-500/30';
-  if (level === 'advanced' || level === 'challenging') return 'bg-orange-500/15 text-orange-400 border border-orange-500/30';
+  if (level === 'advanced' || level === 'challenging') return 'bg-primary/15 text-primary/90 border border-primary/30';
   if (level === 'extreme') return 'bg-red-500/15 text-red-400 border border-red-500/30';
   return 'bg-zinc-700/50 text-zinc-400';
 }
@@ -182,7 +182,7 @@ function RunCard({
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ delay: index * 0.08 }}
-      className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden hover:border-orange-500/40 transition-colors"
+      className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden hover:border-primary/40 transition-colors"
     >
       {/* Trail imagery + trail name (same catalog as Trail Explorer) */}
       <div className="relative h-[132px] bg-zinc-800 shrink-0">
@@ -198,7 +198,7 @@ function RunCard({
               <p className="text-[16px] font-black text-white leading-tight drop-shadow-[0_1px_8px_rgba(0,0,0,0.85)]">
                 {run.trail.name}
               </p>
-              <p className="text-[12px] font-semibold text-orange-300/95 mt-1 truncate drop-shadow-md">
+              <p className="text-[12px] font-semibold text-primary/80/95 mt-1 truncate drop-shadow-md">
                 {run.title}
               </p>
             </>
@@ -233,7 +233,7 @@ function RunCard({
               )}
             </div>
             {run.club?.name && (
-              <p className="text-[12px] text-orange-500 font-semibold">{run.club.name}</p>
+              <p className="text-[12px] text-primary font-semibold">{run.club.name}</p>
             )}
             {run.run_source === 'club_official' && !run.club?.name && (
               <p className="text-[12px] text-emerald-400/95 font-semibold">Staff verified</p>
@@ -246,7 +246,7 @@ function RunCard({
             {run.host_id && (
               <Link
                 href={`/profile/${run.host_id}`}
-                className="text-[12px] text-zinc-500 hover:text-orange-400 mt-0.5 inline-block font-medium"
+                className="text-[12px] text-zinc-500 hover:text-primary/90 mt-0.5 inline-block font-medium"
               >
                 Organizer: {run.host_display_name ?? 'View profile'}
               </Link>
@@ -265,16 +265,16 @@ function RunCard({
         {/* Details */}
         <div className="space-y-1.5 mb-3">
           <div className="flex items-center gap-2 text-[13px] text-zinc-500">
-            <Calendar size={13} className="text-orange-500 flex-shrink-0" />
+            <Calendar size={13} className="text-primary flex-shrink-0" />
             <span>{formatRunDate(run.date)}</span>
           </div>
           <div className="flex items-center gap-2 text-[13px] text-zinc-500">
-            <MapPin size={13} className="text-orange-500 flex-shrink-0" />
+            <MapPin size={13} className="text-primary flex-shrink-0" />
             <span className="truncate">{run.meetup_location}</span>
           </div>
           <div className="flex items-center gap-2 text-[13px]">
-            <Users size={13} className="text-orange-500 flex-shrink-0" />
-            <span className={isAlmostFull ? 'text-orange-400' : isFull ? 'text-red-400' : 'text-zinc-500'}>
+            <Users size={13} className="text-primary flex-shrink-0" />
+            <span className={isAlmostFull ? 'text-primary/90' : isFull ? 'text-red-400' : 'text-zinc-500'}>
               {participantCount}{run.max_participants != null ? `/${run.max_participants}` : ''} joined
               {isAlmostFull && ' · Almost full!'}
               {isFull && ' · Full'}
@@ -298,8 +298,8 @@ function RunCard({
             <ChevronRight size={14} />
           </Link>
           {isHost ? (
-            <div className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-[13px] font-semibold rounded-lg border border-orange-500/35 bg-orange-500/10 text-orange-300">
-              <Shield size={14} className="text-orange-400 flex-shrink-0" />
+            <div className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-[13px] font-semibold rounded-lg border border-primary/35 bg-primary/10 text-primary/80">
+              <Shield size={14} className="text-primary/90 flex-shrink-0" />
               {"You're hosting"}
             </div>
           ) : (
@@ -311,7 +311,7 @@ function RunCard({
                   ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
                   : isFull
                   ? 'bg-zinc-700 text-zinc-500 cursor-not-allowed'
-                  : 'bg-orange-500 hover:bg-orange-600 text-black'
+                  : 'bg-primary hover:opacity-90 text-black'
               }`}
             >
               {joining ? (
@@ -573,7 +573,7 @@ export default function RunsPage() {
             {user && (
               <button
                 onClick={() => setHostDrawerOpen(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-black text-[13px] font-bold rounded-lg transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-primary hover:opacity-90 text-black text-[13px] font-bold rounded-lg transition-colors"
               >
                 <Plus size={15} />
                 Host a Run
@@ -587,7 +587,7 @@ export default function RunsPage() {
                 key={f}
                 onClick={() => setFilter(f)}
                 className={`px-3 py-1.5 text-[12px] font-bold uppercase tracking-wider rounded-lg transition-all ${
-                  filter === f ? 'bg-orange-500 text-black' : 'bg-zinc-900 text-zinc-400 hover:bg-zinc-800'
+                  filter === f ? 'bg-primary text-black' : 'bg-zinc-900 text-zinc-400 hover:bg-zinc-800'
                 }`}
               >
                 {f}
@@ -598,8 +598,8 @@ export default function RunsPage() {
       </header>
 
       {/* Safety notice */}
-      <div className="px-4 py-2.5 bg-orange-500/10 border-b border-orange-500/20">
-        <div className="flex items-center gap-2 text-orange-500 max-w-app-shell mx-auto">
+      <div className="px-4 py-2.5 bg-primary/10 border-b border-primary/20">
+        <div className="flex items-center gap-2 text-primary max-w-app-shell mx-auto">
           <AlertTriangle size={14} className="flex-shrink-0" />
           <p className="text-[12px] font-medium">Always bring recovery gear and communicate with your group.</p>
         </div>
@@ -625,7 +625,7 @@ export default function RunsPage() {
               {user && (
                 <button
                   onClick={() => setHostDrawerOpen(true)}
-                  className="inline-flex items-center gap-2 px-4 py-2.5 bg-orange-500 hover:bg-orange-600 text-black text-[13px] font-bold rounded-xl transition-colors"
+                  className="inline-flex items-center gap-2 px-4 py-2.5 bg-primary hover:opacity-90 text-black text-[13px] font-bold rounded-xl transition-colors"
                 >
                   <Plus size={15} />
                   Host a Run

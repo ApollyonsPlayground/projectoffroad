@@ -49,7 +49,7 @@ const RunLiveMap = dynamic(() => import('@/components/RunLiveMap'), {
   ssr: false,
   loading: () => (
     <div className="h-[min(320px,55dvh)] flex items-center justify-center bg-zinc-900 border border-zinc-800 rounded-2xl">
-      <Loader2 className="animate-spin text-orange-500" size={24} />
+      <Loader2 className="animate-spin text-primary" size={24} />
     </div>
   ),
 });
@@ -148,7 +148,7 @@ function getDifficultyColor(d: string) {
   if (level === 'moderate' || level === 'intermediate')
     return 'bg-yellow-500/15 text-yellow-500 border border-yellow-500/30';
   if (level === 'advanced' || level === 'challenging')
-    return 'bg-orange-500/15 text-orange-400 border border-orange-500/30';
+    return 'bg-primary/15 text-primary/90 border border-primary/30';
   if (level === 'extreme')
     return 'bg-red-500/15 text-red-400 border border-red-500/30';
   return 'bg-zinc-700/50 text-zinc-400';
@@ -169,7 +169,7 @@ function getStatusBadge(status: string) {
     return 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30';
   if (status === 'completed')
     return 'bg-zinc-700/50 text-zinc-400';
-  return 'bg-orange-500/15 text-orange-400 border border-orange-500/30';
+  return 'bg-primary/15 text-primary/90 border border-primary/30';
 }
 
 function coordsFromTrailEmbed(trail: RunTrailEmbed | null): { lat: number; lng: number } | null {
@@ -1033,7 +1033,7 @@ export default function RunDetailPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
-        <Loader2 size={28} className="animate-spin text-orange-500" />
+        <Loader2 size={28} className="animate-spin text-primary" />
       </div>
     );
   }
@@ -1045,7 +1045,7 @@ export default function RunDetailPage() {
         <p className="text-white font-bold text-[16px]">Run not found</p>
         <button
           onClick={() => router.back()}
-          className="text-orange-500 text-[14px] hover:text-orange-400 transition-colors"
+          className="text-primary text-[14px] hover:text-primary/90 transition-colors"
         >
           Go back
         </button>
@@ -1082,7 +1082,7 @@ export default function RunDetailPage() {
             <button
               type="button"
               onClick={() => setEditOpen(true)}
-              className="min-h-[36px] px-3 rounded-xl bg-orange-500 text-black text-[12px] font-black hover:bg-orange-400 transition-colors flex items-center gap-1.5 flex-shrink-0"
+              className="min-h-[36px] px-3 rounded-xl bg-primary text-black text-[12px] font-black hover:bg-primary/90 transition-colors flex items-center gap-1.5 flex-shrink-0"
               aria-label="Edit run"
               title="Edit run"
             >
@@ -1120,7 +1120,7 @@ export default function RunDetailPage() {
               >
                 <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-zinc-800 flex-shrink-0">
                   <div className="flex items-center gap-2">
-                    <Pencil size={16} className="text-orange-500" />
+                    <Pencil size={16} className="text-primary" />
                     <h2 className="text-[16px] font-black text-white">Edit run</h2>
                   </div>
                   <button
@@ -1142,7 +1142,7 @@ export default function RunDetailPage() {
                     <input
                       value={editTitle}
                       onChange={(e) => setEditTitle(e.target.value)}
-                      className="w-full min-h-[44px] bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2.5 text-[15px] text-white placeholder-zinc-600 focus:outline-none focus:border-orange-500/60 transition-colors touch-manipulation"
+                      className="w-full min-h-[44px] bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2.5 text-[15px] text-white placeholder-zinc-600 focus:outline-none focus:border-primary/60 transition-colors touch-manipulation"
                     />
                   </div>
 
@@ -1154,7 +1154,7 @@ export default function RunDetailPage() {
                       value={editDescription}
                       onChange={(e) => setEditDescription(e.target.value)}
                       rows={3}
-                      className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2.5 text-[15px] text-white placeholder-zinc-600 focus:outline-none focus:border-orange-500/60 transition-colors touch-manipulation resize-none"
+                      className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2.5 text-[15px] text-white placeholder-zinc-600 focus:outline-none focus:border-primary/60 transition-colors touch-manipulation resize-none"
                     />
                   </div>
 
@@ -1241,7 +1241,7 @@ export default function RunDetailPage() {
                       type="datetime-local"
                       value={editDate}
                       onChange={(e) => setEditDate(e.target.value)}
-                      className="w-full min-h-[44px] bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2.5 text-[15px] text-white [color-scheme:dark] focus:outline-none focus:border-orange-500/60 transition-colors touch-manipulation"
+                      className="w-full min-h-[44px] bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2.5 text-[15px] text-white [color-scheme:dark] focus:outline-none focus:border-primary/60 transition-colors touch-manipulation"
                     />
                   </div>
 
@@ -1253,7 +1253,7 @@ export default function RunDetailPage() {
                       <select
                         value={editDifficulty}
                         onChange={(e) => setEditDifficulty(e.target.value)}
-                        className="w-full min-h-[44px] bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2.5 text-[15px] text-white focus:outline-none focus:border-orange-500/60 transition-colors touch-manipulation"
+                        className="w-full min-h-[44px] bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2.5 text-[15px] text-white focus:outline-none focus:border-primary/60 transition-colors touch-manipulation"
                       >
                         {['Easy', 'Moderate', 'Challenging', 'Extreme'].map((d) => (
                           <option key={d} value={d} className="bg-zinc-900">
@@ -1271,7 +1271,7 @@ export default function RunDetailPage() {
                         onChange={(e) => setEditMax(e.target.value)}
                         inputMode="numeric"
                         placeholder="Optional"
-                        className="w-full min-h-[44px] bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2.5 text-[15px] text-white placeholder-zinc-600 focus:outline-none focus:border-orange-500/60 transition-colors touch-manipulation"
+                        className="w-full min-h-[44px] bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2.5 text-[15px] text-white placeholder-zinc-600 focus:outline-none focus:border-primary/60 transition-colors touch-manipulation"
                       />
                     </div>
                   </div>
@@ -1283,7 +1283,7 @@ export default function RunDetailPage() {
                     <input
                       value={editVehicleReq}
                       onChange={(e) => setEditVehicleReq(e.target.value)}
-                      className="w-full min-h-[44px] bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2.5 text-[15px] text-white placeholder-zinc-600 focus:outline-none focus:border-orange-500/60 transition-colors touch-manipulation"
+                      className="w-full min-h-[44px] bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2.5 text-[15px] text-white placeholder-zinc-600 focus:outline-none focus:border-primary/60 transition-colors touch-manipulation"
                     />
                   </div>
 
@@ -1294,7 +1294,7 @@ export default function RunDetailPage() {
                     <input
                       value={editComms}
                       onChange={(e) => setEditComms(e.target.value)}
-                      className="w-full min-h-[44px] bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2.5 text-[15px] text-white placeholder-zinc-600 focus:outline-none focus:border-orange-500/60 transition-colors touch-manipulation"
+                      className="w-full min-h-[44px] bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2.5 text-[15px] text-white placeholder-zinc-600 focus:outline-none focus:border-primary/60 transition-colors touch-manipulation"
                     />
                   </div>
 
@@ -1332,7 +1332,7 @@ export default function RunDetailPage() {
                     type="button"
                     disabled={editSaving}
                     onClick={saveRunEdits}
-                    className="flex-1 min-h-[44px] rounded-xl bg-orange-500 text-black font-black hover:bg-orange-400 disabled:opacity-50"
+                    className="flex-1 min-h-[44px] rounded-xl bg-primary text-black font-black hover:bg-primary/90 disabled:opacity-50"
                   >
                     {editSaving ? 'Saving…' : 'Save changes'}
                   </button>
@@ -1396,13 +1396,13 @@ export default function RunDetailPage() {
                   className="w-7 h-7 rounded-full object-cover flex-shrink-0"
                 />
               ) : (
-                <div className="w-7 h-7 rounded-full bg-orange-500/20 flex items-center justify-center flex-shrink-0">
-                  <Shield size={13} className="text-orange-500" />
+                <div className="w-7 h-7 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                  <Shield size={13} className="text-primary" />
                 </div>
               )}
               {run.club ? (
                 <div className="flex items-center gap-1.5 min-w-0">
-                  <p className="text-[13px] font-bold text-orange-500 truncate">{run.club.name}</p>
+                  <p className="text-[13px] font-bold text-primary truncate">{run.club.name}</p>
                   {run.run_source === 'club_official' && (
                     <span className="px-1.5 py-0.5 text-[9px] font-black uppercase rounded flex-shrink-0 text-emerald-400 bg-emerald-500/15 border border-emerald-500/30">
                       Club
@@ -1448,17 +1448,17 @@ export default function RunDetailPage() {
                       className="w-9 h-9 rounded-full object-cover flex-shrink-0 border border-zinc-700"
                     />
                   ) : (
-                    <div className="w-9 h-9 rounded-full bg-orange-500/15 flex items-center justify-center flex-shrink-0 border border-orange-500/30">
-                      <Building2 size={16} className="text-orange-400" />
+                    <div className="w-9 h-9 rounded-full bg-primary/15 flex items-center justify-center flex-shrink-0 border border-primary/30">
+                      <Building2 size={16} className="text-primary/90" />
                     </div>
                   )}
                   <div className="flex-1 min-w-0">
                     <p className="text-[11px] text-zinc-500 uppercase font-bold">Club listing</p>
-                    <p className="text-[14px] font-bold text-white truncate group-hover:text-orange-400 transition-colors">
+                    <p className="text-[14px] font-bold text-white truncate group-hover:text-primary/90 transition-colors">
                       {run.club.name}
                     </p>
                   </div>
-                  <ChevronRight size={18} className="text-zinc-600 group-hover:text-orange-400 flex-shrink-0" />
+                  <ChevronRight size={18} className="text-zinc-600 group-hover:text-primary/90 flex-shrink-0" />
                 </Link>
               ) : run.run_source === 'club_official' ? (
                 <p className="text-[13px] text-emerald-400/95 font-semibold">Official listing · Staff verified (no club page)</p>
@@ -1479,16 +1479,16 @@ export default function RunDetailPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-[11px] text-zinc-500 uppercase font-bold">Organizer profile</p>
-                    <p className="text-[14px] font-bold text-white truncate group-hover:text-orange-400 transition-colors">
+                    <p className="text-[14px] font-bold text-white truncate group-hover:text-primary/90 transition-colors">
                       {hostProfile.name ?? 'Host'}
                     </p>
                   </div>
-                  <ChevronRight size={18} className="text-zinc-600 group-hover:text-orange-400 flex-shrink-0" />
+                  <ChevronRight size={18} className="text-zinc-600 group-hover:text-primary/90 flex-shrink-0" />
                 </Link>
               ) : run.host_id ? (
                 <Link
                   href={`/profile/${run.host_id}`}
-                  className="text-[13px] text-orange-500 font-semibold hover:text-orange-400 inline-flex items-center gap-1 pt-1 border-t border-zinc-800/80"
+                  className="text-[13px] text-primary font-semibold hover:text-primary/90 inline-flex items-center gap-1 pt-1 border-t border-zinc-800/80"
                 >
                   View organizer profile <ExternalLink size={14} />
                 </Link>
@@ -1498,13 +1498,13 @@ export default function RunDetailPage() {
             {/* Detail rows */}
             <div className="space-y-2.5">
               <div className="flex items-start gap-2.5 text-[14px]">
-                <Calendar size={15} className="text-orange-500 flex-shrink-0 mt-0.5" />
+                <Calendar size={15} className="text-primary flex-shrink-0 mt-0.5" />
                 <span className="text-zinc-300">{formatRunDate(run.date)}</span>
               </div>
 
               {(run.meetup_latitude != null && run.meetup_longitude != null) || run.meetup_location ? (
                 <div className="flex items-start gap-2.5 text-[14px]">
-                  <MapPin size={15} className="text-orange-500 flex-shrink-0 mt-0.5" />
+                  <MapPin size={15} className="text-primary flex-shrink-0 mt-0.5" />
                   <div className="min-w-0">
                     <p className="text-[11px] font-bold uppercase text-zinc-500 mb-0.5">Staging area (recorded)</p>
                     {run.meetup_latitude != null && run.meetup_longitude != null ? (
@@ -1517,7 +1517,7 @@ export default function RunDetailPage() {
                             href={stagingDirectionsUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 mt-1 text-[12px] font-semibold text-orange-500 hover:text-orange-400"
+                            className="inline-flex items-center gap-1 mt-1 text-[12px] font-semibold text-primary hover:text-primary/90"
                           >
                             Open staging pin in Maps <ExternalLink size={12} />
                           </a>
@@ -1531,7 +1531,7 @@ export default function RunDetailPage() {
               ) : null}
 
               <div className="flex items-center gap-2.5 text-[14px]">
-                <Users size={15} className="text-orange-500 flex-shrink-0" />
+                <Users size={15} className="text-primary flex-shrink-0" />
                 <span className={isFull ? 'text-red-400' : 'text-zinc-300'}>
                   {participants.length}
                   {run.max_participants != null ? `/${run.max_participants}` : ''} riders joined
@@ -1541,10 +1541,10 @@ export default function RunDetailPage() {
 
               {run.trail && run.trail_id && (
                 <div className="flex items-center gap-2.5 text-[14px]">
-                  <Mountain size={15} className="text-orange-500 flex-shrink-0" />
+                  <Mountain size={15} className="text-primary flex-shrink-0" />
                   <Link
                     href={`/trails/${run.trail_id}`}
-                    className="text-zinc-300 hover:text-orange-400 transition-colors min-w-0"
+                    className="text-zinc-300 hover:text-primary/90 transition-colors min-w-0"
                   >
                     <span className="font-semibold">{run.trail.name}</span>
                     {run.trail.difficulty && (
@@ -1557,7 +1557,7 @@ export default function RunDetailPage() {
 
               {run.vehicle_requirements && (
                 <div className="flex items-start gap-2.5 text-[14px]">
-                  <AlertTriangle size={15} className="text-orange-500 flex-shrink-0 mt-0.5" />
+                  <AlertTriangle size={15} className="text-primary flex-shrink-0 mt-0.5" />
                   <span className="text-zinc-300">{run.vehicle_requirements}</span>
                 </div>
               )}
@@ -1589,9 +1589,9 @@ export default function RunDetailPage() {
                   href={trailDirectionsUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center justify-center gap-2 py-3 bg-zinc-900 border border-zinc-800 hover:border-orange-500/40 text-zinc-100 hover:text-white text-[14px] font-bold rounded-xl transition-colors"
+                  className="flex items-center justify-center gap-2 py-3 bg-zinc-900 border border-zinc-800 hover:border-primary/40 text-zinc-100 hover:text-white text-[14px] font-bold rounded-xl transition-colors"
                 >
-                  <Mountain size={15} className="text-orange-500" />
+                  <Mountain size={15} className="text-primary" />
                   Directions to trail
                   <ExternalLink size={14} className="text-zinc-500" />
                 </a>
@@ -1601,9 +1601,9 @@ export default function RunDetailPage() {
                   href={stagingDirectionsUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center justify-center gap-2 py-3 bg-zinc-900/80 border border-zinc-700 hover:border-orange-500/35 text-zinc-300 hover:text-white text-[13px] font-semibold rounded-xl transition-colors"
+                  className="flex items-center justify-center gap-2 py-3 bg-zinc-900/80 border border-zinc-700 hover:border-primary/35 text-zinc-300 hover:text-white text-[13px] font-semibold rounded-xl transition-colors"
                 >
-                  <MapPin size={15} className="text-orange-500" />
+                  <MapPin size={15} className="text-primary" />
                   Directions to staging pin
                   <ExternalLink size={13} className="text-zinc-500" />
                 </a>
@@ -1614,8 +1614,8 @@ export default function RunDetailPage() {
           {run.status !== 'completed' && (
             <div className="grid grid-cols-1 gap-3">
               {isHost ? (
-                <div className="flex items-center justify-center gap-2 py-3 text-[14px] font-bold rounded-xl border border-orange-500/35 bg-orange-500/10 text-orange-300">
-                  <Shield size={16} className="text-orange-400 flex-shrink-0" />
+                <div className="flex items-center justify-center gap-2 py-3 text-[14px] font-bold rounded-xl border border-primary/35 bg-primary/10 text-primary/80">
+                  <Shield size={16} className="text-primary/90 flex-shrink-0" />
                   {"You're the host"}
                 </div>
               ) : (
@@ -1627,7 +1627,7 @@ export default function RunDetailPage() {
                       ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
                       : isFull
                       ? 'bg-zinc-700 text-zinc-500 cursor-not-allowed'
-                      : 'bg-orange-500 hover:bg-orange-600 text-black'
+                      : 'bg-primary hover:opacity-90 text-black'
                   }`}
                 >
                   {joining ? (
@@ -1743,7 +1743,7 @@ export default function RunDetailPage() {
             className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden flex flex-col max-h-[min(380px,52dvh)]"
           >
             <div className="flex items-center gap-2 px-4 py-3 border-b border-zinc-800/80 bg-zinc-900/80">
-              <MessageCircle size={16} className="text-orange-500 flex-shrink-0" />
+              <MessageCircle size={16} className="text-primary flex-shrink-0" />
               <div className="min-w-0">
                 <p className="text-[13px] font-bold text-white leading-none">Group chat</p>
                 <p className="text-[11px] text-zinc-500 mt-1">Live updates for this run</p>
@@ -1777,7 +1777,7 @@ export default function RunDetailPage() {
                         <p
                           className={`text-[13px] leading-snug rounded-xl px-3 py-2 inline-block text-left ${
                             mine
-                              ? 'bg-orange-500/20 text-orange-100 border border-orange-500/25'
+                              ? 'bg-primary/20 text-primary/60 border border-primary/25'
                               : 'bg-zinc-800 text-zinc-200 border border-zinc-700/80'
                           }`}
                         >
@@ -1816,7 +1816,7 @@ export default function RunDetailPage() {
                     }
                   }}
                   placeholder="Message the group…"
-                  className="flex-1 min-w-0 bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-[14px] text-white placeholder:text-zinc-600 focus:outline-none focus:border-orange-500/50"
+                  className="flex-1 min-w-0 bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-[14px] text-white placeholder:text-zinc-600 focus:outline-none focus:border-primary/50"
                   maxLength={2000}
                   aria-label="Group message"
                 />
@@ -1824,7 +1824,7 @@ export default function RunDetailPage() {
                   type="button"
                   onClick={() => void handleSendChat()}
                   disabled={chatSending || !chatInput.trim()}
-                  className="flex-shrink-0 w-11 h-11 flex items-center justify-center rounded-xl bg-orange-500 hover:bg-orange-600 text-black disabled:bg-zinc-800 disabled:text-zinc-600 transition-colors"
+                  className="flex-shrink-0 w-11 h-11 flex items-center justify-center rounded-xl bg-primary hover:opacity-90 text-black disabled:bg-zinc-800 disabled:text-zinc-600 transition-colors"
                   aria-label="Send message"
                 >
                   {chatSending ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
@@ -1915,7 +1915,7 @@ export default function RunDetailPage() {
               className="bg-zinc-900 border border-zinc-700 rounded-2xl p-4 space-y-3"
             >
               <div className="flex items-center gap-2">
-                <BadgeCheck size={15} className="text-orange-500" />
+                <BadgeCheck size={15} className="text-primary" />
                 <p className="text-[13px] font-bold text-zinc-300">Host controls</p>
               </div>
 
@@ -2007,7 +2007,7 @@ export default function RunDetailPage() {
         >
           <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800/60">
             <div className="flex items-center gap-2">
-              <Users size={14} className="text-orange-500" />
+              <Users size={14} className="text-primary" />
               <p className="text-[13px] font-bold text-white">Riders ({participants.length})</p>
             </div>
             {run.max_participants != null && (
@@ -2046,7 +2046,7 @@ export default function RunDetailPage() {
                     <p className="text-[14px] font-semibold text-white truncate">
                       {p.users?.name ?? 'Rider'}
                       {run.host_id === p.user_id && (
-                        <span className="ml-1.5 px-1.5 py-px text-[9px] font-black text-black bg-orange-500 rounded leading-none">
+                        <span className="ml-1.5 px-1.5 py-px text-[9px] font-black text-black bg-primary rounded leading-none">
                           HOST
                         </span>
                       )}
@@ -2076,7 +2076,7 @@ export default function RunDetailPage() {
             className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden"
           >
             <div className="flex items-center gap-2 px-4 py-3 border-b border-zinc-800/60">
-              <StickyNote size={15} className="text-orange-500 flex-shrink-0" />
+              <StickyNote size={15} className="text-primary flex-shrink-0" />
               <div className="min-w-0">
                 <p className="text-[13px] font-bold text-white leading-none">Trip notes</p>
                 <p className="text-[11px] text-zinc-500 mt-1">
@@ -2128,13 +2128,13 @@ export default function RunDetailPage() {
                     placeholder="How were trail conditions, pacing, and the convoy? Anything the next crew should know."
                     rows={4}
                     maxLength={4000}
-                    className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-[14px] text-white placeholder:text-zinc-600 focus:outline-none focus:border-orange-500/50 resize-y min-h-[100px]"
+                    className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-[14px] text-white placeholder:text-zinc-600 focus:outline-none focus:border-primary/50 resize-y min-h-[100px]"
                   />
                   <button
                     type="button"
                     onClick={() => void handleSaveReflection()}
                     disabled={reflectionSaving || !reflectionBody.trim()}
-                    className="w-full flex items-center justify-center gap-2 py-3 bg-orange-500 hover:bg-orange-600 disabled:bg-zinc-800 text-black disabled:text-zinc-500 text-[14px] font-bold rounded-xl transition-colors"
+                    className="w-full flex items-center justify-center gap-2 py-3 bg-primary hover:opacity-90 disabled:bg-zinc-800 text-black disabled:text-zinc-500 text-[14px] font-bold rounded-xl transition-colors"
                   >
                     {reflectionSaving ? <Loader2 size={16} className="animate-spin" /> : null}
                     {reflectionSaving ? 'Saving…' : 'Save trip note'}
@@ -2146,9 +2146,9 @@ export default function RunDetailPage() {
         )}
 
         {/* ── Safety reminder ───────────────────────────────────────────── */}
-        <div className="flex items-start gap-2.5 px-3 py-3 bg-orange-500/8 border border-orange-500/20 rounded-xl">
-          <AlertTriangle size={14} className="text-orange-500 flex-shrink-0 mt-0.5" />
-          <p className="text-[12px] text-orange-400/80 leading-relaxed">
+        <div className="flex items-start gap-2.5 px-3 py-3 bg-primary/8 border border-primary/20 rounded-xl">
+          <AlertTriangle size={14} className="text-primary flex-shrink-0 mt-0.5" />
+          <p className="text-[12px] text-primary/90/80 leading-relaxed">
             Always bring recovery gear, a first-aid kit, and ensure someone not on the run knows your itinerary.
           </p>
         </div>

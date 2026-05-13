@@ -49,7 +49,7 @@ function MiniBars(props: {
         {rows.map((r) => (
           <div key={r.label} className="flex-1 flex flex-col items-center gap-1 min-w-0">
             <div
-              className="w-full bg-orange-500/90 rounded-t-sm min-h-[4px] transition-all"
+              className="w-full bg-primary/90 rounded-t-sm min-h-[4px] transition-all"
               style={{ height: `${Math.max(8, (r.value / max) * 100)}%` }}
               title={`${r.label}: ${valueRender ? valueRender(r.value) : r.value}`}
             />
@@ -154,7 +154,7 @@ export function MonitoringDashboard() {
   if (authLoading || !user || role === null) {
     return (
       <div className="min-h-[40vh] flex items-center justify-center bg-black">
-        <Loader2 className="w-8 h-8 text-orange-500 animate-spin" />
+        <Loader2 className="w-8 h-8 text-primary animate-spin" />
       </div>
     );
   }
@@ -178,7 +178,7 @@ export function MonitoringDashboard() {
             type="button"
             onClick={() => void load()}
             disabled={loading}
-            className="p-2 text-orange-500 hover:text-orange-400 disabled:opacity-40 touch-manipulation"
+            className="p-2 text-primary hover:text-primary/90 disabled:opacity-40 touch-manipulation"
             aria-label="Refresh"
           >
             <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
@@ -193,7 +193,7 @@ export function MonitoringDashboard() {
 
         {loading && !data && (
           <div className="min-h-[30vh] flex items-center justify-center">
-            <Loader2 className="w-8 h-8 text-orange-500 animate-spin" />
+            <Loader2 className="w-8 h-8 text-primary animate-spin" />
           </div>
         )}
 
@@ -257,7 +257,7 @@ export function MonitoringDashboard() {
                   {data.vercel.billing && (
                     <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
                       <p className="text-[11px] font-bold text-zinc-500 uppercase">Month-to-date (usage lines)</p>
-                      <p className="text-2xl font-black text-orange-400 mt-1">
+                      <p className="text-2xl font-black text-primary/90 mt-1">
                         {formatUsd(data.vercel.billing.monthToDateCostUsd)}
                       </p>
                       <p className="text-[11px] text-zinc-500 mt-2">
