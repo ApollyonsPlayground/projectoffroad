@@ -1,0 +1,103 @@
+﻿
+C:\dev\projectoffroad\src\app\clubs\[id]\chat\page.tsx
+   77:52  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  104:26  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  209:17  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\dev\projectoffroad\src\app\feed\page.tsx
+  1353:56  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  1368:38  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  1397:48  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  1398:48  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  2185:52  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  2186:58  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  2211:43  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  2217:46  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  2406:23  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  2406:67  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  2422:25  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  2423:22  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  2440:46  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  2449:40  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  2450:26  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  2462:39  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  2516:30  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  2539:40  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  2567:41  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  2575:80  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  2594:71  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  2608:45  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\dev\projectoffroad\src\app\guidelines\page.tsx
+  34:48  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  38:29  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  46:46  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  50:42  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  51:34  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+C:\dev\projectoffroad\src\app\guides\beginner\page.tsx
+   36:21   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+   69:117  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  144:133  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  228:113  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+C:\dev\projectoffroad\src\app\guides\truck-buying\page.tsx
+  163:35  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+C:\dev\projectoffroad\src\app\messages\page.tsx
+   62:55  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   64:35  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   86:72  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   87:42  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   94:38  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   99:43  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  101:55  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\dev\projectoffroad\src\app\privacy\page.tsx
+   86:93   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+   86:115  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  118:140  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  118:153  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+
+C:\dev\projectoffroad\src\app\profile\[userId]\page.tsx
+   72:42  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  307:58  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  387:47  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\dev\projectoffroad\src\app\profile\page.tsx
+  931:54  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\dev\projectoffroad\src\app\runs\[runId]\page.tsx
+  726:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\dev\projectoffroad\src\app\runs\page.tsx
+  510:42  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  514:62  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\dev\projectoffroad\src\app\search\page.tsx
+  207:34  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  207:42  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+
+C:\dev\projectoffroad\src\app\terms\page.tsx
+   15:53   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+   15:66   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+   52:245  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  120:54   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  120:86   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  120:99   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+
+C:\dev\projectoffroad\src\components\FeaturedRigs.tsx
+  37:48  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\dev\projectoffroad\src\components\RegionCards.tsx
+  52:11  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\dev\projectoffroad\src\components\SubmissionHub.tsx
+  129:27  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+C:\dev\projectoffroad\src\components\admin\AdminPanel.tsx
+  90:38  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  91:38  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+Γ£û 66 problems (66 errors, 0 warnings)
+
