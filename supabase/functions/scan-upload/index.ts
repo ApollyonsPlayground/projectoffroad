@@ -106,7 +106,6 @@ Deno.serve(async (req) => {
     });
 
     const json = (await seRes.json()) as Record<string, unknown>;
-    const errObj = json.error as { message?: string } | undefined;
     if (!seRes.ok || json.status === 'failure') {
       return new Response(
         JSON.stringify({

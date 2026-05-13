@@ -67,6 +67,51 @@ export default function PublicHomePage() {
           </p>
         </section>
 
+        <section
+          aria-labelledby="beta-cta-heading"
+          className="relative overflow-hidden rounded-2xl border border-orange-500/25 bg-gradient-to-br from-zinc-900/90 via-zinc-950 to-black p-[1px] shadow-[0_0_40px_-12px_rgba(249,115,22,0.35)]"
+        >
+          <div className="rounded-2xl bg-zinc-950/95 px-5 py-7 sm:px-8 sm:py-8 relative">
+            <div
+              className="pointer-events-none absolute -top-16 -right-10 h-40 w-40 rounded-full bg-orange-500/25 blur-3xl"
+              aria-hidden
+            />
+            <div
+              className="pointer-events-none absolute -bottom-10 -left-6 h-28 w-28 rounded-full bg-amber-500/15 blur-2xl"
+              aria-hidden
+            />
+            <p className="relative text-[10px] font-black uppercase tracking-[0.28em] text-orange-400/95 mb-2">
+              Early access
+            </p>
+            <h2
+              id="beta-cta-heading"
+              className="relative text-2xl sm:text-3xl font-black text-white tracking-tight mb-2"
+            >
+              Join the <span className="text-orange-500">beta</span>
+            </h2>
+            <p className="relative text-zinc-400 text-[15px] leading-relaxed mb-6 max-w-lg">
+              Test the latest builds on <strong className="text-zinc-200">iPhone</strong> (TestFlight) or{' '}
+              <strong className="text-zinc-200">Android</strong> (Google Play internal testing) before they ship to the
+              stores.
+            </p>
+            <Link
+              href="/beta/"
+              className="group relative inline-flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 text-black text-sm font-black shadow-lg shadow-orange-500/30 hover:from-orange-400 hover:to-amber-400 hover:shadow-orange-400/40 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
+            >
+              <span>Get beta access</span>
+              <span
+                className="inline-block transition-transform duration-200 group-hover:translate-x-0.5"
+                aria-hidden
+              >
+                →
+              </span>
+            </Link>
+            <p className="relative mt-4 text-[12px] text-zinc-600">
+              Free · spots limited while we tune performance and safety
+            </p>
+          </div>
+        </section>
+
         <section aria-labelledby="about-heading">
           <h2 id="about-heading" className="text-lg font-black text-white mb-3">
             What SoCal Offroaders is

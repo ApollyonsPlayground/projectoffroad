@@ -228,9 +228,18 @@ export async function deleteSavedPost(
   return { error };
 }
 
-export async function fetchPostsByIds(client: SupabaseClient, ids: string[]): Promise<any[]> {
+/** Row from `posts` when selecting by id list (used for profile tabs). */
+export interface FetchedPostRow {
+  id: string;
+  [key: string]: unknown;
+}
+
+export async function fetchPostsByIds(
+  client: SupabaseClient,
+  ids: string[]
+): Promise<FetchedPostRow[]> {
   if (ids.length === 0) return [];
   const { data, error } = await client.from('posts').select('*').in('id', ids);
   if (error || !data) return [];
-  return data;
+  return data as FetchedPostRow[];
 }

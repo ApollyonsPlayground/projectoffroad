@@ -1,7 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import {
   Loader2,
@@ -445,7 +445,19 @@ export function HostRunWizard({ variant = 'drawer', onSuccess, onCancel }: Props
     meetupLng,
     mapZoom,
   });
-  draftSnapshotRef.current = {
+  useLayoutEffect(() => {
+    draftSnapshotRef.current = {
+      form,
+      mode,
+      disclaimerAck,
+      trailSearch,
+      addressQuery,
+      mapCenter,
+      meetupLat,
+      meetupLng,
+      mapZoom,
+    };
+  }, [
     form,
     mode,
     disclaimerAck,
@@ -455,7 +467,7 @@ export function HostRunWizard({ variant = 'drawer', onSuccess, onCancel }: Props
     meetupLat,
     meetupLng,
     mapZoom,
-  };
+  ]);
 
   /** Restore draft when opening Host a Run (drawer or full page). */
   useEffect(() => {

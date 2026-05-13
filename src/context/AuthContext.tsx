@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
+import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react'
 import type { User, SupabaseClient } from '@supabase/supabase-js'
 import { createBrowserSupabaseClient } from '@/utils/supabase/client'
 import { ensureStoragePublicObjectUrl } from '@/lib/supabase/storagePublicUrl'
@@ -69,83 +69,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const isConfigured = supabase !== null
 
-  useEffect(() => {
-    if (!supabase) {
-      setLoading(false)
-      return
-    }
-
-    // Capacitor native: complete OAuth PKCE via deep link in the same app storage context.
-    // This avoids "PKCE code verifier not found in storage" which happens when auth
-    // was initiated in the WebView but completed in a separate browser context.
-    let appUrlListener: Promise<{ remove: () => Promise<void> }> | null = null
-    if (isCapacitorNative()) {
-      appUrlListener = CapacitorApp.addListener('appUrlOpen', async ({ url }) => {
-        try {
-          const u = new URL(url)
-          const code = u.searchParams.get('code')
-          if (!code) return
-
-          // Exchange in-app (needs the PKCE verifier stored by signInWithOAuth).
-          const { error } = await supabase.auth.exchangeCodeForSession(code)
-          await Browser.close().catch(() => {})
-
-          if (error) {
-            console.warn('[Auth] exchangeCodeForSession:', error.message)
-            return
-          }
-
-          // If caller included `next`, go there; otherwise default to /feed/.
-          const next = u.searchParams.get('next')
-          const dest =
-            next && next.startsWith('/') && !next.startsWith('//') && !next.includes('://')
-              ? next
-              : '/feed/'
-          window.location.assign(dest)
-        } catch (e) {
-          console.warn('[Auth] appUrlOpen parse:', e)
-        }
-      })
-    }
-
-    // LAN / phone dev: first cookie read + profile can exceed 8s; avoid false "signed out".
-    const SESSION_BOOT_MS = process.env.NODE_ENV === 'development' ? 30000 : 15000
-    type GetSessionResult = Awaited<ReturnType<typeof supabase.auth.getSession>>
-    const sessionBoot = new Promise<GetSessionResult>((resolve) =>
-      setTimeout(() => resolve({ data: { session: null }, error: null }), SESSION_BOOT_MS)
-    )
-
-    Promise.race([supabase.auth.getSession(), sessionBoot])
-      .then(({ data: { session } }) => {
-        setUser(session?.user ?? null)
-        if (session?.user) {
-          void fetchProfile(session.user.id)
-        } else {
-          setLoading(false)
-        }
-      })
-      .catch((err) => {
-        console.warn('[Auth] getSession:', err)
-        setLoading(false)
-      })
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null)
-      if (session?.user) {
-        void fetchProfile(session.user.id)
-      } else {
-        setProfile(null)
-        setLoading(false)
-      }
-    })
-
-    return () => {
-      subscription.unsubscribe()
-      void appUrlListener?.then((h) => void h.remove())
-    }
-  }, [])
-
-  async function fetchProfile(userId: string) {
+  const fetchProfile = useCallback(async (userId: string) => {
     if (!supabase) {
       setLoading(false)
       return
@@ -224,7 +148,83 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    if (!supabase) {
+      setLoading(false)
+      return
+    }
+
+    // Capacitor native: complete OAuth PKCE via deep link in the same app storage context.
+    // This avoids "PKCE code verifier not found in storage" which happens when auth
+    // was initiated in the WebView but completed in a separate browser context.
+    let appUrlListener: Promise<{ remove: () => Promise<void> }> | null = null
+    if (isCapacitorNative()) {
+      appUrlListener = CapacitorApp.addListener('appUrlOpen', async ({ url }) => {
+        try {
+          const u = new URL(url)
+          const code = u.searchParams.get('code')
+          if (!code) return
+
+          // Exchange in-app (needs the PKCE verifier stored by signInWithOAuth).
+          const { error } = await supabase.auth.exchangeCodeForSession(code)
+          await Browser.close().catch(() => {})
+
+          if (error) {
+            console.warn('[Auth] exchangeCodeForSession:', error.message)
+            return
+          }
+
+          // If caller included `next`, go there; otherwise default to /feed/.
+          const next = u.searchParams.get('next')
+          const dest =
+            next && next.startsWith('/') && !next.startsWith('//') && !next.includes('://')
+              ? next
+              : '/feed/'
+          window.location.assign(dest)
+        } catch (e) {
+          console.warn('[Auth] appUrlOpen parse:', e)
+        }
+      })
+    }
+
+    // LAN / phone dev: first cookie read + profile can exceed 8s; avoid false "signed out".
+    const SESSION_BOOT_MS = process.env.NODE_ENV === 'development' ? 30000 : 15000
+    type GetSessionResult = Awaited<ReturnType<typeof supabase.auth.getSession>>
+    const sessionBoot = new Promise<GetSessionResult>((resolve) =>
+      setTimeout(() => resolve({ data: { session: null }, error: null }), SESSION_BOOT_MS)
+    )
+
+    Promise.race([supabase.auth.getSession(), sessionBoot])
+      .then(({ data: { session } }) => {
+        setUser(session?.user ?? null)
+        if (session?.user) {
+          void fetchProfile(session.user.id)
+        } else {
+          setLoading(false)
+        }
+      })
+      .catch((err) => {
+        console.warn('[Auth] getSession:', err)
+        setLoading(false)
+      })
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null)
+      if (session?.user) {
+        void fetchProfile(session.user.id)
+      } else {
+        setProfile(null)
+        setLoading(false)
+      }
+    })
+
+    return () => {
+      subscription.unsubscribe()
+      void appUrlListener?.then((h) => void h.remove())
+    }
+  }, [fetchProfile])
 
   async function signOut() {
     if (!supabase) return

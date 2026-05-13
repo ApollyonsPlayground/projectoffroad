@@ -148,6 +148,15 @@ export default function ClubDetailPage() {
     }
   }, [user, members]);
 
+  const approvedMembers = useMemo(
+    () =>
+      members.filter((m) => {
+        const s = String(m.status ?? 'approved').trim().toLowerCase();
+        return s === 'approved';
+      }),
+    [members]
+  );
+
   async function fetchClub() {
     if (!sb || !clubId) {
       setLoading(false);
@@ -332,7 +341,8 @@ export default function ClubDetailPage() {
     let desiredStatus: 'pending' | 'approved' = 'pending';
     try {
       const { data: me } = await sb.from('users').select('role').eq('id', user.id).maybeSingle();
-      const r = String((me as any)?.role ?? '').trim().toLowerCase();
+      const meRow = me as { role?: string } | null;
+      const r = String(meRow?.role ?? '').trim().toLowerCase();
       if (r === 'owner' || r === 'admin') desiredStatus = 'approved';
     } catch {
       desiredStatus = 'pending';
@@ -426,15 +436,6 @@ export default function ClubDetailPage() {
   const canGarageUpload = !!user && (isMember || isClubOwner);
   const ig = instagramHref(club.instagram);
   const web = websiteHref(club.website);
-
-  const approvedMembers = useMemo(
-    () =>
-      members.filter((m) => {
-        const s = String(m.status ?? 'approved').trim().toLowerCase();
-        return s === 'approved';
-      }),
-    [members]
-  );
 
   return (
     <div className="min-h-screen bg-background pb-24">

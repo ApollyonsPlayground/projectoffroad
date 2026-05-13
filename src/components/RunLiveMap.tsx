@@ -99,6 +99,8 @@ export default function RunLiveMap({
     return m;
   }, [participants]);
 
+  const [visibleRows, setVisibleRows] = useState<LiveLocationRow[]>([]);
+
   const fetchLocations = useCallback(async () => {
     const { data, error } = await supabaseClient
       .from('user_locations')
@@ -232,12 +234,19 @@ export default function RunLiveMap({
     void fetchLocations();
   };
 
-  const now = Date.now();
-  const freshRows = rows.filter((r) => now - new Date(r.updated_at).getTime() <= STALE_MS);
+  useEffect(() => {
+    const apply = () => {
+      const now = Date.now();
+      setVisibleRows(rows.filter((r) => now - new Date(r.updated_at).getTime() <= STALE_MS));
+    };
+    apply();
+    const id = window.setInterval(apply, 30_000);
+    return () => clearInterval(id);
+  }, [rows]);
 
   const markerPoints: [number, number][] = useMemo(
-    () => freshRows.map((r) => [Number(r.latitude), Number(r.longitude)] as [number, number]),
-    [freshRows]
+    () => visibleRows.map((r) => [Number(r.latitude), Number(r.longitude)] as [number, number]),
+    [visibleRows]
   );
 
   const refLatLng: [number, number] | null = referencePoint
@@ -290,7 +299,7 @@ export default function RunLiveMap({
             </CircleMarker>
           )}
 
-          {freshRows.map((r) => {
+          {visibleRows.map((r) => {
             const lat = Number(r.latitude);
             const lng = Number(r.longitude);
             const mine = user?.id === r.user_id;
@@ -332,7 +341,7 @@ export default function RunLiveMap({
           })}
         </MapContainer>
 
-        {freshRows.length === 0 && (
+        {visibleRows.length === 0 && (
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/25 px-6">
             <p className="text-center text-[13px] text-zinc-400 font-medium">
               No live positions yet. Turn on sharing below when you are on the trail.

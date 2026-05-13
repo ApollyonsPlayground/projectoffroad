@@ -46,7 +46,7 @@ export interface Run {
 export interface Submission {
   id: string;
   type: SubmissionType;
-  content_payload: Record<string, any>;
+  content_payload: Record<string, unknown>;
   user_contact?: string;
   status: SubmissionStatus;
   created_at?: string;
@@ -61,4 +61,8 @@ function disabled() {
 
 export async function getTrails(): Promise<Trail[]> { disabled(); return [] as Trail[]; }
 export async function getRuns(): Promise<Run[]> { disabled(); return [] as Run[]; }
-export async function createSubmission(_submission: Omit<Submission, 'id' | 'created_at'>) { disabled(); return null; }
+export async function createSubmission(submission: Omit<Submission, 'id' | 'created_at'>) {
+  void submission;
+  disabled();
+  return null;
+}
