@@ -652,7 +652,7 @@ interface Post {
   bookmarked_by_me?: boolean;
   reposted_by_me?: boolean;
   original_user_name?: string | null;
-  /** True when author is `clubs.owner_id` for at least one club (shown as HOME; independent of platform `users.role`). */
+  /** True when author is `clubs.owner_id` for at least one club (shown as CLUB; independent of platform `users.role`). */
   club_founder_badge?: boolean;
 }
 
@@ -1782,7 +1782,7 @@ function RigPostCard({ post, index }: {
                     title="Club founder"
                     className="px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wide text-emerald-950 bg-emerald-400 rounded-md leading-none flex-shrink-0"
                   >
-                    HOME
+                    CLUB
                   </span>
                 ) : null}
               </Link>
