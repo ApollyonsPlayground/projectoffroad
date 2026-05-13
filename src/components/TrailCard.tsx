@@ -28,7 +28,7 @@ interface TrailCardProps {
 const difficultyColors: Record<string, { bg: string; text: string; border: string }> = {
   'Beginner': { bg: 'bg-emerald-900/30', text: 'text-emerald-400', border: 'border-emerald-700/50' },
   'Moderate': { bg: 'bg-amber-900/30', text: 'text-amber-400', border: 'border-amber-700/50' },
-  'Advanced': { bg: 'bg-orange-900/30', text: 'text-orange-400', border: 'border-orange-700/50' },
+  'Advanced': { bg: 'bg-primary/20', text: 'text-primary/90', border: 'border-primary/50' },
   'Extreme': { bg: 'bg-red-900/30', text: 'text-red-400', border: 'border-red-700/50' },
 };
 
@@ -76,7 +76,7 @@ export default function TrailCard({ trail }: TrailCardProps) {
             {trail.name}
           </h3>
           <div className="flex items-center gap-2 text-stone-300 text-sm">
-            <MapPin size={16} className="text-orange-500" />
+            <MapPin size={16} className="text-primary" />
             <span>{trail.location}</span>
           </div>
         </div>
@@ -87,17 +87,17 @@ export default function TrailCard({ trail }: TrailCardProps) {
         {/* Stats Row */}
         <div className="grid grid-cols-3 gap-4 mb-5">
           <div className="text-center p-3 bg-stone-900/50 rounded-lg border border-stone-700/50">
-            <Mountain size={20} className="mx-auto mb-1 text-orange-500" />
+            <Mountain size={20} className="mx-auto mb-1 text-primary" />
             <div className="text-stone-400 text-xs uppercase tracking-wider">Distance</div>
             <div className="text-stone-200 font-semibold">{trail.distance}</div>
           </div>
           <div className="text-center p-3 bg-stone-900/50 rounded-lg border border-stone-700/50">
-            <Clock size={20} className="mx-auto mb-1 text-orange-500" />
+            <Clock size={20} className="mx-auto mb-1 text-primary" />
             <div className="text-stone-400 text-xs uppercase tracking-wider">Time</div>
             <div className="text-stone-200 font-semibold">{trail.time}</div>
           </div>
           <div className="text-center p-3 bg-stone-900/50 rounded-lg border border-stone-700/50">
-            <Wrench size={20} className="mx-auto mb-1 text-orange-500" />
+            <Wrench size={20} className="mx-auto mb-1 text-primary" />
             <div className="text-stone-400 text-xs uppercase tracking-wider">Rig</div>
             <div className="text-stone-200 font-semibold text-xs">{trail.rigRequirements?.split('/')[0] ?? '—'}</div>
           </div>
@@ -128,7 +128,7 @@ export default function TrailCard({ trail }: TrailCardProps) {
               href={trail.onxUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex w-full items-center justify-center gap-2 py-3 bg-orange-600 hover:bg-orange-700 text-center text-white text-xs font-bold uppercase transition-colors"
+              className="flex w-full items-center justify-center gap-2 py-3 bg-primary hover:opacity-90 text-center text-white text-xs font-bold uppercase transition-colors"
             >
               <span className="font-medium">Open in onX</span>
             </a>

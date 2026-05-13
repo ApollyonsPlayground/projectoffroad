@@ -220,12 +220,12 @@ export function FollowingStoriesStrip({
             onClick={() => fileRef.current?.click()}
             className="flex flex-col items-center gap-1.5 flex-shrink-0 select-none disabled:opacity-50"
           >
-            <div className="relative w-[58px] h-[58px] rounded-full p-[2px] bg-gradient-to-br from-orange-400 to-orange-700">
+            <div className="relative w-[58px] h-[58px] rounded-full p-[2px] bg-gradient-to-br from-primary to-primary/70">
               <div className="w-full h-full rounded-full bg-black flex items-center justify-center overflow-hidden border-2 border-black">
                 {postingStory ? (
-                  <Loader2 size={20} className="animate-spin text-orange-400" />
+                  <Loader2 size={20} className="animate-spin text-primary/90" />
                 ) : (
-                  <Plus size={22} className="text-orange-400" strokeWidth={2.5} />
+                  <Plus size={22} className="text-primary/90" strokeWidth={2.5} />
                 )}
               </div>
             </div>
@@ -239,7 +239,7 @@ export function FollowingStoriesStrip({
               className="flex flex-col items-center gap-1.5 flex-shrink-0 select-none"
             >
               <motion.div whileTap={{ scale: 0.91 }} className="relative">
-                <div className="relative w-[58px] h-[58px] rounded-full p-[2px] bg-gradient-to-br from-orange-400 to-orange-600">
+                <div className="relative w-[58px] h-[58px] rounded-full p-[2px] bg-gradient-to-br from-primary to-primary/70">
                   <div className="w-full h-full rounded-full overflow-hidden bg-zinc-950">
                     <img
                       src={
@@ -279,7 +279,7 @@ export function FollowingStoriesStrip({
                 className="flex flex-col items-center gap-1.5 flex-shrink-0 select-none"
               >
                 <motion.div whileTap={{ scale: 0.91 }} className="relative">
-                  <div className="relative w-[58px] h-[58px] rounded-full p-[2px] bg-gradient-to-br from-orange-400 to-orange-600">
+                  <div className="relative w-[58px] h-[58px] rounded-full p-[2px] bg-gradient-to-br from-primary to-primary/70">
                     <div className="w-full h-full rounded-full overflow-hidden bg-zinc-950">
                       <img src={src} alt="" className="w-full h-full object-cover" loading="lazy" />
                     </div>

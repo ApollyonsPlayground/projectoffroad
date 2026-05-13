@@ -157,9 +157,9 @@ export default function SearchPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 pb-28">
+    <div className="min-h-screen bg-background pb-28">
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <h1 className="text-2xl font-bold text-white mb-6">Search</h1>
+        <h1 className="text-2xl font-bold text-foreground mb-6">Search</h1>
 
         <form onSubmit={handleSubmit} className="mb-8">
           <div className="flex space-x-2">
@@ -168,12 +168,12 @@ export default function SearchPage() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search runs, clubs, users..."
-              className="flex-1 px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500"
+              className="flex-1 px-4 py-3 bg-card border border-border rounded-lg text-foreground placeholder:text-muted-foreground"
               autoFocus
             />
             <button
               type="submit"
-              className="px-6 py-3 bg-amber-500 hover:bg-amber-600 text-black font-semibold rounded-lg"
+              className="px-6 py-3 bg-primary hover:opacity-90 text-primary-foreground font-semibold rounded-lg"
             >
               Search
             </button>
@@ -181,20 +181,20 @@ export default function SearchPage() {
         </form>
 
         {loading ? (
-          <div className="text-center py-8 text-gray-400">Searching...</div>
+          <div className="text-center py-8 text-muted-foreground">Searching...</div>
         ) : results.length > 0 ? (
           <div className="space-y-2">
             {results.map((result, index) => (
               <Link
                 key={`${result.type}-${result.id}-${index}`}
                 href={getLink(result.type, result.id)}
-                className="block p-4 bg-gray-800 rounded-lg hover:bg-gray-700 transition"
+                className="block p-4 bg-card rounded-lg border border-border hover:bg-secondary transition"
               >
                 <div className="flex items-center space-x-3">
                   <span className="text-2xl">{getIcon(result.type)}</span>
                   <div className="flex-1">
-                    <div className="text-white font-medium">{result.title}</div>
-                    <div className="text-gray-400 text-sm">
+                    <div className="text-foreground font-medium">{result.title}</div>
+                    <div className="text-muted-foreground text-sm">
                       {result.subtitle} • {result.type}
                     </div>
                   </div>
@@ -203,11 +203,11 @@ export default function SearchPage() {
             ))}
           </div>
         ) : query ? (
-          <div className="text-center py-8 text-gray-400">
+          <div className="text-center py-8 text-muted-foreground">
             No results found for {`"${query}"`}
           </div>
         ) : (
-          <div className="text-center py-8 text-gray-400">
+          <div className="text-center py-8 text-muted-foreground">
             Enter a search term above
           </div>
         )}

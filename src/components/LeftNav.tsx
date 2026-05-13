@@ -35,7 +35,7 @@ export default function LeftNav({ isOpen, onClose }: LeftNavProps) {
             animate={{ opacity: 0.5 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black z-40 md:hidden"
+            className="fixed inset-0 bg-background/80 z-40 md:hidden"
           />
           
           {/* Drawer */}
@@ -54,13 +54,13 @@ export default function LeftNav({ isOpen, onClose }: LeftNavProps) {
                 onClose();
               }
             }}
-            className="fixed top-0 left-0 w-64 h-screen bg-neutral-900 border-r-2 border-neutral-800 p-4 z-50 md:relative md:translate-x-0 md:opacity-100 md:flex md:flex-col md:sticky md:top-0 md:h-screen md:w-64 md:block"
+            className="fixed top-0 left-0 w-64 h-screen bg-card border-r-2 border-border p-4 z-50 md:relative md:translate-x-0 md:opacity-100 md:flex md:flex-col md:sticky md:top-0 md:h-screen md:w-64 md:block"
           >
             <div className="mb-8 flex items-center justify-between">
-              <h1 className="text-xl font-black uppercase tracking-widest text-orange-500">
-                SoCal<span className="text-white">Offroad</span>
+              <h1 className="text-xl font-black uppercase tracking-widest text-primary">
+                SoCal<span className="text-foreground">Offroad</span>
               </h1>
-              <button onClick={onClose} className="md:hidden text-neutral-400 hover:text-white">
+              <button onClick={onClose} className="md:hidden text-muted-foreground hover:text-foreground">
                 <X size={24} />
               </button>
             </div>
@@ -70,7 +70,7 @@ export default function LeftNav({ isOpen, onClose }: LeftNavProps) {
                   <Link
                     href={item.href}
                     onClick={onClose}
-                    className="flex items-center gap-3 px-4 py-3 text-neutral-400 hover:text-orange-500 hover:bg-neutral-800 rounded-none transition-colors font-bold uppercase text-sm tracking-wide border-l-4 border-transparent hover:border-orange-500"
+                    className="flex items-center gap-3 px-4 py-3 text-muted-foreground hover:text-primary hover:bg-secondary rounded-none transition-colors font-bold uppercase text-sm tracking-wide border-l-4 border-transparent hover:border-primary"
                   >
                     <item.icon size={20} />
                     {item.label}
@@ -78,11 +78,11 @@ export default function LeftNav({ isOpen, onClose }: LeftNavProps) {
                 </li>
               ))}
             </ul>
-            <div className="mt-8 pt-8 border-t-2 border-neutral-800">
+            <div className="mt-8 pt-8 border-t-2 border-border">
               <Link
                 href="/runs/create"
                 onClick={onClose}
-                className="block w-full py-3 bg-orange-600 hover:bg-orange-700 text-center font-black uppercase tracking-wider text-white"
+                className="block w-full py-3 bg-primary hover:opacity-90 text-center font-black uppercase tracking-wider text-primary-foreground"
               >
                 + New Run
               </Link>
@@ -97,10 +97,10 @@ export default function LeftNav({ isOpen, onClose }: LeftNavProps) {
 // Desktop-only version (used in layout)
 export function DesktopNav() {
   return (
-    <nav className="sticky top-0 w-64 h-screen bg-neutral-900 border-r-2 border-neutral-800 p-4 hidden md:block">
+    <nav className="sticky top-0 w-64 h-screen bg-card border-r-2 border-border p-4 hidden md:block">
       <div className="mb-8">
-        <h1 className="text-xl font-black uppercase tracking-widest text-orange-500">
-          SoCal<span className="text-white">Offroad</span>
+        <h1 className="text-xl font-black uppercase tracking-widest text-primary">
+          SoCal<span className="text-foreground">Offroad</span>
         </h1>
       </div>
       <ul className="space-y-2">
@@ -108,7 +108,7 @@ export function DesktopNav() {
           <li key={item.href}>
             <Link
               href={item.href}
-              className="flex items-center gap-3 px-4 py-3 text-neutral-400 hover:text-orange-500 hover:bg-neutral-800 rounded-none transition-colors font-bold uppercase text-sm tracking-wide border-l-4 border-transparent hover:border-orange-500"
+              className="flex items-center gap-3 px-4 py-3 text-muted-foreground hover:text-primary hover:bg-secondary rounded-none transition-colors font-bold uppercase text-sm tracking-wide border-l-4 border-transparent hover:border-primary"
             >
               <item.icon size={20} />
               {item.label}
@@ -116,10 +116,10 @@ export function DesktopNav() {
           </li>
         ))}
       </ul>
-      <div className="mt-8 pt-8 border-t-2 border-neutral-800">
+      <div className="mt-8 pt-8 border-t-2 border-border">
         <Link
           href="/runs/create"
-          className="block w-full py-3 bg-orange-600 hover:bg-orange-700 text-center font-black uppercase tracking-wider text-white"
+          className="block w-full py-3 bg-primary hover:opacity-90 text-center font-black uppercase tracking-wider text-primary-foreground"
         >
           + New Run
         </Link>

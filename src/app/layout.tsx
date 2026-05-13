@@ -43,7 +43,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" data-scroll-behavior="smooth" className={`bg-background ${inter.variable}`}>
+    <html
+      lang="en"
+      data-scroll-behavior="smooth"
+      data-ui-preset="midnight-orange"
+      className={`bg-background ${inter.variable}`}
+    >
       <body className="antialiased bg-background text-foreground min-h-screen font-sans">
         <AuthProvider>
           <ThemeSync />

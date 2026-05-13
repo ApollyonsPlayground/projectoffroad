@@ -36,7 +36,7 @@ export default function PublicHomePage() {
       <header className="border-b border-zinc-900">
         <div className="max-w-2xl mx-auto px-5 py-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-xl bg-orange-500 flex items-center justify-center shadow-lg shadow-orange-500/25">
+            <div className="w-11 h-11 rounded-xl bg-primary flex items-center justify-center shadow-lg shadow-primary/25">
               <span className="text-black font-black text-sm tracking-tight">SO</span>
             </div>
             <div>
@@ -44,7 +44,7 @@ export default function PublicHomePage() {
                 Southern California
               </p>
               <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-                SoCal<span className="text-orange-500">Offroaders</span>
+                SoCal<span className="text-primary">Offroaders</span>
               </h1>
               <p className="text-[11px] text-zinc-500 mt-1">Brand and product name: SoCal Offroaders</p>
             </div>
@@ -69,25 +69,25 @@ export default function PublicHomePage() {
 
         <section
           aria-labelledby="beta-cta-heading"
-          className="relative overflow-hidden rounded-2xl border border-orange-500/25 bg-gradient-to-br from-zinc-900/90 via-zinc-950 to-black p-[1px] shadow-[0_0_40px_-12px_rgba(249,115,22,0.35)]"
+          className="relative overflow-hidden rounded-2xl border border-primary/25 bg-gradient-to-br from-zinc-900/90 via-zinc-950 to-black p-[1px] shadow-[0_0_40px_-12px_rgba(249,115,22,0.35)]"
         >
           <div className="rounded-2xl bg-zinc-950/95 px-5 py-7 sm:px-8 sm:py-8 relative">
             <div
-              className="pointer-events-none absolute -top-16 -right-10 h-40 w-40 rounded-full bg-orange-500/25 blur-3xl"
+              className="pointer-events-none absolute -top-16 -right-10 h-40 w-40 rounded-full bg-primary/25 blur-3xl"
               aria-hidden
             />
             <div
               className="pointer-events-none absolute -bottom-10 -left-6 h-28 w-28 rounded-full bg-amber-500/15 blur-2xl"
               aria-hidden
             />
-            <p className="relative text-[10px] font-black uppercase tracking-[0.28em] text-orange-400/95 mb-2">
+            <p className="relative text-[10px] font-black uppercase tracking-[0.28em] text-primary/90/95 mb-2">
               Early access
             </p>
             <h2
               id="beta-cta-heading"
               className="relative text-2xl sm:text-3xl font-black text-white tracking-tight mb-2"
             >
-              Join the <span className="text-orange-500">beta</span>
+              Join the <span className="text-primary">beta</span>
             </h2>
             <p className="relative text-zinc-400 text-[15px] leading-relaxed mb-6 max-w-lg">
               Test the latest builds on <strong className="text-zinc-200">iPhone</strong> (TestFlight) or{' '}
@@ -96,7 +96,7 @@ export default function PublicHomePage() {
             </p>
             <Link
               href="/beta/"
-              className="group relative inline-flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 text-black text-sm font-black shadow-lg shadow-orange-500/30 hover:from-orange-400 hover:to-amber-400 hover:shadow-orange-400/40 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
+              className="group relative inline-flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-xl bg-gradient-to-r from-primary to-primary/80 text-primary-foreground text-sm font-black shadow-lg shadow-primary/30 hover:from-primary/90 hover:to-primary/70 hover:shadow-primary/40 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             >
               <span>Get beta access</span>
               <span
@@ -159,7 +159,7 @@ export default function PublicHomePage() {
             </li>
           </ul>
           <p className="text-zinc-500 text-[13px] mt-3">
-            Open the live app from this page using <Link href="/feed/" className="text-orange-400 font-semibold hover:underline">Open app</Link> — the feed and social features require sign-in where noted above.
+            Open the live app from this page using <Link href="/feed/" className="text-primary/90 font-semibold hover:underline">Open app</Link> — the feed and social features require sign-in where noted above.
           </p>
         </section>
 
@@ -167,19 +167,19 @@ export default function PublicHomePage() {
           <h2 className="text-sm font-black uppercase tracking-wider text-zinc-500">Explore without an account</h2>
           <ul className="flex flex-col gap-2 text-[15px]">
             <li>
-              <Link href="/trails/" className="text-orange-400 font-semibold hover:underline">
+              <Link href="/trails/" className="text-primary/90 font-semibold hover:underline">
                 Trail Explorer
               </Link>
               <span className="text-zinc-500"> — public trail list</span>
             </li>
             <li>
-              <Link href="/runs/" className="text-orange-400 font-semibold hover:underline">
+              <Link href="/runs/" className="text-primary/90 font-semibold hover:underline">
                 Runs
               </Link>
               <span className="text-zinc-500"> — public run calendar</span>
             </li>
             <li>
-              <Link href="/clubs/" className="text-orange-400 font-semibold hover:underline">
+              <Link href="/clubs/" className="text-primary/90 font-semibold hover:underline">
                 Clubs
               </Link>
               <span className="text-zinc-500"> — community clubs directory</span>
@@ -209,8 +209,8 @@ export default function PublicHomePage() {
           </p>
         </section>
 
-        <section aria-labelledby="privacy-heading" className="rounded-2xl border border-orange-500/30 bg-orange-500/5 p-6">
-          <h2 id="privacy-heading" className="text-sm font-black uppercase tracking-wider text-orange-400 mb-3">
+        <section aria-labelledby="privacy-heading" className="rounded-2xl border border-primary/30 bg-primary/5 p-6">
+          <h2 id="privacy-heading" className="text-sm font-black uppercase tracking-wider text-primary/90 mb-3">
             Privacy policy (required link)
           </h2>
           <p className="text-zinc-300 text-[15px] leading-relaxed mb-4">
@@ -221,7 +221,7 @@ export default function PublicHomePage() {
           </p>
           <Link
             href={PRIVACY_URL}
-            className="inline-flex items-center justify-center px-5 py-3 rounded-xl bg-orange-500 text-black text-sm font-black hover:bg-orange-400 transition-colors"
+            className="inline-flex items-center justify-center px-5 py-3 rounded-xl bg-primary text-black text-sm font-black hover:bg-primary/90 transition-colors"
           >
             Open privacy policy
           </Link>
@@ -234,7 +234,7 @@ export default function PublicHomePage() {
           </p>
           <Link
             href="/account/delete/"
-            className="inline-flex items-center justify-center px-5 py-3 rounded-xl border border-zinc-600 text-zinc-100 text-sm font-bold hover:border-orange-500/50 hover:text-white transition-colors"
+            className="inline-flex items-center justify-center px-5 py-3 rounded-xl border border-zinc-600 text-zinc-100 text-sm font-bold hover:border-primary/50 hover:text-white transition-colors"
           >
             Open delete-account page
           </Link>

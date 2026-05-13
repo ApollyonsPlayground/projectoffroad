@@ -25,15 +25,15 @@ export default function BeginnerGuidePage() {
       {/* Header */}
       <header className="py-12 px-4 bg-stone-900 border-b border-stone-800">
         <div className="container mx-auto max-w-4xl">
-          <Link href="/" className="inline-flex items-center gap-2 text-orange-400 hover:text-orange-300 mb-6">
+          <Link href="/" className="inline-flex items-center gap-2 text-primary/90 hover:text-primary/80 mb-6">
             <ArrowLeft size={18} />
             <span>Back to Home</span>
           </Link>
-          <span className="inline-block px-3 py-1 rounded-full bg-orange-600/10 border border-orange-600/30 text-orange-400 text-sm font-medium uppercase tracking-wider mb-4">
+          <span className="inline-block px-3 py-1 rounded-full bg-primary/10 border border-primary/30 text-primary/90 text-sm font-medium uppercase tracking-wider mb-4">
             Guide
           </span>
           <h1 className="text-4xl md:text-5xl font-serif font-bold text-stone-50 mb-4">
-            Beginner&apos;s Guide to <span className="italic text-orange-500">Off-Roading</span>
+            Beginner&apos;s Guide to <span className="italic text-primary">Off-Roading</span>
           </h1>
           <p className="text-stone-400 text-lg">
             A practical, no-fluff guide for your first SoCal trail run.
@@ -48,25 +48,25 @@ export default function BeginnerGuidePage() {
           {/* Quick Primer */}
           <section className="bg-stone-900/50 rounded-2xl border border-stone-700 p-8 mb-8">
             <h2 className="text-2xl font-bold text-stone-50 mb-4 flex items-center gap-3">
-              <Wrench className="text-orange-500" />
+              <Wrench className="text-primary" />
               Quick Primer: Drivetrain Basics
             </h2>
             <div className="grid md:grid-cols-2 gap-6">
               <div className="bg-stone-800/50 rounded-xl p-5 border border-stone-600">
-                <h3 className="font-bold text-orange-400 mb-2">2WD / AWD</h3>
+                <h3 className="font-bold text-primary/90 mb-2">2WD / AWD</h3>
                 <p className="text-stone-400 text-sm">Fine for dirt roads. Not recommended for serious trails.</p>
               </div>
               <div className="bg-stone-800/50 rounded-xl p-5 border border-stone-600">
-                <h3 className="font-bold text-orange-400 mb-2">4H (4-High)</h3>
+                <h3 className="font-bold text-primary/90 mb-2">4H (4-High)</h3>
                 <p className="text-stone-400 text-sm">For higher-speed traction: snow, loose gravel, mild mud.</p>
               </div>
               <div className="bg-stone-800/50 rounded-xl p-5 border border-stone-600">
-                <h3 className="font-bold text-orange-400 mb-2">4L (4-Low)</h3>
+                <h3 className="font-bold text-primary/90 mb-2">4L (4-Low)</h3>
                 <p className="text-stone-400 text-sm">Low-range for slow technical sections: steep climbs, rocks, sand.</p>
               </div>
             </div>
             <p className="text-stone-400 text-sm mt-4">
-              <span className="text-orange-400 font-semibold">Pro tip:</span> Shift into 4L BEFORE you need it — don&apos;t try to shift when stuck mid-slope.
+              <span className="text-primary/90 font-semibold">Pro tip:</span> Shift into 4L BEFORE you need it — don&apos;t try to shift when stuck mid-slope.
             </p>
           </section>
 
@@ -75,7 +75,7 @@ export default function BeginnerGuidePage() {
             <h2 className="text-2xl font-bold text-stone-50 mb-4">Tires & Pressures</h2>
             <div className="bg-stone-900/50 rounded-xl border border-stone-700 p-6">
               <p className="text-stone-300 mb-4">
-                Tires are the <span className="text-orange-400 font-semibold">biggest single upgrade</span> for off-road performance. All-terrain (AT) tires are fine for most beginners; mud-terrain (MT) helps in heavy mud but is louder on road.
+                Tires are the <span className="text-primary/90 font-semibold">biggest single upgrade</span> for off-road performance. All-terrain (AT) tires are fine for most beginners; mud-terrain (MT) helps in heavy mud but is louder on road.
               </p>
               <h3 className="font-semibold text-stone-200 mb-3">Tire Pressure Guide</h3>
               <div className="overflow-x-auto">
@@ -90,18 +90,18 @@ export default function BeginnerGuidePage() {
                   <tbody>
                     <tr className="border-b border-stone-800">
                       <td className="py-2 text-stone-300">Gravel/Dirt</td>
-                      <td className="py-2 text-orange-400">28-32 psi</td>
-                      <td className="py-2 text-orange-400">30-35 psi</td>
+                      <td className="py-2 text-primary/90">28-32 psi</td>
+                      <td className="py-2 text-primary/90">30-35 psi</td>
                     </tr>
                     <tr className="border-b border-stone-800">
                       <td className="py-2 text-stone-300">Soft Sand</td>
-                      <td className="py-2 text-orange-400">12-18 psi</td>
-                      <td className="py-2 text-orange-400">15-20 psi</td>
+                      <td className="py-2 text-primary/90">12-18 psi</td>
+                      <td className="py-2 text-primary/90">15-20 psi</td>
                     </tr>
                     <tr>
                       <td className="py-2 text-stone-300">Rocks/Technical</td>
-                      <td className="py-2 text-orange-400">18-25 psi</td>
-                      <td className="py-2 text-orange-400">20-28 psi</td>
+                      <td className="py-2 text-primary/90">18-25 psi</td>
+                      <td className="py-2 text-primary/90">20-28 psi</td>
                     </tr>
                   </tbody>
                 </table>
@@ -114,19 +114,19 @@ export default function BeginnerGuidePage() {
             <h2 className="text-2xl font-bold text-stone-50 mb-4">Essential Vehicle Mods</h2>
             <div className="grid md:grid-cols-2 gap-4">
               <div className="bg-stone-900/50 rounded-xl border border-stone-700 p-5">
-                <h3 className="font-bold text-orange-400 mb-2">Recovery Points</h3>
+                <h3 className="font-bold text-primary/90 mb-2">Recovery Points</h3>
                 <p className="text-stone-400 text-sm">Front & rear rated D-rings (bow shackles) welded or bolt-on to factory recovery points.</p>
               </div>
               <div className="bg-stone-900/50 rounded-xl border border-stone-700 p-5">
-                <h3 className="font-bold text-orange-400 mb-2">Skid Plates</h3>
+                <h3 className="font-bold text-primary/90 mb-2">Skid Plates</h3>
                 <p className="text-stone-400 text-sm">Oil pan and transfer case protection for rocky trails.</p>
               </div>
               <div className="bg-stone-900/50 rounded-xl border border-stone-700 p-5">
-                <h3 className="font-bold text-orange-400 mb-2">Rock Rails</h3>
+                <h3 className="font-bold text-primary/90 mb-2">Rock Rails</h3>
                 <p className="text-stone-400 text-sm">Side step protection for rocker panel hits.</p>
               </div>
               <div className="bg-stone-900/50 rounded-xl border border-stone-700 p-5">
-                <h3 className="font-bold text-orange-400 mb-2">Locking Differentials</h3>
+                <h3 className="font-bold text-primary/90 mb-2">Locking Differentials</h3>
                 <p className="text-stone-400 text-sm">Later upgrade for serious traction in technical terrain.</p>
               </div>
             </div>
@@ -135,7 +135,7 @@ export default function BeginnerGuidePage() {
           {/* Recovery Gear */}
           <section className="mb-8">
             <h2 className="text-2xl font-bold text-stone-50 mb-4 flex items-center gap-3">
-              <Shield className="text-orange-500" />
+              <Shield className="text-primary" />
               Recovery Gear & Safety
             </h2>
             <div className="bg-stone-900/50 rounded-xl border border-stone-700 p-6">
@@ -158,15 +158,15 @@ export default function BeginnerGuidePage() {
           {/* Navigation */}
           <section className="mb-8">
             <h2 className="text-2xl font-bold text-stone-50 mb-4 flex items-center gap-3">
-              <MapPin className="text-orange-500" />
+              <MapPin className="text-primary" />
               Navigation & Communications
             </h2>
             <div className="bg-stone-900/50 rounded-xl border border-stone-700 p-6">
               <ul className="space-y-3 text-stone-300">
-                <li>• <span className="text-orange-400 font-semibold">GPX tracks & offline maps</span> — Gaia, Avenza, Maps.me. Download before you go.</li>
-                <li>• <span className="text-orange-400 font-semibold">Two-way radios</span> — FRS/GMRS for group communication.</li>
-                <li>• <span className="text-orange-400 font-semibold">Satellite communicator</span> — Spot or Garmin inReach for remote areas.</li>
-                <li>• <span className="text-orange-400 font-semibold">Leave a plan</span> with someone at home: route, return time, vehicle description.</li>
+                <li>• <span className="text-primary/90 font-semibold">GPX tracks & offline maps</span> — Gaia, Avenza, Maps.me. Download before you go.</li>
+                <li>• <span className="text-primary/90 font-semibold">Two-way radios</span> — FRS/GMRS for group communication.</li>
+                <li>• <span className="text-primary/90 font-semibold">Satellite communicator</span> — Spot or Garmin inReach for remote areas.</li>
+                <li>• <span className="text-primary/90 font-semibold">Leave a plan</span> with someone at home: route, return time, vehicle description.</li>
               </ul>
             </div>
           </section>
@@ -192,7 +192,7 @@ export default function BeginnerGuidePage() {
 
             {/* Intermediate */}
             <div className="bg-stone-900/30 rounded-xl border border-stone-700 p-6 mb-4">
-              <h3 className="font-bold text-orange-400 text-lg mb-3">🥈 Intermediate — Occasional Technical Trails</h3>
+              <h3 className="font-bold text-primary/90 text-lg mb-3">🥈 Intermediate — Occasional Technical Trails</h3>
               <ul className="grid md:grid-cols-2 gap-2 text-stone-300 text-sm">
                 <li>• All beginner items</li>
                 <li>• Tree saver strap + bow shackles</li>
@@ -224,10 +224,10 @@ export default function BeginnerGuidePage() {
             <h2 className="text-2xl font-bold text-stone-50 mb-4">Trail Etiquette & Rules</h2>
             <div className="bg-stone-900/50 rounded-xl border border-stone-700 p-6">
               <ul className="space-y-3 text-stone-300">
-                <li>• <span className="text-orange-400 font-semibold">Yield:</span> Uphill vehicles have right of way on single-track technical lines.</li>
-                <li>• <span className="text-orange-400 font-semibold">Leave no trace:</span> Pack out trash, don&apos;t widen the trail, respect wildlife.</li>
-                <li>• <span className="text-orange-400 font-semibold">Respect closures:</span> Many SoCal trails have seasonal closures — check USFS/BLM.</li>
-                <li>• <span className="text-orange-400 font-semibold">Fire restrictions:</span> Follow local fire rules; avoid campfires in extreme seasons.</li>
+                <li>• <span className="text-primary/90 font-semibold">Yield:</span> Uphill vehicles have right of way on single-track technical lines.</li>
+                <li>• <span className="text-primary/90 font-semibold">Leave no trace:</span> Pack out trash, don&apos;t widen the trail, respect wildlife.</li>
+                <li>• <span className="text-primary/90 font-semibold">Respect closures:</span> Many SoCal trails have seasonal closures — check USFS/BLM.</li>
+                <li>• <span className="text-primary/90 font-semibold">Fire restrictions:</span> Follow local fire rules; avoid campfires in extreme seasons.</li>
               </ul>
             </div>
           </section>
@@ -239,7 +239,7 @@ export default function BeginnerGuidePage() {
       <footer className="py-8 px-4 bg-stone-900 border-t border-stone-800">
         <div className="container mx-auto max-w-4xl text-center">
           <p className="text-stone-500 text-sm">
-            Provided by <Link href="/" className="text-orange-400 hover:underline">SoCalOffroaders.org</Link> — use responsibly.
+            Provided by <Link href="/" className="text-primary/90 hover:underline">SoCalOffroaders.org</Link> — use responsibly.
           </p>
         </div>
       </footer>

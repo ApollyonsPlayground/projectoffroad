@@ -34,7 +34,7 @@ export default function RegionFilter({ onRegionChange, selectedRegion }: RegionF
             className={`
               flex items-center gap-2 px-5 py-3 rounded-xl font-medium transition-all duration-300
               ${selectedRegion === region.id 
-                ? 'bg-orange-600 text-white shadow-lg shadow-orange-600/30 scale-105' 
+                ? 'bg-primary text-white shadow-lg shadow-primary/30 scale-105' 
                 : 'bg-stone-800/50 text-stone-400 hover:bg-stone-700 hover:text-stone-200 border border-stone-700 hover:border-stone-600'
               }
             `}
@@ -44,7 +44,7 @@ export default function RegionFilter({ onRegionChange, selectedRegion }: RegionF
             <span className={`
               ml-1 px-2 py-0.5 rounded-full text-xs
               ${selectedRegion === region.id 
-                ? 'bg-orange-500/30 text-orange-100' 
+                ? 'bg-primary/30 text-primary/60' 
                 : 'bg-stone-700 text-stone-500'
               }
             `}>

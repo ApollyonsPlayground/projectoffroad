@@ -30,7 +30,7 @@ interface CommunityRunCardProps {
 const difficultyColors: Record<string, string> = {
   'Beginner': 'bg-emerald-600/20 text-emerald-400 border-emerald-600/40',
   'Moderate': 'bg-yellow-600/20 text-yellow-400 border-yellow-600/40',
-  'Advanced': 'bg-orange-600/20 text-orange-400 border-orange-600/40',
+  'Advanced': 'bg-primary/20 text-primary/90 border-primary/40',
   'Extreme': 'bg-red-600/20 text-red-400 border-red-600/40',
 };
 
@@ -76,7 +76,7 @@ export default function CommunityRunCard({ run }: CommunityRunCardProps) {
   const isFull = localCount >= run.maxRigs;
 
   return (
-    <div className="bg-stone-800/50 backdrop-blur-sm rounded-xl border border-stone-700 overflow-hidden hover:border-orange-600/50 transition-all">
+    <div className="bg-stone-800/50 backdrop-blur-sm rounded-xl border border-stone-700 overflow-hidden hover:border-primary/50 transition-all">
       {/* Header with Date Badge */}
       <div className="relative h-48 bg-stone-900">
         <div 
@@ -112,19 +112,19 @@ export default function CommunityRunCard({ run }: CommunityRunCardProps) {
       <div className="p-5">
         {/* Time & Meetup */}
         <div className="flex items-center gap-2 text-stone-400 text-sm mb-3">
-          <Calendar size={16} className="text-orange-500" />
+          <Calendar size={16} className="text-primary" />
           <span>{dateInfo.time}</span>
         </div>
 
         <div className="flex items-start gap-2 text-stone-400 text-sm mb-4">
-          <MapPin size={16} className="text-orange-500 mt-0.5" />
+          <MapPin size={16} className="text-primary mt-0.5" />
           <div>
             <span className="text-stone-300">Meet at:</span>{' '}
             <a 
               href={run.meetupPoint.mapsUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-orange-400 hover:text-orange-300 underline"
+              className="text-primary/90 hover:text-primary/80 underline"
             >
               {run.meetupPoint.name}
             </a>
@@ -143,7 +143,7 @@ export default function CommunityRunCard({ run }: CommunityRunCardProps) {
             href={`https://instagram.com/${run.organizer.instagram.replace('@', '')}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-1 text-orange-400 hover:text-orange-300"
+            className="flex items-center gap-1 text-primary/90 hover:text-primary/80"
           >
             <Instagram size={14} />
             {run.organizer.instagram}
@@ -169,7 +169,7 @@ export default function CommunityRunCard({ run }: CommunityRunCardProps) {
         {/* Progress Bar */}
         <div className="w-full bg-stone-700 rounded-full h-2 mb-4">
           <div 
-            className={`h-2 rounded-full transition-all ${isJoined ? 'bg-orange-600' : 'bg-emerald-600'}`}
+            className={`h-2 rounded-full transition-all ${isJoined ? 'bg-primary' : 'bg-emerald-600'}`}
             style={{ width: `${Math.min((localCount / run.maxRigs) * 100, 100)}%` }}
           ></div>
         </div>
@@ -183,7 +183,7 @@ export default function CommunityRunCard({ run }: CommunityRunCardProps) {
               ? 'bg-emerald-600 text-emerald-50 border border-emerald-500 hover:bg-emerald-700 badge-success'
               : isFull
               ? 'bg-stone-700 text-stone-500 cursor-not-allowed'
-              : 'bg-orange-600 hover:bg-orange-700 text-stone-50 shadow-lg shadow-orange-600/20 btn-primary'
+              : 'bg-primary hover:opacity-90 text-stone-50 shadow-lg shadow-primary/20 btn-primary'
           }`}
         >
           {isJoined ? (

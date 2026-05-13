@@ -15,7 +15,7 @@ export default function SubmissionHub() {
           onClick={() => setActiveTab('events')}
           className={`flex-1 py-3 px-2 md:px-4 text-xs md:text-sm font-semibold transition-colors ${
             activeTab === 'events'
-              ? 'text-orange-400 border-b-2 border-orange-400 bg-stone-800/50'
+              ? 'text-primary/90 border-b-2 border-primary/50 bg-stone-800/50'
               : 'text-stone-400 hover:text-stone-200'
           }`}
         >
@@ -28,7 +28,7 @@ export default function SubmissionHub() {
           onClick={() => setActiveTab('trail')}
           className={`flex-1 py-3 px-2 md:px-4 text-xs md:text-sm font-semibold transition-colors ${
             activeTab === 'trail'
-              ? 'text-orange-400 border-b-2 border-orange-400 bg-stone-800/50'
+              ? 'text-primary/90 border-b-2 border-primary/50 bg-stone-800/50'
               : 'text-stone-400 hover:text-stone-200'
           }`}
         >
@@ -41,7 +41,7 @@ export default function SubmissionHub() {
           onClick={() => setActiveTab('photos')}
           className={`flex-1 py-3 px-2 md:px-4 text-xs md:text-sm font-semibold transition-colors ${
             activeTab === 'photos'
-              ? 'text-orange-400 border-b-2 border-orange-400 bg-stone-800/50'
+              ? 'text-primary/90 border-b-2 border-primary/50 bg-stone-800/50'
               : 'text-stone-400 hover:text-stone-200'
           }`}
         >
@@ -76,7 +76,7 @@ export default function SubmissionHub() {
               href="https://lu.ma/socaloffroaders/propose"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 w-full py-3 px-4 bg-orange-600 hover:bg-orange-700 text-stone-50 font-semibold rounded-lg transition-all shadow-lg shadow-orange-600/20"
+              className="flex items-center justify-center gap-2 w-full py-3 px-4 bg-primary hover:opacity-90 text-stone-50 font-semibold rounded-lg transition-all shadow-lg shadow-primary/20"
             >
               <ExternalLink size={18} />
               Want Others to Join You?
@@ -101,7 +101,7 @@ export default function SubmissionHub() {
           <div className="space-y-6">
             {/* Photo Submission Info */}
             <div className="text-center">
-              <div className="w-16 h-16 bg-gradient-to-br from-orange-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-4">
+              <div className="w-16 h-16 bg-gradient-to-br from-primary to-pink-500 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Camera size={32} className="text-white" />
               </div>
               <h3 className="text-xl font-bold text-stone-50 mb-2">
@@ -114,18 +114,18 @@ export default function SubmissionHub() {
 
             {/* Instructions */}
             <div className="bg-stone-800/50 rounded-xl p-5 border border-stone-700">
-              <h4 className="font-semibold text-orange-400 mb-3">How it works:</h4>
+              <h4 className="font-semibold text-primary/90 mb-3">How it works:</h4>
               <ol className="space-y-2 text-stone-300 text-sm">
                 <li className="flex items-start gap-2">
-                  <span className="text-orange-500 font-bold">1.</span>
+                  <span className="text-primary font-bold">1.</span>
                   <span>DM us on Instagram with your trail photos</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-orange-500 font-bold">2.</span>
+                  <span className="text-primary font-bold">2.</span>
                   <span>Tell us which trail you visited</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-orange-500 font-bold">3.</span>
+                  <span className="text-primary font-bold">3.</span>
                   <span>We&apos;ll add your photos to the site (with credit!)</span>
                 </li>
               </ol>
@@ -136,7 +136,7 @@ export default function SubmissionHub() {
               href="https://instagram.com/noah2131"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center justify-center gap-3 w-full py-4 px-4 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-500 hover:from-purple-500 hover:via-pink-500 hover:to-orange-400 text-white font-bold rounded-lg transition-all shadow-lg"
+              className="flex items-center justify-center gap-3 w-full py-4 px-4 bg-gradient-to-r from-purple-600 via-pink-600 to-primary hover:from-purple-500 hover:via-pink-500 hover:to-primary/90 text-white font-bold rounded-lg transition-all shadow-lg"
             >
               <Instagram size={24} />
               <span>DM Us @noah2131</span>

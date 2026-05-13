@@ -1,10 +1,33 @@
-/* Industrial Dark Theme with Safety Orange Accents */
+/* UI appearance presets: shell + accent driven by html[data-ui-preset] (see ThemeSync). */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* Shared neutrals — surfaces use semantic tokens per preset */
 :root {
-  /* Industrial Dark Palette - Slate/Zinc */
+  --zinc-50: #fafafa;
+  --zinc-100: #f4f4f5;
+  --zinc-200: #e4e4e7;
+  --zinc-300: #d4d4d8;
+  --zinc-400: #a1a1aa;
+  --zinc-500: #71717a;
+  --zinc-600: #52525b;
+  --zinc-700: #3f3f46;
+  --zinc-800: #27272a;
+  --zinc-900: #18181b;
+  --zinc-950: #09090b;
+
+  --beginner: #22c55e;
+  --advanced: var(--primary);
+  --extreme: #ef4444;
+}
+
+/* Default + explicit midnight (black + orange) */
+:root,
+html[data-ui-preset='midnight-orange'] {
+  --theme-color-meta: #000000;
+  --glow-rgb: 249, 115, 22;
+
   --background: #000000;
   --foreground: #fafafa;
   --card: #18181b;
@@ -25,8 +48,7 @@
   --input: #27272a;
   --ring: #f97316;
   --glass-bg: rgba(24, 24, 27, 0.82);
-  
-  /* Safety Orange Scale */
+
   --orange-50: #fff7ed;
   --orange-100: #ffedd5;
   --orange-200: #fed7aa;
@@ -37,58 +59,117 @@
   --orange-700: #c2410c;
   --orange-800: #9a3412;
   --orange-900: #7c2d12;
-  
-  /* Zinc Scale */
-  --zinc-50: #fafafa;
-  --zinc-100: #f4f4f5;
-  --zinc-200: #e4e4e7;
-  --zinc-300: #d4d4d8;
-  --zinc-400: #a1a1aa;
-  --zinc-500: #71717a;
-  --zinc-600: #52525b;
-  --zinc-700: #3f3f46;
-  --zinc-800: #27272a;
-  --zinc-900: #18181b;
-  --zinc-950: #09090b;
-  
-  /* Difficulty Badge Colors */
-  --beginner: #22c55e;
-  --advanced: #f97316;
-  --extreme: #ef4444;
 }
 
-/* Profile theme: light (paper / white feel) */
-html[data-theme="light"] {
+html[data-ui-preset='paper-crimson'] {
+  --theme-color-meta: #f4f4f5;
+  --glow-rgb: 220, 38, 38;
+
   --background: #f4f4f5;
   --foreground: #0c0c0e;
   --card: #ffffff;
   --card-foreground: #0c0c0e;
   --popover: #ffffff;
   --popover-foreground: #0c0c0e;
+  --primary: #dc2626;
+  --primary-foreground: #ffffff;
   --secondary: #e4e4e7;
   --secondary-foreground: #18181b;
   --muted: #e4e4e7;
   --muted-foreground: #52525b;
+  --accent: #991b1b;
+  --accent-foreground: #fef2f2;
+  --destructive: #b91c1c;
+  --destructive-foreground: #ffffff;
   --border: #d4d4d8;
   --input: #e4e4e7;
-  --glass-bg: rgba(255, 255, 255, 0.9);
+  --ring: #dc2626;
+  --glass-bg: rgba(255, 255, 255, 0.92);
+
+  --orange-50: #fef2f2;
+  --orange-100: #fee2e2;
+  --orange-200: #fecaca;
+  --orange-300: #fca5a5;
+  --orange-400: #f87171;
+  --orange-500: #dc2626;
+  --orange-600: #b91c1c;
+  --orange-700: #991b1b;
+  --orange-800: #7f1d1d;
+  --orange-900: #450a0a;
 }
 
-/* Profile theme: blue (navy shell, still orange accents via links / buttons) */
-html[data-theme="blue"] {
-  --background: #0a1628;
-  --foreground: #e8f0ff;
-  --card: #132038;
-  --card-foreground: #e8f0ff;
-  --popover: #132038;
-  --popover-foreground: #e8f0ff;
-  --secondary: #1a2d4d;
-  --secondary-foreground: #e8f0ff;
-  --muted: #152842;
-  --muted-foreground: #94a8c9;
-  --border: #2a4a72;
-  --input: #1a2d4d;
-  --glass-bg: rgba(15, 28, 48, 0.88);
+html[data-ui-preset='navy-sage'] {
+  --theme-color-meta: #071a18;
+  --glow-rgb: 45, 212, 191;
+
+  --background: #071a18;
+  --foreground: #e8faf4;
+  --card: #0f2a26;
+  --card-foreground: #e8faf4;
+  --popover: #0f2a26;
+  --popover-foreground: #e8faf4;
+  --primary: #2dd4bf;
+  --primary-foreground: #042f2e;
+  --secondary: #143832;
+  --secondary-foreground: #e8faf4;
+  --muted: #1a3d36;
+  --muted-foreground: #9ca8a4;
+  --accent: #86efac;
+  --accent-foreground: #052e16;
+  --destructive: #f87171;
+  --destructive-foreground: #0c0c0e;
+  --border: #2a5c4d;
+  --input: #143832;
+  --ring: #2dd4bf;
+  --glass-bg: rgba(7, 26, 24, 0.9);
+
+  --orange-50: #f0fdfa;
+  --orange-100: #ccfbf1;
+  --orange-200: #99f6e4;
+  --orange-300: #5eead4;
+  --orange-400: #2dd4bf;
+  --orange-500: #14b8a6;
+  --orange-600: #0d9488;
+  --orange-700: #0f766e;
+  --orange-800: #115e59;
+  --orange-900: #134e4a;
+}
+
+html[data-ui-preset='void-teal-violet'] {
+  --theme-color-meta: #0c0a12;
+  --glow-rgb: 20, 184, 166;
+
+  --background: #0c0a12;
+  --foreground: #e2e8f0;
+  --card: #14121f;
+  --card-foreground: #e2e8f0;
+  --popover: #14121f;
+  --popover-foreground: #e2e8f0;
+  --primary: #14b8a6;
+  --primary-foreground: #042f2e;
+  --secondary: #1e1b2e;
+  --secondary-foreground: #e2e8f0;
+  --muted: #1a1625;
+  --muted-foreground: #94a3b8;
+  --accent: #8b5cf6;
+  --accent-foreground: #f5f3ff;
+  --destructive: #f87171;
+  --destructive-foreground: #0c0c0e;
+  --border: #2e2a3d;
+  --input: #1e1b2e;
+  --ring: #14b8a6;
+  --glass-bg: rgba(12, 10, 18, 0.92);
+
+  --orange-50: #f0fdfa;
+  --orange-100: #ccfbf1;
+  --orange-200: #99f6e4;
+  --orange-300: #5eead4;
+  --orange-400: #2dd4bf;
+  --orange-500: #14b8a6;
+  --orange-600: #0d9488;
+  --orange-700: #7c3aed;
+  --orange-800: #6d28d9;
+  --orange-900: #5b21b6;
 }
 
 * {
@@ -180,10 +261,10 @@ body {
 
 @keyframes glowPulse {
   0%, 100% {
-    box-shadow: 0 0 15px rgba(249, 115, 22, 0.3), 0 0 30px rgba(249, 115, 22, 0.1);
+    box-shadow: 0 0 15px rgba(var(--glow-rgb), 0.3), 0 0 30px rgba(var(--glow-rgb), 0.1);
   }
   50% {
-    box-shadow: 0 0 25px rgba(249, 115, 22, 0.5), 0 0 50px rgba(249, 115, 22, 0.2);
+    box-shadow: 0 0 25px rgba(var(--glow-rgb), 0.5), 0 0 50px rgba(var(--glow-rgb), 0.2);
   }
 }
 
@@ -195,9 +276,9 @@ body {
   animation: shimmer 1.5s infinite linear;
   background: linear-gradient(
     90deg,
-    var(--zinc-800) 25%,
-    var(--zinc-700) 50%,
-    var(--zinc-800) 75%
+    var(--muted) 25%,
+    var(--border) 50%,
+    var(--muted) 75%
   );
   background-size: 200% 100%;
 }
@@ -225,16 +306,16 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--zinc-900);
+  background: var(--card);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--zinc-700);
+  background: var(--border);
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--zinc-600);
+  background: var(--muted-foreground);
 }
 
 /* Mobile-optimized scrollbar */
@@ -247,25 +328,26 @@ body {
 
 /* Links */
 a {
-  color: var(--orange-500);
+  color: var(--primary);
   text-decoration: none;
-  transition: color 0.2s ease;
+  transition: color 0.2s ease, opacity 0.2s ease;
 }
 
 a:hover {
-  color: var(--orange-400);
+  color: var(--primary);
+  opacity: 0.88;
 }
 
 /* Focus States */
 *:focus-visible {
-  outline: 2px solid var(--orange-500);
+  outline: 2px solid var(--ring);
   outline-offset: 2px;
 }
 
 /* Selection */
 ::selection {
-  background: var(--orange-500);
-  color: var(--zinc-950);
+  background: var(--primary);
+  color: var(--primary-foreground);
 }
 
 /* Safe area padding utilities */
@@ -298,9 +380,9 @@ a:hover {
 }
 
 .badge-advanced {
-  background-color: rgba(249, 115, 22, 0.15);
-  color: #f97316;
-  border: 1px solid rgba(249, 115, 22, 0.3);
+  background-color: color-mix(in srgb, var(--primary) 18%, transparent);
+  color: var(--primary);
+  border: 1px solid color-mix(in srgb, var(--primary) 35%, transparent);
 }
 
 .badge-extreme {
@@ -318,13 +400,13 @@ a:hover {
 
 /* Industrial card style */
 .card-industrial {
-  background: var(--zinc-900);
-  border: 1px solid var(--zinc-800);
+  background: var(--card);
+  border: 1px solid var(--border);
   border-radius: 0;
 }
 
 .card-industrial:hover {
-  border-color: var(--orange-500);
+  border-color: var(--primary);
 }
 
 /* Apply generous tap targets only where we opt in — global min-* on all `a`/`button`

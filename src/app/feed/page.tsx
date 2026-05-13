@@ -514,7 +514,7 @@ function NewPostDrawer({ open, onClose, onPosted }: {
                 whileTap={{ scale: 0.92 }}
                 onClick={handleSubmit}
                 disabled={!body.trim() || isSubmitting}
-                className="flex items-center gap-1.5 px-4 py-1.5 bg-orange-500 disabled:bg-zinc-800 disabled:text-zinc-600 text-black font-bold text-[13px] rounded-full transition-colors min-w-[68px] justify-center"
+                className="flex items-center gap-1.5 px-4 py-1.5 bg-primary disabled:bg-zinc-800 disabled:text-zinc-600 text-black font-bold text-[13px] rounded-full transition-colors min-w-[68px] justify-center"
               >
                 {isSubmitting ? (
                   <motion.span
@@ -547,7 +547,7 @@ function NewPostDrawer({ open, onClose, onPosted }: {
                 value={rig}
                 onChange={(e) => setRig(e.target.value)}
                 placeholder="Vehicle (e.g. 2022 Tacoma TRD Pro)"
-                className="w-full mt-2 bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2.5 text-[13px] text-zinc-300 placeholder:text-zinc-600 outline-none focus:border-orange-500/60 transition-colors"
+                className="w-full mt-2 bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2.5 text-[13px] text-zinc-300 placeholder:text-zinc-600 outline-none focus:border-primary/60 transition-colors"
               />
 
               {/* Image preview */}
@@ -577,7 +577,7 @@ function NewPostDrawer({ open, onClose, onPosted }: {
                 />
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="flex items-center gap-2 text-[13px] text-zinc-500 hover:text-orange-400 transition-colors"
+                  className="flex items-center gap-2 text-[13px] text-zinc-500 hover:text-primary/90 transition-colors"
                 >
                   <ImageIcon size={18} strokeWidth={1.8} />
                   <span>
@@ -587,7 +587,7 @@ function NewPostDrawer({ open, onClose, onPosted }: {
                   </span>
                 </button>
                 {uploadProgress !== 'idle' && (
-                  <span className="text-[11px] text-orange-400 flex items-center gap-1">
+                  <span className="text-[11px] text-primary/90 flex items-center gap-1">
                     <Loader2 size={11} className="animate-spin" />
                     {uploadProgress === 'uploading' ? 'Uploading…' : 'Saving…'}
                   </span>
@@ -604,7 +604,7 @@ function NewPostDrawer({ open, onClose, onPosted }: {
                 disabled={!body.trim() || isSubmitting}
                 className="w-full py-4 rounded-2xl font-black text-[16px] flex items-center justify-center gap-2.5 transition-colors
                   disabled:bg-zinc-900 disabled:text-zinc-600
-                  enabled:bg-orange-500 enabled:text-black enabled:shadow-lg enabled:shadow-orange-500/30 enabled:hover:bg-orange-600"
+                  enabled:bg-primary enabled:text-black enabled:shadow-lg enabled:shadow-primary/30 enabled:hover:opacity-90"
               >
                 {isSubmitting ? (
                   <Loader2 size={18} className="animate-spin" />
@@ -740,7 +740,7 @@ function Caption({ text }: { text: string | null | undefined }) {
     <>
       {parts.map((part, i) =>
         part.startsWith('#') ? (
-          <span key={i} className="text-orange-400 font-medium">{part}</span>
+          <span key={i} className="text-primary/90 font-medium">{part}</span>
         ) : (
           <span key={i}>{part}</span>
         )
@@ -830,18 +830,18 @@ function StoryAvatar({
       <motion.div whileTap={{ scale: 0.91 }} className="relative">
         {live && (
           <motion.div
-            className="absolute -inset-1 rounded-full bg-orange-500/25"
+            className="absolute -inset-1 rounded-full bg-primary/25"
             animate={{ scale: [1, 1.2, 1], opacity: [0.6, 0.12, 0.6] }}
             transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
           />
         )}
-        <div className={`relative w-[58px] h-[58px] rounded-full p-[2px] ${live ? 'bg-gradient-to-br from-orange-400 to-orange-600' : 'bg-zinc-800'}`}>
+        <div className={`relative w-[58px] h-[58px] rounded-full p-[2px] ${live ? 'bg-gradient-to-br from-primary to-primary/70' : 'bg-zinc-800'}`}>
           <div className="w-full h-full rounded-full overflow-hidden bg-zinc-950">
             <img src={src} alt={alt} className="w-full h-full object-cover" loading="lazy" />
           </div>
         </div>
         {live && (
-          <span className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 px-1.5 py-px bg-orange-500 text-black text-[8px] font-black uppercase rounded-full leading-tight">
+          <span className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 px-1.5 py-px bg-primary text-black text-[8px] font-black uppercase rounded-full leading-tight">
             Live
           </span>
         )}
@@ -871,10 +871,10 @@ function RunsReelEmptyPlaceholder() {
   return (
     <div className="flex flex-col items-center gap-2.5 py-1 flex-shrink-0 text-center max-w-[260px] select-none">
       <div className="relative">
-        <div className="w-[56px] h-[56px] rounded-2xl bg-gradient-to-br from-orange-500/30 via-orange-500/10 to-zinc-900 border border-orange-500/45 flex items-center justify-center shadow-[0_8px_28px_-8px_rgba(249,115,22,0.35)]">
-          <span className="text-orange-400 font-black text-[15px] tracking-tight">SO</span>
+        <div className="w-[56px] h-[56px] rounded-2xl bg-gradient-to-br from-primary/30 via-primary/10 to-zinc-900 border border-primary/45 flex items-center justify-center shadow-[0_8px_28px_-8px_rgba(249,115,22,0.35)]">
+          <span className="text-primary/90 font-black text-[15px] tracking-tight">SO</span>
         </div>
-        <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full bg-black border border-orange-500/60 text-[8px] font-black uppercase tracking-wider text-orange-400 whitespace-nowrap">
+        <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full bg-black border border-primary/60 text-[8px] font-black uppercase tracking-wider text-primary/90 whitespace-nowrap">
           Coming soon
         </span>
       </div>
@@ -1040,24 +1040,24 @@ function HomeStoriesRunsPager({
           type="button"
           onClick={() => goStrip('runs')}
           className={`relative flex-1 py-2.5 text-center text-[11px] font-black uppercase tracking-wider transition-colors touch-manipulation ${
-            activeStrip === 'runs' ? 'text-orange-500' : 'text-zinc-500 hover:text-zinc-300'
+            activeStrip === 'runs' ? 'text-primary' : 'text-zinc-500 hover:text-zinc-300'
           }`}
         >
           Runs
           {activeStrip === 'runs' && (
-            <span className="absolute bottom-0 left-3 right-3 h-0.5 rounded-full bg-orange-500" />
+            <span className="absolute bottom-0 left-3 right-3 h-0.5 rounded-full bg-primary" />
           )}
         </button>
         <button
           type="button"
           onClick={() => goStrip('stories')}
           className={`relative flex-1 py-2.5 text-center text-[11px] font-black uppercase tracking-wider transition-colors touch-manipulation ${
-            activeStrip === 'stories' ? 'text-orange-500' : 'text-zinc-500 hover:text-zinc-300'
+            activeStrip === 'stories' ? 'text-primary' : 'text-zinc-500 hover:text-zinc-300'
           }`}
         >
           Stories
           {activeStrip === 'stories' && (
-            <span className="absolute bottom-0 left-3 right-3 h-0.5 rounded-full bg-orange-500" />
+            <span className="absolute bottom-0 left-3 right-3 h-0.5 rounded-full bg-primary" />
           )}
         </button>
       </div>
@@ -1151,7 +1151,7 @@ function CommentRow({
           {(comment.role?.toLowerCase() === 'owner' || comment.role?.toLowerCase() === 'admin') && (
             <span
               title={comment.role?.toLowerCase() === 'admin' ? 'Team admin' : 'Team owner'}
-              className="px-1.5 py-px text-[9px] font-black text-black bg-orange-500 rounded leading-none flex-shrink-0"
+              className="px-1.5 py-px text-[9px] font-black text-black bg-primary rounded leading-none flex-shrink-0"
             >
               SO
             </span>
@@ -1165,10 +1165,10 @@ function CommentRow({
             onClick={() => onLike(comment)}
             aria-label={comment.liked_by_me ? 'Unlike comment' : 'Like comment'}
             className={`flex items-center gap-0.5 text-[11px] transition-colors ${
-              comment.liked_by_me ? 'text-orange-400' : 'text-zinc-600 hover:text-zinc-400'
+              comment.liked_by_me ? 'text-primary/90' : 'text-zinc-600 hover:text-zinc-400'
             }`}
           >
-            <Heart size={10} className={comment.liked_by_me ? 'fill-orange-400' : ''} strokeWidth={1.8} />
+            <Heart size={10} className={comment.liked_by_me ? 'fill-primary/90' : ''} strokeWidth={1.8} />
             {(comment.likes_count ?? 0) > 0 && <span>{comment.likes_count}</span>}
           </button>
           {/* Reply */}
@@ -1767,12 +1767,12 @@ function RigPostCard({ post, index }: {
                   {post.username ?? 'Anonymous'}
                 </span>
                 {post.verified && (
-                  <BadgeCheck size={15} className="text-orange-500 flex-shrink-0 mt-px" />
+                  <BadgeCheck size={15} className="text-primary flex-shrink-0 mt-px" />
                 )}
                 {(headerRole === 'owner' || headerRole === 'admin') && (
                   <span
                     title={headerRole === 'admin' ? 'SoCalOffroaders admin' : 'SoCalOffroaders owner'}
-                    className="px-1.5 py-0.5 text-[9px] font-black text-black bg-orange-500 rounded-md leading-none flex-shrink-0"
+                    className="px-1.5 py-0.5 text-[9px] font-black text-black bg-primary rounded-md leading-none flex-shrink-0"
                   >
                     SO
                   </span>
@@ -1931,7 +1931,7 @@ function RigPostCard({ post, index }: {
                 icon={Heart}
                 count={likesCount}
                 active={liked}
-                activeColor="text-orange-500"
+                activeColor="text-primary"
                 label={liked ? 'Unlike' : 'Like'}
                 showCountIncludingZero
                 onClick={toggleLike}
@@ -1953,9 +1953,9 @@ function RigPostCard({ post, index }: {
               transition={{ type: 'spring', stiffness: 600, damping: 14 }}
               onClick={toggleBookmark}
               aria-label={bookmarked ? 'Remove bookmark' : 'Bookmark post'}
-              className={`transition-colors ${bookmarked ? 'text-orange-500' : 'text-zinc-500 hover:text-zinc-300'}`}
+              className={`transition-colors ${bookmarked ? 'text-primary' : 'text-zinc-500 hover:text-zinc-300'}`}
             >
-              <Bookmark size={17} strokeWidth={1.8} className={bookmarked ? 'fill-orange-500/40' : ''} />
+              <Bookmark size={17} strokeWidth={1.8} className={bookmarked ? 'fill-primary/40' : ''} />
             </motion.button>
           </div>
 
@@ -2042,7 +2042,7 @@ function RigPostCard({ post, index }: {
                       onClick={submitComment}
                       disabled={!commentText.trim() || submittingComment}
                       aria-label="Post comment"
-                      className="text-orange-500 disabled:text-zinc-700 transition-colors flex-shrink-0"
+                      className="text-primary disabled:text-zinc-700 transition-colors flex-shrink-0"
                     >
                       {submittingComment ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} strokeWidth={2} />}
                     </motion.button>
@@ -2097,7 +2097,7 @@ function RigPostCard({ post, index }: {
                     onClick={() => setReportReason(r)}
                     className={`py-2.5 px-3 rounded-xl text-[12px] font-medium border transition-colors text-left ${
                       reportReason === r
-                        ? 'bg-orange-500/15 border-orange-500/50 text-orange-400'
+                        ? 'bg-primary/15 border-primary/50 text-primary/90'
                         : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-600'
                     }`}
                   >
@@ -2169,7 +2169,7 @@ function PullToRefreshFeed({ children, onRefresh }: { children: React.ReactNode;
             <motion.div
               animate={refreshing ? { rotate: 360 } : {}}
               transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }}
-              className="w-7 h-7 rounded-full border-2 border-orange-500 border-t-transparent"
+              className="w-7 h-7 rounded-full border-2 border-primary border-t-transparent"
             />
           </motion.div>
         )}
@@ -2353,7 +2353,7 @@ function ModerationPanel() {
                 )}
                 <Link
                   href="/admin"
-                  className="block w-full text-center py-3 mt-2 rounded-xl bg-orange-500/15 text-orange-400 text-[13px] font-bold border border-orange-500/30"
+                  className="block w-full text-center py-3 mt-2 rounded-xl bg-primary/15 text-primary/90 text-[13px] font-bold border border-primary/30"
                 >
                   Open full admin panel
                 </Link>
@@ -2713,11 +2713,11 @@ export default function HomePage() {
       <header className="sticky top-0 z-50 bg-black/90 backdrop-blur-xl border-b border-zinc-900">
         <div className="flex items-center justify-between px-4 py-3 max-w-app-shell mx-auto">
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-orange-500 flex items-center justify-center flex-shrink-0">
+            <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center flex-shrink-0">
               <span className="text-black font-black text-[10px] tracking-tight">SO</span>
             </div>
             <span className="font-black text-white text-base tracking-tight">
-              SoCal<span className="text-orange-500">Offroaders</span>
+              SoCal<span className="text-primary">Offroaders</span>
             </span>
           </div>
           {isModeratorUser && <ModerationPanel />}
@@ -2750,7 +2750,7 @@ export default function HomePage() {
         whileTap={{ scale: 0.92 }}
         onClick={() => user ? setDrawerOpen(true) : router.push('/login')}
         aria-label="Create post"
-        className="fixed bottom-[88px] right-4 z-40 w-[52px] h-[52px] bg-orange-500 hover:bg-orange-600 rounded-full flex items-center justify-center shadow-lg shadow-orange-500/30"
+        className="fixed bottom-[88px] right-4 z-40 w-[52px] h-[52px] bg-primary hover:opacity-90 rounded-full flex items-center justify-center shadow-lg shadow-primary/30"
       >
         <Plus size={22} className="text-black" strokeWidth={2.5} />
       </motion.button>

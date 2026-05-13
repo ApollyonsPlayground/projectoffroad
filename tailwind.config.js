@@ -33,6 +33,9 @@ module.exports = {
         border: 'var(--border)',
         input: 'var(--input)',
         ring: 'var(--ring)',
+        /* Legacy marketing names — map to preset tokens */
+        'muted-gold': 'var(--primary)',
+        moss: 'var(--accent)',
       },
       fontFamily: {
         sans: ['var(--font-inter)', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],

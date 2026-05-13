@@ -24,8 +24,8 @@ export default function HeroCinematic() {
       <div className="relative z-10 container mx-auto px-4 text-center">
         <div className="max-w-4xl mx-auto">
           {/* Badge */}
-          <div className="inline-block mb-6 px-4 py-2 rounded-full bg-orange-600/20 border border-orange-600/40">
-            <span className="text-orange-400 text-sm font-medium tracking-wide uppercase">
+          <div className="inline-block mb-6 px-4 py-2 rounded-full bg-primary/20 border border-primary/40">
+            <span className="text-primary/90 text-sm font-medium tracking-wide uppercase">
               Southern California Wilderness
             </span>
           </div>
@@ -34,7 +34,7 @@ export default function HeroCinematic() {
           <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold text-stone-50 mb-6 tracking-tight">
             <span className="font-serif italic">Discover</span>
             <br />
-            <span className="text-orange-500">SoCal&apos;s</span> Best Trails
+            <span className="text-primary">SoCal&apos;s</span> Best Trails
           </h1>
 
           {/* Subtitle */}
@@ -47,7 +47,7 @@ export default function HeroCinematic() {
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
             <button 
               onClick={scrollToTrails}
-              className="px-8 py-4 bg-orange-600 hover:bg-orange-700 text-stone-50 font-semibold rounded-lg transition-all transform hover:scale-105 shadow-lg shadow-orange-600/20"
+              className="px-8 py-4 bg-primary hover:opacity-90 text-stone-50 font-semibold rounded-lg transition-all transform hover:scale-105 shadow-lg shadow-primary/20"
             >
               Explore Trails
             </button>
@@ -62,7 +62,7 @@ export default function HeroCinematic() {
           {/* Stats */}
           <div className="grid grid-cols-2 gap-8 max-w-lg mx-auto">
             <div className="text-center">
-              <div className="text-3xl md:text-4xl font-bold text-orange-500 mb-1">79+</div>
+              <div className="text-3xl md:text-4xl font-bold text-primary mb-1">79+</div>
               <div className="text-stone-400 text-sm uppercase tracking-wider">Trails</div>
             </div>
             <div className="text-center">

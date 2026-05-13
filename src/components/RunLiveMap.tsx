@@ -259,7 +259,7 @@ export default function RunLiveMap({
   return (
     <div className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden">
       <div className="flex items-center gap-2 px-4 py-3 border-b border-zinc-800/80">
-        <Navigation size={16} className="text-orange-500 flex-shrink-0" />
+        <Navigation size={16} className="text-primary flex-shrink-0" />
         <div className="min-w-0 flex-1">
           <p className="text-[13px] font-bold text-white leading-none">Live map</p>
           <p className="text-[11px] text-zinc-500 mt-1">
@@ -359,7 +359,7 @@ export default function RunLiveMap({
             className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl text-[14px] font-bold transition-colors ${
               sharing
                 ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/35 hover:bg-emerald-500/25'
-                : 'bg-orange-500 hover:bg-orange-600 text-black border border-orange-400/30'
+                : 'bg-primary hover:opacity-90 text-black border border-primary/30'
             } disabled:opacity-60`}
           >
             {shareBusy ? <Loader2 size={17} className="animate-spin" /> : <MapPin size={17} />}

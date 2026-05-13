@@ -64,12 +64,12 @@ export default function DisclaimerModal() {
       onClick={(e) => e.stopPropagation()}
     >
       <div
-        className="w-full max-w-sm bg-zinc-950 border border-orange-500/35 rounded-2xl overflow-hidden shadow-2xl shadow-black/80 ring-1 ring-white/10"
+        className="w-full max-w-sm bg-zinc-950 border border-primary/35 rounded-2xl overflow-hidden shadow-2xl shadow-black/80 ring-1 ring-white/10"
         role="dialog"
         aria-modal="true"
         aria-labelledby="disclaimer-title"
       >
-        <div className="relative bg-gradient-to-r from-orange-600 to-orange-500 px-5 py-4 overflow-hidden">
+        <div className="relative bg-gradient-to-r from-primary/90 to-primary px-5 py-4 overflow-hidden">
           <div className="absolute right-0 top-0 bottom-0 w-20 opacity-10 pointer-events-none">
             {[...Array(7)].map((_, i) => (
               <div
@@ -85,7 +85,7 @@ export default function DisclaimerModal() {
               <ShieldAlert size={22} className="text-white" />
             </div>
             <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-orange-200">
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/70">
                 SoCalOffroaders
               </p>
               <h2 id="disclaimer-title" className="text-lg font-black text-white leading-tight tracking-tight">
@@ -98,7 +98,7 @@ export default function DisclaimerModal() {
         <div className="px-5 py-5 space-y-4">
           <p className="text-zinc-200 text-sm leading-relaxed">
             Off-roading involves{' '}
-            <span className="text-orange-400 font-semibold">
+            <span className="text-primary/90 font-semibold">
               serious risk of injury, death, and vehicle damage
             </span>
             . This platform is a community resource — not a guided service.
@@ -106,8 +106,8 @@ export default function DisclaimerModal() {
 
           <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
             <div className="flex items-center gap-2 mb-2">
-              <AlertTriangle size={13} className="text-orange-500 flex-shrink-0" />
-              <p className="text-[11px] font-bold uppercase tracking-wider text-orange-500">
+              <AlertTriangle size={13} className="text-primary flex-shrink-0" />
+              <p className="text-[11px] font-bold uppercase tracking-wider text-primary">
                 Organizer Liability
               </p>
             </div>
@@ -127,7 +127,7 @@ export default function DisclaimerModal() {
           <button
             type="button"
             onClick={handleAccept}
-            className="w-full py-4 min-h-[52px] rounded-xl bg-orange-500 hover:bg-orange-600 active:bg-orange-700 text-black font-black text-sm uppercase tracking-widest transition-colors touch-manipulation"
+            className="w-full py-4 min-h-[52px] rounded-xl bg-primary hover:opacity-90 active:bg-primary text-black font-black text-sm uppercase tracking-widest transition-colors touch-manipulation"
           >
             I Understand — Enter App
           </button>

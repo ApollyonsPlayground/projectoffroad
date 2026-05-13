@@ -417,7 +417,7 @@ export function StoryWatchModal({
                   return (
                     <div key={s.id} className="flex-1 h-[3px] rounded-full bg-white/25 overflow-hidden">
                       <div
-                        className="h-full rounded-full bg-gradient-to-r from-orange-400 to-orange-600"
+                        className="h-full rounded-full bg-gradient-to-r from-primary to-primary/70"
                         style={{ width: `${fill * 100}%`, transition: i === safeStoryIdx ? 'none' : 'width 0.12s ease-out' }}
                       />
                     </div>
@@ -434,7 +434,7 @@ export function StoryWatchModal({
                 >
                   <X size={20} strokeWidth={2.4} />
                 </button>
-                <div className="w-9 h-9 rounded-full bg-zinc-800 overflow-hidden border border-white/15 flex-shrink-0 ring-2 ring-orange-500/40">
+                <div className="w-9 h-9 rounded-full bg-zinc-800 overflow-hidden border border-white/15 flex-shrink-0 ring-2 ring-primary/40">
                   {avatarUrl ? (
                     <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
                   ) : (
@@ -522,14 +522,14 @@ export function StoryWatchModal({
               )}
               {!error && !signedUrl && current && (
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-10 h-10 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+                  <div className="w-10 h-10 border-2 border-primary border-t-transparent rounded-full animate-spin" />
                 </div>
               )}
 
               {/* Subtle brand cue */}
               <div className="absolute bottom-[calc(env(safe-area-inset-bottom)+12px)] left-3 z-10 pointer-events-none">
                 <p className="text-[10px] font-black uppercase tracking-[0.15em] text-white/35">
-                  SoCal<span className="text-orange-400/80">Offroaders</span>
+                  SoCal<span className="text-primary/90/80">Offroaders</span>
                 </p>
               </div>
             </div>

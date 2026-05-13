@@ -8,15 +8,15 @@ import BottomNav from '@/components/BottomNav';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/Toast';
 import { validateUsernameInput } from '@/lib/profileDisplay';
-import { THEME_STORAGE_KEY, type UiTheme } from '@/components/ThemeSync';
+import { THEME_STORAGE_KEY } from '@/components/ThemeSync';
+import {
+  DEFAULT_UI_PRESET,
+  UI_PRESET_OPTIONS,
+  normalizeUiPreset,
+  type UiPresetId,
+} from '@/lib/ui/uiPresets';
 
 const LEVELS = ['Beginner', 'Intermediate', 'Expert'] as const;
-
-const THEMES: { id: UiTheme; label: string; hint: string }[] = [
-  { id: 'dark', label: 'Dark', hint: 'Black shell — original look' },
-  { id: 'light', label: 'Light', hint: 'White / paper UI' },
-  { id: 'blue', label: 'Blue', hint: 'Navy blue shell' },
-];
 
 export default function EditProfilePage() {
   const router = useRouter();
@@ -28,7 +28,7 @@ export default function EditProfilePage() {
   const [bio, setBio] = useState('');
   const [location, setLocation] = useState('');
   const [experienceLevel, setExperienceLevel] = useState<string>('Beginner');
-  const [uiTheme, setUiTheme] = useState<UiTheme>('dark');
+  const [uiPreset, setUiPreset] = useState<UiPresetId>(DEFAULT_UI_PRESET);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -39,8 +39,7 @@ export default function EditProfilePage() {
     setLocation(String(profile.location ?? ''));
     const lvl = String(profile.experience_level ?? 'Beginner');
     setExperienceLevel(LEVELS.includes(lvl as (typeof LEVELS)[number]) ? lvl : 'Beginner');
-    const th = String(profile.ui_theme ?? 'dark');
-    setUiTheme(th === 'light' || th === 'blue' || th === 'dark' ? (th as UiTheme) : 'dark');
+    setUiPreset(normalizeUiPreset(String(profile.ui_theme ?? DEFAULT_UI_PRESET)));
   }, [profile]);
 
   const handleSave = async () => {
@@ -65,7 +64,7 @@ export default function EditProfilePage() {
           bio: bio.trim() || null,
           location: location.trim() || null,
           experience_level: experienceLevel,
-          ui_theme: uiTheme,
+          ui_theme: uiPreset,
         })
         .eq('id', user.id);
       if (error) {
@@ -83,11 +82,11 @@ export default function EditProfilePage() {
         throw error;
       }
       try {
-        localStorage.setItem(THEME_STORAGE_KEY, uiTheme);
+        localStorage.setItem(THEME_STORAGE_KEY, uiPreset);
       } catch {
         /* ignore */
       }
-      document.documentElement.setAttribute('data-theme', uiTheme);
+      document.documentElement.setAttribute('data-ui-preset', uiPreset);
       await refreshProfile();
       showToast('Profile updated', 'success');
       router.push('/profile');
@@ -110,7 +109,7 @@ export default function EditProfilePage() {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6 gap-4">
         <p className="text-muted-foreground text-center">Sign in to edit your profile.</p>
-        <Link href="/login" className="text-orange-500 font-bold">
+        <Link href="/login" className="text-primary font-bold">
           Sign in
         </Link>
         <BottomNav />
@@ -130,7 +129,7 @@ export default function EditProfilePage() {
             type="button"
             onClick={handleSave}
             disabled={saving}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-orange-500 text-black text-[13px] font-bold disabled:opacity-50"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary text-primary-foreground text-[13px] font-bold disabled:opacity-50"
           >
             {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
             Save
@@ -143,18 +142,25 @@ export default function EditProfilePage() {
           <label className="block text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
             Appearance
           </label>
-          <div className="grid grid-cols-3 gap-2">
-            {THEMES.map((t) => (
+          <div className="grid grid-cols-2 gap-2">
+            {UI_PRESET_OPTIONS.map((t) => (
               <button
                 key={t.id}
                 type="button"
-                onClick={() => setUiTheme(t.id)}
+                onClick={() => setUiPreset(t.id)}
                 className={`rounded-xl border px-2 py-3 text-left transition ${
-                  uiTheme === t.id
+                  uiPreset === t.id
                     ? 'border-primary bg-primary/10 ring-1 ring-primary'
                     : 'border-border bg-card hover:border-muted-foreground/40'
                 }`}
               >
+                <span
+                  className="mb-2 flex h-6 w-full max-w-[140px] overflow-hidden rounded-md border border-border"
+                  aria-hidden
+                  style={{
+                    background: `linear-gradient(90deg, ${t.preview.bg} 55%, ${t.preview.accent} 55%)`,
+                  }}
+                />
                 <span className="block text-[13px] font-bold text-foreground">{t.label}</span>
                 <span className="block text-[10px] text-muted-foreground mt-0.5 leading-snug">{t.hint}</span>
               </button>
