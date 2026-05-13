@@ -18,12 +18,13 @@ const config: CapacitorConfig = {
     androidScheme: 'https',
     cleartext: serverUrl.startsWith('http://'),
   },
+  // Typed CapacitorConfig omits allowMixedContent on some CLI versions; still honored at runtime for WebView.
   ios: {
     allowMixedContent: true,
-  },
+  } as CapacitorConfig['ios'],
   android: {
     allowMixedContent: true,
-  },
+  } as CapacitorConfig['android'],
 };
 
 export default config;
