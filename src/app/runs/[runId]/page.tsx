@@ -32,6 +32,7 @@ import {
   Radio,
   StickyNote,
   ImageIcon,
+  Search,
 } from 'lucide-react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
@@ -44,11 +45,13 @@ import { RUN_GROUP_CHAT_PRESETS } from '@/lib/runs/chatPresets';
 import { mapDbTrailRow, coordsFromRow } from '@/lib/trails/mapDbTrail';
 import { resizeImageFileToJpegBlob, isLimitedMediaDevice } from '@/lib/media/mobileSafeCapture';
 import { ensureStoragePublicObjectUrl } from '@/lib/supabase/storagePublicUrl';
+import { isRunDetailsEditLocked } from '@/lib/runs/runEditLock';
+import { cancelRunTimeLocalReminders, scheduleRunTimeLocalReminders } from '@/lib/runs/runReminderLocal';
 
 const RunLiveMap = dynamic(() => import('@/components/RunLiveMap'), {
   ssr: false,
   loading: () => (
-    <div className="h-[min(320px,55dvh)] flex items-center justify-center bg-zinc-900 border border-zinc-800 rounded-2xl">
+    <div className="h-[min(320px,55dvh)] flex items-center justify-center bg-card border border-border rounded-2xl">
       <Loader2 className="animate-spin text-primary" size={24} />
     </div>
   ),
@@ -57,7 +60,7 @@ const RunLiveMap = dynamic(() => import('@/components/RunLiveMap'), {
 const MeetupMapPicker = dynamic(() => import('@/components/runs/MeetupMapPicker'), {
   ssr: false,
   loading: () => (
-    <div className="h-[220px] bg-zinc-900 animate-pulse rounded-xl border border-zinc-800" aria-hidden />
+    <div className="h-[360px] bg-card animate-pulse rounded-xl border border-border" aria-hidden />
   ),
 });
 
@@ -151,7 +154,7 @@ function getDifficultyColor(d: string) {
     return 'bg-primary/15 text-primary/90 border border-primary/30';
   if (level === 'extreme')
     return 'bg-red-500/15 text-red-400 border border-red-500/30';
-  return 'bg-zinc-700/50 text-zinc-400';
+  return 'bg-zinc-700/50 text-muted-foreground';
 }
 
 function formatRunDate(dateStr: string): string {
@@ -168,7 +171,7 @@ function getStatusBadge(status: string) {
   if (status === 'active')
     return 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30';
   if (status === 'completed')
-    return 'bg-zinc-700/50 text-zinc-400';
+    return 'bg-zinc-700/50 text-muted-foreground';
   return 'bg-primary/15 text-primary/90 border border-primary/30';
 }
 
@@ -264,11 +267,25 @@ export default function RunDetailPage() {
   const [editMeetupLat, setEditMeetupLat] = useState<number>(0);
   const [editMeetupLng, setEditMeetupLng] = useState<number>(0);
   const [editMapCenter, setEditMapCenter] = useState<[number, number]>([34.05, -116.8]);
-  const [editZoom, setEditZoom] = useState(11);
+  const [editZoom, setEditZoom] = useState(16);
   const [, setEditPinTouched] = useState(false);
   const [editFlyerFile, setEditFlyerFile] = useState<File | null>(null);
   const [editFlyerPreviewUrl, setEditFlyerPreviewUrl] = useState('');
   const [editFlyerRemoved, setEditFlyerRemoved] = useState(false);
+  const [editAddressQuery, setEditAddressQuery] = useState('');
+  const [editGeocodeLoading, setEditGeocodeLoading] = useState(false);
+  const [editGeocodeResults, setEditGeocodeResults] = useState<{ lat: number; lng: number; label: string }[]>([]);
+
+  const isHost = Boolean(user && run && user.id === run.host_id);
+  const isStaff = Boolean(
+    user &&
+      profile &&
+      typeof (profile as { role?: unknown }).role === 'string' &&
+      ['owner', 'admin'].includes(String((profile as { role: string }).role).trim().toLowerCase())
+  );
+  const canEditRun = Boolean(user && run && (isHost || isStaff));
+  const runTimeEditLocked = Boolean(run && isRunDetailsEditLocked(run));
+  const editFieldsLocked = Boolean(editOpen && runTimeEditLocked);
 
   const [chatMessages, setChatMessages] = useState<RunChatMessage[]>([]);
   const [chatInput, setChatInput] = useState('');
@@ -446,7 +463,7 @@ export default function RunDetailPage() {
       setEditMeetupLat(lat);
       setEditMeetupLng(lng);
       setEditMapCenter([lat, lng]);
-      setEditZoom(12);
+      setEditZoom(16);
     }
     setEditPinTouched(false);
   }, [run?.id]);
@@ -471,6 +488,8 @@ export default function RunDetailPage() {
     if (!editOpen) {
       setEditFlyerRemoved(false);
       setEditFlyerFile(null);
+      setEditAddressQuery('');
+      setEditGeocodeResults([]);
     }
   }, [editOpen]);
 
@@ -530,6 +549,7 @@ export default function RunDetailPage() {
         }
         setJoined(false);
         setParticipants((prev) => prev.filter((p) => p.user_id !== user.id));
+        await cancelRunTimeLocalReminders(run.id);
         showToast('Left the run', 'info');
       } else {
         const { error } = await supabaseClient
@@ -553,6 +573,14 @@ export default function RunDetailPage() {
           },
         ]);
         showToast(`You're in for "${run.title}"!`, 'success');
+        const remindOk = (profile?.notify_run_time_reminders as boolean | undefined) !== false;
+        if (remindOk) {
+          void scheduleRunTimeLocalReminders({
+            runId: run.id,
+            title: run.title,
+            runDateIso: run.date,
+          });
+        }
       }
     } finally {
       setJoining(false);
@@ -769,9 +797,106 @@ export default function RunDetailPage() {
     }
   };
 
+  const applyEditGeocodeHit = (r: { lat: number; lng: number }) => {
+    setEditMapCenter([r.lat, r.lng]);
+    setEditMeetupLat(r.lat);
+    setEditMeetupLng(r.lng);
+    setEditZoom(17);
+    setEditGeocodeResults([]);
+    setEditAddressQuery('');
+    setEditPinTouched(true);
+  };
+
+  const runEditAddressSearch = async () => {
+    const q = editAddressQuery.trim();
+    if (q.length < 3) {
+      showToast('Type at least 3 characters to search', 'error');
+      return;
+    }
+    if (!supabaseClient) return;
+    setEditGeocodeLoading(true);
+    setEditGeocodeResults([]);
+    try {
+      const res = await fetch(`/api/geocode?q=${encodeURIComponent(q)}`);
+      const data = (await res.json()) as { error?: string; results?: { lat: number; lng: number; label: string }[] };
+      if (!res.ok) {
+        showToast(data.error ?? 'Search failed', 'error');
+        return;
+      }
+      const results = data.results ?? [];
+      if (!results.length) {
+        showToast('No places matched — try a street, town, or trailhead name', 'error');
+        return;
+      }
+      setEditGeocodeResults(results);
+    } catch {
+      showToast('Search failed', 'error');
+    } finally {
+      setEditGeocodeLoading(false);
+    }
+  };
+
   const saveRunEdits = async () => {
     if (!supabaseClient || !run || !user) return;
     if (!canEditRun) return;
+
+    const timeLocked = isRunDetailsEditLocked(run);
+
+    if (timeLocked) {
+      if (!editDate) {
+        showToast('Pick a new date/time to postpone', 'error');
+        return;
+      }
+      const newTs = new Date(editDate).getTime();
+      const oldTs = new Date(run.date).getTime();
+      if (!Number.isFinite(newTs)) {
+        showToast('Invalid date', 'error');
+        return;
+      }
+      if (newTs === oldTs) {
+        showToast(
+          'Details are locked within 24 hours of start. Change the date to postpone, or mark complete / cancel from the run page.',
+          'info'
+        );
+        return;
+      }
+      const minPostpone = Date.now() + 24 * 60 * 60 * 1000;
+      if (newTs <= minPostpone) {
+        showToast('New start time must be more than 24 hours from now.', 'error');
+        return;
+      }
+      const newIso = new Date(editDate).toISOString();
+      setEditSaving(true);
+      try {
+        const { error } = await supabaseClient.from('runs').update({ date: newIso }).eq('id', run.id);
+        if (error) throw error;
+        const remindOk = (profile?.notify_run_time_reminders as boolean | undefined) !== false;
+        if (joined && remindOk) {
+          await cancelRunTimeLocalReminders(run.id);
+          await scheduleRunTimeLocalReminders({
+            runId: run.id,
+            title: run.title,
+            runDateIso: newIso,
+          });
+        }
+        showToast('Run rescheduled', 'success');
+        setEditOpen(false);
+        await fetchDetail();
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : 'Could not update run';
+        if (msg.includes('run_edit_locked') || msg.toLowerCase().includes('locked within 24')) {
+          showToast(
+            'Could not save — run is in the lock window. Try a start time more than 24 hours from now.',
+            'error'
+          );
+        } else {
+          showToast(msg, 'error');
+        }
+      } finally {
+        setEditSaving(false);
+      }
+      return;
+    }
 
     const title = editTitle.trim();
     if (!title) {
@@ -784,7 +909,6 @@ export default function RunDetailPage() {
     }
     const dateIso = new Date(editDate).toISOString();
 
-    // Always require valid coords when editing (prevents falling back to trail coords).
     if (
       !Number.isFinite(editMeetupLat) ||
       !Number.isFinite(editMeetupLng) ||
@@ -807,7 +931,7 @@ export default function RunDetailPage() {
         comms_note: editComms.trim() || null,
         meetup_latitude: editMeetupLat,
         meetup_longitude: editMeetupLng,
-        meetup_location: `Staging pin · ${editMeetupLat.toFixed(5)}, ${editMeetupLng.toFixed(5)}`,
+        meetup_location: `Staging pin · ${editMeetupLat.toFixed(6)}, ${editMeetupLng.toFixed(6)}`,
       };
 
       const { error } = await supabaseClient.from('runs').update(patch).eq('id', run.id);
@@ -845,25 +969,34 @@ export default function RunDetailPage() {
         if (flyerErr) throw flyerErr;
       }
 
+      const remindOk = (profile?.notify_run_time_reminders as boolean | undefined) !== false;
+      if (joined && remindOk) {
+        await cancelRunTimeLocalReminders(run.id);
+        await scheduleRunTimeLocalReminders({
+          runId: run.id,
+          title,
+          runDateIso: dateIso,
+        });
+      }
+
       showToast('Run updated', 'success');
       setEditOpen(false);
       await fetchDetail();
     } catch (e) {
-      showToast(e instanceof Error ? e.message : 'Could not update run', 'error');
+      const msg = e instanceof Error ? e.message : 'Could not update run';
+      if (msg.includes('run_edit_locked') || msg.toLowerCase().includes('locked within 24')) {
+        showToast(
+          'This run is locked for edits within 24 hours of the original start. Postpone by moving the start more than 24 hours out, or contact an admin.',
+          'error'
+        );
+      } else {
+        showToast(msg, 'error');
+      }
     } finally {
       setEditSaving(false);
     }
   };
 
-  const isHost = Boolean(user && run && user.id === run.host_id);
-  const isStaff =
-    Boolean(
-      user &&
-        profile &&
-        typeof (profile as { role?: unknown }).role === 'string' &&
-        ['owner', 'admin'].includes(String((profile as { role: string }).role).trim().toLowerCase())
-    );
-  const canEditRun = Boolean(user && run && (isHost || isStaff));
   const canUseRunChat = Boolean(
     user &&
       run &&
@@ -1032,7 +1165,7 @@ export default function RunDetailPage() {
   // ── Loading skeleton ─────────────────────────────────────────────────────
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <Loader2 size={28} className="animate-spin text-primary" />
       </div>
     );
@@ -1040,9 +1173,9 @@ export default function RunDetailPage() {
 
   if (!run) {
     return (
-      <div className="min-h-screen bg-black flex flex-col items-center justify-center gap-3 text-center px-6">
-        <Flag size={36} className="text-zinc-700" />
-        <p className="text-white font-bold text-[16px]">Run not found</p>
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-3 text-center px-6">
+        <Flag size={36} className="text-muted-foreground" />
+        <p className="text-foreground font-bold text-[16px]">Run not found</p>
         <button
           onClick={() => router.back()}
           className="text-primary text-[14px] hover:text-primary/90 transition-colors"
@@ -1066,25 +1199,29 @@ export default function RunDetailPage() {
     })();
 
   return (
-    <div className="min-h-screen bg-black pb-28">
+    <div className="min-h-screen bg-background pb-28">
       {/* ── Back header ─────────────────────────────────────────────────── */}
-      <header className="sticky top-0 z-50 bg-black/90 backdrop-blur-xl border-b border-zinc-900 safe-top">
+      <header className="sticky top-0 z-50 bg-background/90 backdrop-blur-xl border-b border-border safe-top">
         <div className="px-4 py-3 max-w-app-shell mx-auto flex items-center gap-3">
           <button
             onClick={() => router.back()}
-            className="w-8 h-8 flex items-center justify-center rounded-full bg-zinc-900 text-zinc-400 hover:text-white transition-colors flex-shrink-0"
+            className="w-8 h-8 flex items-center justify-center rounded-full bg-card text-muted-foreground hover:text-foreground transition-colors flex-shrink-0"
             aria-label="Back"
           >
             <ArrowLeft size={17} />
           </button>
-          <h1 className="text-[16px] font-black text-white truncate flex-1">{run.title}</h1>
+          <h1 className="text-[16px] font-black text-foreground truncate flex-1">{run.title}</h1>
           {canEditRun && (
             <button
               type="button"
               onClick={() => setEditOpen(true)}
-              className="min-h-[36px] px-3 rounded-xl bg-primary text-black text-[12px] font-black hover:bg-primary/90 transition-colors flex items-center gap-1.5 flex-shrink-0"
+              className="min-h-[36px] px-3 rounded-xl bg-primary text-primary-foreground text-[12px] font-black hover:bg-primary/90 transition-colors flex items-center gap-1.5 flex-shrink-0"
               aria-label="Edit run"
-              title="Edit run"
+              title={
+                runTimeEditLocked
+                  ? 'Details lock 24h before start — open to postpone the date or view fields'
+                  : 'Edit run'
+              }
             >
               <Pencil size={14} />
               Edit
@@ -1105,7 +1242,7 @@ export default function RunDetailPage() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="fixed inset-0 z-[9990] bg-black/80 backdrop-blur-sm"
+                className="fixed inset-0 z-[9990] bg-background/80 backdrop-blur-sm"
                 onClick={() => (editSaving ? null : setEditOpen(false))}
               />
               <motion.div
@@ -1114,20 +1251,20 @@ export default function RunDetailPage() {
                 animate={{ y: 0 }}
                 exit={{ y: '100%' }}
                 transition={{ type: 'spring', stiffness: 420, damping: 38 }}
-                className="fixed bottom-0 left-0 right-0 z-[9991] max-w-app-shell mx-auto bg-zinc-950 border border-zinc-800 rounded-t-2xl max-h-[92dvh] flex flex-col"
+                className="fixed bottom-0 left-0 right-0 z-[9991] max-w-app-shell mx-auto bg-muted border border-border rounded-t-2xl max-h-[92dvh] flex flex-col"
                 style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
                 onClick={(e) => e.stopPropagation()}
               >
-                <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-zinc-800 flex-shrink-0">
+                <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-border flex-shrink-0">
                   <div className="flex items-center gap-2">
                     <Pencil size={16} className="text-primary" />
-                    <h2 className="text-[16px] font-black text-white">Edit run</h2>
+                    <h2 className="text-[16px] font-black text-foreground">Edit run</h2>
                   </div>
                   <button
                     type="button"
                     disabled={editSaving}
                     onClick={() => setEditOpen(false)}
-                    className="w-10 h-10 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full bg-zinc-800 text-zinc-400 hover:text-white transition-colors touch-manipulation disabled:opacity-50"
+                    className="w-10 h-10 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full bg-zinc-800 text-muted-foreground hover:text-foreground transition-colors touch-manipulation disabled:opacity-50"
                     aria-label="Close"
                   >
                     <X size={16} />
@@ -1135,40 +1272,50 @@ export default function RunDetailPage() {
                 </div>
 
                 <div className="flex-1 overflow-y-auto min-h-0 px-4 py-4 space-y-4">
+                  {editFieldsLocked ? (
+                    <div className="rounded-xl border border-amber-500/35 bg-amber-500/10 px-3 py-2.5 text-[13px] text-amber-100/95 leading-relaxed">
+                      This run is in the <span className="font-semibold">24-hour lock</span> before start: title,
+                      meetup, flyer, and other details cannot be changed. You can still{' '}
+                      <span className="font-semibold">move the date/time</span> to postpone (new start must be more
+                      than 24 hours from now), or use Mark complete / Cancel run on the main page.
+                    </div>
+                  ) : null}
                   <div>
-                    <label className="block text-[12px] font-semibold text-zinc-400 uppercase tracking-wider mb-1.5">
+                    <label className="block text-[12px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
                       Title
                     </label>
                     <input
                       value={editTitle}
                       onChange={(e) => setEditTitle(e.target.value)}
-                      className="w-full min-h-[44px] bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2.5 text-[15px] text-white placeholder-zinc-600 focus:outline-none focus:border-primary/60 transition-colors touch-manipulation"
+                      disabled={editSaving || editFieldsLocked}
+                      className="w-full min-h-[44px] bg-card border border-border rounded-xl px-3 py-2.5 text-[15px] text-foreground placeholder-zinc-600 focus:outline-none focus:border-primary/60 transition-colors touch-manipulation disabled:opacity-50"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-[12px] font-semibold text-zinc-400 uppercase tracking-wider mb-1.5">
+                    <label className="block text-[12px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
                       Description
                     </label>
                     <textarea
                       value={editDescription}
                       onChange={(e) => setEditDescription(e.target.value)}
+                      disabled={editSaving || editFieldsLocked}
                       rows={3}
-                      className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2.5 text-[15px] text-white placeholder-zinc-600 focus:outline-none focus:border-primary/60 transition-colors touch-manipulation resize-none"
+                      className="w-full bg-card border border-border rounded-xl px-3 py-2.5 text-[15px] text-foreground placeholder-zinc-600 focus:outline-none focus:border-primary/60 transition-colors touch-manipulation resize-none disabled:opacity-50"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-[12px] font-semibold text-zinc-400 uppercase tracking-wider mb-1.5">
-                      <ImageIcon size={12} className="inline mr-1 align-text-bottom text-zinc-400" />
+                    <label className="block text-[12px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
+                      <ImageIcon size={12} className="inline mr-1 align-text-bottom text-muted-foreground" />
                       Run flyer / poster (optional)
                     </label>
                     <div className="space-y-2">
                       <input
                         type="file"
                         accept="image/*"
-                        disabled={editSaving}
-                        className="w-full min-h-[44px] bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-[14px] text-zinc-300 file:mr-3 file:rounded-lg file:border-0 file:bg-zinc-800 file:px-3 file:py-1.5 file:text-[13px] file:text-white"
+                        disabled={editSaving || editFieldsLocked}
+                        className="w-full min-h-[44px] bg-card border border-border rounded-xl px-3 py-2 text-[14px] text-muted-foreground file:mr-3 file:rounded-lg file:border-0 file:bg-zinc-800 file:px-3 file:py-1.5 file:text-[13px] file:text-foreground disabled:opacity-50"
                         onChange={(e) => {
                           const f = e.target.files?.[0] ?? null;
                           if (f && !f.type.startsWith('image/')) {
@@ -1186,7 +1333,7 @@ export default function RunDetailPage() {
                         }}
                       />
                       {editFlyerPreviewUrl ? (
-                        <div className="rounded-xl border border-zinc-800 bg-zinc-950 overflow-hidden">
+                        <div className="rounded-xl border border-border bg-muted overflow-hidden">
                           <img
                             src={editFlyerPreviewUrl}
                             alt="Flyer preview"
@@ -1194,16 +1341,16 @@ export default function RunDetailPage() {
                           />
                           <button
                             type="button"
-                            disabled={editSaving}
+                            disabled={editSaving || editFieldsLocked}
                             onClick={() => setEditFlyerFile(null)}
-                            className="w-full flex items-center justify-center gap-2 py-2 text-[12px] font-bold text-zinc-300 hover:text-white border-t border-zinc-800 bg-zinc-950/40 disabled:opacity-50"
+                            className="w-full flex items-center justify-center gap-2 py-2 text-[12px] font-bold text-muted-foreground hover:text-foreground border-t border-border bg-muted/40 disabled:opacity-50"
                           >
                             <X size={14} />
                             Remove new flyer
                           </button>
                         </div>
                       ) : run.flyer_image && String(run.flyer_image).trim() && !editFlyerRemoved ? (
-                        <div className="rounded-xl border border-zinc-800 bg-zinc-950 overflow-hidden">
+                        <div className="rounded-xl border border-border bg-muted overflow-hidden">
                           <img
                             src={
                               ensureStoragePublicObjectUrl(String(run.flyer_image)) ||
@@ -1214,19 +1361,19 @@ export default function RunDetailPage() {
                           />
                           <button
                             type="button"
-                            disabled={editSaving}
+                            disabled={editSaving || editFieldsLocked}
                             onClick={() => {
                               setEditFlyerRemoved(true);
                               setEditFlyerFile(null);
                             }}
-                            className="w-full flex items-center justify-center gap-2 py-2 text-[12px] font-bold text-zinc-300 hover:text-white border-t border-zinc-800 bg-zinc-950/40 disabled:opacity-50"
+                            className="w-full flex items-center justify-center gap-2 py-2 text-[12px] font-bold text-muted-foreground hover:text-foreground border-t border-border bg-muted/40 disabled:opacity-50"
                           >
                             <X size={14} />
                             Remove flyer
                           </button>
                         </div>
                       ) : (
-                        <p className="text-[12px] text-zinc-500">
+                        <p className="text-[12px] text-muted-foreground">
                           Adds a poster image to the run card and run detail page.
                         </p>
                       )}
@@ -1234,36 +1381,38 @@ export default function RunDetailPage() {
                   </div>
 
                   <div>
-                    <label className="block text-[12px] font-semibold text-zinc-400 uppercase tracking-wider mb-1.5">
+                    <label className="block text-[12px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
                       Date & time
                     </label>
                     <input
                       type="datetime-local"
                       value={editDate}
                       onChange={(e) => setEditDate(e.target.value)}
-                      className="w-full min-h-[44px] bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2.5 text-[15px] text-white [color-scheme:dark] focus:outline-none focus:border-primary/60 transition-colors touch-manipulation"
+                      disabled={editSaving}
+                      className="w-full min-h-[44px] bg-card border border-border rounded-xl px-3 py-2.5 text-[15px] text-foreground [color-scheme:dark] focus:outline-none focus:border-primary/60 transition-colors touch-manipulation disabled:opacity-50"
                     />
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-[12px] font-semibold text-zinc-400 uppercase tracking-wider mb-1.5">
+                      <label className="block text-[12px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
                         Difficulty
                       </label>
                       <select
                         value={editDifficulty}
                         onChange={(e) => setEditDifficulty(e.target.value)}
-                        className="w-full min-h-[44px] bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2.5 text-[15px] text-white focus:outline-none focus:border-primary/60 transition-colors touch-manipulation"
+                        disabled={editSaving || editFieldsLocked}
+                        className="w-full min-h-[44px] bg-card border border-border rounded-xl px-3 py-2.5 text-[15px] text-foreground focus:outline-none focus:border-primary/60 transition-colors touch-manipulation disabled:opacity-50"
                       >
                         {['Easy', 'Moderate', 'Challenging', 'Extreme'].map((d) => (
-                          <option key={d} value={d} className="bg-zinc-900">
+                          <option key={d} value={d} className="bg-card">
                             {d}
                           </option>
                         ))}
                       </select>
                     </div>
                     <div>
-                      <label className="block text-[12px] font-semibold text-zinc-400 uppercase tracking-wider mb-1.5">
+                      <label className="block text-[12px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
                         Max rigs
                       </label>
                       <input
@@ -1271,60 +1420,158 @@ export default function RunDetailPage() {
                         onChange={(e) => setEditMax(e.target.value)}
                         inputMode="numeric"
                         placeholder="Optional"
-                        className="w-full min-h-[44px] bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2.5 text-[15px] text-white placeholder-zinc-600 focus:outline-none focus:border-primary/60 transition-colors touch-manipulation"
+                        disabled={editSaving || editFieldsLocked}
+                        className="w-full min-h-[44px] bg-card border border-border rounded-xl px-3 py-2.5 text-[15px] text-foreground placeholder-zinc-600 focus:outline-none focus:border-primary/60 transition-colors touch-manipulation disabled:opacity-50"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-[12px] font-semibold text-zinc-400 uppercase tracking-wider mb-1.5">
+                    <label className="block text-[12px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
                       Vehicle / gear notes
                     </label>
                     <input
                       value={editVehicleReq}
                       onChange={(e) => setEditVehicleReq(e.target.value)}
-                      className="w-full min-h-[44px] bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2.5 text-[15px] text-white placeholder-zinc-600 focus:outline-none focus:border-primary/60 transition-colors touch-manipulation"
+                      disabled={editSaving || editFieldsLocked}
+                      className="w-full min-h-[44px] bg-card border border-border rounded-xl px-3 py-2.5 text-[15px] text-foreground placeholder-zinc-600 focus:outline-none focus:border-primary/60 transition-colors touch-manipulation disabled:opacity-50"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-[12px] font-semibold text-zinc-400 uppercase tracking-wider mb-1.5">
+                    <label className="block text-[12px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
                       Comms / radio
                     </label>
                     <input
                       value={editComms}
                       onChange={(e) => setEditComms(e.target.value)}
-                      className="w-full min-h-[44px] bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2.5 text-[15px] text-white placeholder-zinc-600 focus:outline-none focus:border-primary/60 transition-colors touch-manipulation"
+                      disabled={editSaving || editFieldsLocked}
+                      className="w-full min-h-[44px] bg-card border border-border rounded-xl px-3 py-2.5 text-[15px] text-foreground placeholder-zinc-600 focus:outline-none focus:border-primary/60 transition-colors touch-manipulation disabled:opacity-50"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-[12px] font-semibold text-zinc-400 uppercase tracking-wider mb-1.5">
+                    <label className="block text-[12px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
                       Staging pin
                     </label>
-                    <MeetupMapPicker
-                      center={editMapCenter}
-                      position={[editMeetupLat, editMeetupLng]}
-                      onPositionChange={(lat, lng) => {
-                        setEditMeetupLat(lat);
-                        setEditMeetupLng(lng);
-                        setEditPinTouched(true);
-                      }}
-                      heightPx={240}
-                      zoom={editZoom}
-                    />
-                    <p className="mt-2 text-[11px] font-mono text-zinc-500">
-                      {Number(editMeetupLat).toFixed(5)}, {Number(editMeetupLng).toFixed(5)}
+                    {!editFieldsLocked ? (
+                      <p className="text-[12px] text-muted-foreground leading-relaxed mb-2">
+                        Search an address or place to jump nearby, then drag the pin or tap the map. Use the layer
+                        control (top-right) for satellite imagery.
+                      </p>
+                    ) : null}
+                    {!editFieldsLocked ? (
+                      <div className="flex gap-2 mb-2">
+                        <input
+                          className="w-full min-h-[44px] bg-card border border-border rounded-xl px-3 py-2.5 text-[15px] text-foreground placeholder-zinc-600 focus:outline-none focus:border-primary/60 transition-colors touch-manipulation flex-1 min-w-0"
+                          placeholder="Address, intersection, or place…"
+                          value={editAddressQuery}
+                          onChange={(e) => setEditAddressQuery(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              void runEditAddressSearch();
+                            }
+                          }}
+                          autoComplete="street-address"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => void runEditAddressSearch()}
+                          disabled={editGeocodeLoading}
+                          className="flex-shrink-0 inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-xl bg-zinc-800 border border-border text-[14px] font-semibold text-foreground hover:bg-zinc-700 disabled:opacity-50 touch-manipulation"
+                        >
+                          {editGeocodeLoading ? (
+                            <Loader2 size={18} className="animate-spin" />
+                          ) : (
+                            <Search size={18} />
+                          )}
+                          Search
+                        </button>
+                      </div>
+                    ) : null}
+                    {!editFieldsLocked && editGeocodeResults.length > 0 ? (
+                      <ul className="mb-2 max-h-36 overflow-y-auto rounded-xl border border-border bg-muted overscroll-contain divide-y divide-zinc-800/80">
+                        {editGeocodeResults.map((r, i) => (
+                          <li key={`${r.lat}-${r.lng}-${i}`}>
+                            <button
+                              type="button"
+                              onClick={() => applyEditGeocodeHit(r)}
+                              className="w-full text-left py-2.5 px-3 text-[13px] text-foreground/90 hover:bg-card active:bg-zinc-800 touch-manipulation leading-snug"
+                            >
+                              {r.label}
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : null}
+                    <div className={editFieldsLocked ? 'opacity-50 pointer-events-none' : ''}>
+                      <MeetupMapPicker
+                        center={editMapCenter}
+                        position={[editMeetupLat, editMeetupLng]}
+                        onPositionChange={(lat, lng) => {
+                          setEditMeetupLat(lat);
+                          setEditMeetupLng(lng);
+                          setEditPinTouched(true);
+                        }}
+                        heightPx={360}
+                        zoom={editZoom}
+                      />
+                    </div>
+                    <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+                          Latitude (°)
+                        </label>
+                        <input
+                          type="number"
+                          step="any"
+                          min={-90}
+                          max={90}
+                          value={editMeetupLat}
+                          disabled={editSaving || editFieldsLocked}
+                          onChange={(e) => {
+                            const v = parseFloat(e.target.value);
+                            if (!Number.isFinite(v) || Math.abs(v) > 90) return;
+                            setEditMeetupLat(v);
+                            setEditPinTouched(true);
+                          }}
+                          className="w-full min-h-[44px] bg-card border border-border rounded-xl px-3 py-2.5 font-mono text-[13px] text-foreground focus:outline-none focus:border-primary/60 transition-colors touch-manipulation disabled:opacity-50"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+                          Longitude (°)
+                        </label>
+                        <input
+                          type="number"
+                          step="any"
+                          min={-180}
+                          max={180}
+                          value={editMeetupLng}
+                          disabled={editSaving || editFieldsLocked}
+                          onChange={(e) => {
+                            const v = parseFloat(e.target.value);
+                            if (!Number.isFinite(v) || Math.abs(v) > 180) return;
+                            setEditMeetupLng(v);
+                            setEditPinTouched(true);
+                          }}
+                          className="w-full min-h-[44px] bg-card border border-border rounded-xl px-3 py-2.5 font-mono text-[13px] text-foreground focus:outline-none focus:border-primary/60 transition-colors touch-manipulation disabled:opacity-50"
+                        />
+                      </div>
+                    </div>
+                    <p className="mt-2 text-[11px] font-mono text-muted-foreground">
+                      {Number(editMeetupLat).toFixed(6)}, {Number(editMeetupLng).toFixed(6)}
                     </p>
                   </div>
                 </div>
 
-                <div className="px-4 pb-4 pt-3 border-t border-zinc-800 flex gap-2">
+                <div className="px-4 pb-4 pt-3 border-t border-border flex gap-2">
                   <button
                     type="button"
                     disabled={editSaving}
                     onClick={() => setEditOpen(false)}
-                    className="flex-1 min-h-[44px] rounded-xl border border-zinc-700 text-zinc-200 font-bold hover:border-zinc-500 disabled:opacity-50"
+                    className="flex-1 min-h-[44px] rounded-xl border border-border text-foreground/90 font-bold hover:border-zinc-500 disabled:opacity-50"
                   >
                     Cancel
                   </button>
@@ -1332,9 +1579,9 @@ export default function RunDetailPage() {
                     type="button"
                     disabled={editSaving}
                     onClick={saveRunEdits}
-                    className="flex-1 min-h-[44px] rounded-xl bg-primary text-black font-black hover:bg-primary/90 disabled:opacity-50"
+                    className="flex-1 min-h-[44px] rounded-xl bg-primary text-primary-foreground font-black hover:bg-primary/90 disabled:opacity-50"
                   >
-                    {editSaving ? 'Saving…' : 'Save changes'}
+                    {editSaving ? 'Saving…' : editFieldsLocked ? 'Postpone run' : 'Save changes'}
                   </button>
                 </div>
               </motion.div>
@@ -1368,11 +1615,11 @@ export default function RunDetailPage() {
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden"
+          className="bg-card border border-border rounded-2xl overflow-hidden"
         >
           {/* Flyer / poster (optional) */}
           {run.flyer_image && String(run.flyer_image).trim() ? (
-            <div className="relative h-[220px] bg-zinc-950">
+            <div className="relative h-[220px] bg-muted">
               <img
                 src={
                   ensureStoragePublicObjectUrl(String(run.flyer_image)) || String(run.flyer_image)
@@ -1387,7 +1634,7 @@ export default function RunDetailPage() {
           ) : null}
 
           {/* Club + difficulty header */}
-          <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-zinc-800/60">
+          <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-border/60">
             <div className="flex items-center gap-2 min-w-0">
               {run.club?.logo ? (
                 <img
@@ -1417,7 +1664,7 @@ export default function RunDetailPage() {
                   </span>
                 </div>
               ) : (
-                <p className="text-[13px] text-zinc-500">Community / personal</p>
+                <p className="text-[13px] text-muted-foreground">Community / personal</p>
               )}
             </div>
             <span className={`flex-shrink-0 px-2.5 py-1 text-[11px] font-bold uppercase rounded-lg ${getDifficultyColor(run.difficulty)}`}>
@@ -1427,15 +1674,15 @@ export default function RunDetailPage() {
 
           {/* Main info */}
           <div className="px-4 py-4 space-y-3">
-            <h2 className="text-[20px] font-black text-white leading-snug">{run.title}</h2>
+            <h2 className="text-[20px] font-black text-foreground leading-snug">{run.title}</h2>
 
             {run.description && (
-              <p className="text-[14px] text-zinc-400 leading-relaxed">{run.description}</p>
+              <p className="text-[14px] text-muted-foreground leading-relaxed">{run.description}</p>
             )}
 
             {/* Host / club transparency */}
-            <div className="rounded-xl border border-zinc-800 bg-zinc-950/40 px-3 py-3 space-y-2">
-              <p className="text-[10px] font-black uppercase tracking-wider text-zinc-500">Hosting & accountability</p>
+            <div className="rounded-xl border border-border bg-muted/40 px-3 py-3 space-y-2">
+              <p className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">Hosting & accountability</p>
               {run.club_id && run.club ? (
                 <Link
                   href={`/clubs/${run.club_id}`}
@@ -1445,7 +1692,7 @@ export default function RunDetailPage() {
                     <img
                       src={ensureStoragePublicObjectUrl(run.club.logo) || run.club.logo}
                       alt=""
-                      className="w-9 h-9 rounded-full object-cover flex-shrink-0 border border-zinc-700"
+                      className="w-9 h-9 rounded-full object-cover flex-shrink-0 border border-border"
                     />
                   ) : (
                     <div className="w-9 h-9 rounded-full bg-primary/15 flex items-center justify-center flex-shrink-0 border border-primary/30">
@@ -1453,12 +1700,12 @@ export default function RunDetailPage() {
                     </div>
                   )}
                   <div className="flex-1 min-w-0">
-                    <p className="text-[11px] text-zinc-500 uppercase font-bold">Club listing</p>
-                    <p className="text-[14px] font-bold text-white truncate group-hover:text-primary/90 transition-colors">
+                    <p className="text-[11px] text-muted-foreground uppercase font-bold">Club listing</p>
+                    <p className="text-[14px] font-bold text-foreground truncate group-hover:text-primary/90 transition-colors">
                       {run.club.name}
                     </p>
                   </div>
-                  <ChevronRight size={18} className="text-zinc-600 group-hover:text-primary/90 flex-shrink-0" />
+                  <ChevronRight size={18} className="text-muted-foreground group-hover:text-primary/90 flex-shrink-0" />
                 </Link>
               ) : run.run_source === 'club_official' ? (
                 <p className="text-[13px] text-emerald-400/95 font-semibold">Official listing · Staff verified (no club page)</p>
@@ -1466,29 +1713,29 @@ export default function RunDetailPage() {
               {hostProfile && run.host_id ? (
                 <Link
                   href={`/profile/${run.host_id}`}
-                  className="flex items-center gap-2.5 min-w-0 group pt-1 border-t border-zinc-800/80"
+                  className="flex items-center gap-2.5 min-w-0 group pt-1 border-t border-border/80"
                 >
-                  <div className="w-9 h-9 rounded-full bg-zinc-800 overflow-hidden flex-shrink-0 border border-zinc-700">
+                  <div className="w-9 h-9 rounded-full bg-zinc-800 overflow-hidden flex-shrink-0 border border-border">
                     {hostProfile.avatar_url ? (
                       <img src={hostProfile.avatar_url} alt="" className="w-full h-full object-cover" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
-                        <User size={16} className="text-zinc-500" />
+                        <User size={16} className="text-muted-foreground" />
                       </div>
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-[11px] text-zinc-500 uppercase font-bold">Organizer profile</p>
-                    <p className="text-[14px] font-bold text-white truncate group-hover:text-primary/90 transition-colors">
+                    <p className="text-[11px] text-muted-foreground uppercase font-bold">Organizer profile</p>
+                    <p className="text-[14px] font-bold text-foreground truncate group-hover:text-primary/90 transition-colors">
                       {hostProfile.name ?? 'Host'}
                     </p>
                   </div>
-                  <ChevronRight size={18} className="text-zinc-600 group-hover:text-primary/90 flex-shrink-0" />
+                  <ChevronRight size={18} className="text-muted-foreground group-hover:text-primary/90 flex-shrink-0" />
                 </Link>
               ) : run.host_id ? (
                 <Link
                   href={`/profile/${run.host_id}`}
-                  className="text-[13px] text-primary font-semibold hover:text-primary/90 inline-flex items-center gap-1 pt-1 border-t border-zinc-800/80"
+                  className="text-[13px] text-primary font-semibold hover:text-primary/90 inline-flex items-center gap-1 pt-1 border-t border-border/80"
                 >
                   View organizer profile <ExternalLink size={14} />
                 </Link>
@@ -1499,17 +1746,17 @@ export default function RunDetailPage() {
             <div className="space-y-2.5">
               <div className="flex items-start gap-2.5 text-[14px]">
                 <Calendar size={15} className="text-primary flex-shrink-0 mt-0.5" />
-                <span className="text-zinc-300">{formatRunDate(run.date)}</span>
+                <span className="text-muted-foreground">{formatRunDate(run.date)}</span>
               </div>
 
               {(run.meetup_latitude != null && run.meetup_longitude != null) || run.meetup_location ? (
                 <div className="flex items-start gap-2.5 text-[14px]">
                   <MapPin size={15} className="text-primary flex-shrink-0 mt-0.5" />
                   <div className="min-w-0">
-                    <p className="text-[11px] font-bold uppercase text-zinc-500 mb-0.5">Staging area (recorded)</p>
+                    <p className="text-[11px] font-bold uppercase text-muted-foreground mb-0.5">Staging area (recorded)</p>
                     {run.meetup_latitude != null && run.meetup_longitude != null ? (
                       <>
-                        <p className="text-zinc-300 font-mono text-[13px]">
+                        <p className="text-muted-foreground font-mono text-[13px]">
                           {Number(run.meetup_latitude).toFixed(5)}, {Number(run.meetup_longitude).toFixed(5)}
                         </p>
                         {stagingDirectionsUrl && (
@@ -1524,7 +1771,7 @@ export default function RunDetailPage() {
                         )}
                       </>
                     ) : (
-                      <span className="text-zinc-300">{run.meetup_location}</span>
+                      <span className="text-muted-foreground">{run.meetup_location}</span>
                     )}
                   </div>
                 </div>
@@ -1532,7 +1779,7 @@ export default function RunDetailPage() {
 
               <div className="flex items-center gap-2.5 text-[14px]">
                 <Users size={15} className="text-primary flex-shrink-0" />
-                <span className={isFull ? 'text-red-400' : 'text-zinc-300'}>
+                <span className={isFull ? 'text-red-400' : 'text-muted-foreground'}>
                   {participants.length}
                   {run.max_participants != null ? `/${run.max_participants}` : ''} riders joined
                   {isFull && ' · Full'}
@@ -1544,11 +1791,11 @@ export default function RunDetailPage() {
                   <Mountain size={15} className="text-primary flex-shrink-0" />
                   <Link
                     href={`/trails/${run.trail_id}`}
-                    className="text-zinc-300 hover:text-primary/90 transition-colors min-w-0"
+                    className="text-muted-foreground hover:text-primary/90 transition-colors min-w-0"
                   >
                     <span className="font-semibold">{run.trail.name}</span>
                     {run.trail.difficulty && (
-                      <span className="text-zinc-500"> · {run.trail.difficulty}</span>
+                      <span className="text-muted-foreground"> · {run.trail.difficulty}</span>
                     )}
                     <span className="sr-only"> — trail details</span>
                   </Link>
@@ -1558,7 +1805,7 @@ export default function RunDetailPage() {
               {run.vehicle_requirements && (
                 <div className="flex items-start gap-2.5 text-[14px]">
                   <AlertTriangle size={15} className="text-primary flex-shrink-0 mt-0.5" />
-                  <span className="text-zinc-300">{run.vehicle_requirements}</span>
+                  <span className="text-muted-foreground">{run.vehicle_requirements}</span>
                 </div>
               )}
 
@@ -1566,8 +1813,8 @@ export default function RunDetailPage() {
                 <div className="flex items-start gap-2.5 text-[14px]">
                   <Radio size={15} className="text-cyan-400 flex-shrink-0 mt-0.5" />
                   <div className="min-w-0">
-                    <p className="text-[11px] font-bold uppercase text-zinc-500 mb-0.5">Comms / radio</p>
-                    <span className="text-zinc-200 leading-snug break-words">{run.comms_note}</span>
+                    <p className="text-[11px] font-bold uppercase text-muted-foreground mb-0.5">Comms / radio</p>
+                    <span className="text-foreground/90 leading-snug break-words">{run.comms_note}</span>
                   </div>
                 </div>
               )}
@@ -1589,11 +1836,11 @@ export default function RunDetailPage() {
                   href={trailDirectionsUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center justify-center gap-2 py-3 bg-zinc-900 border border-zinc-800 hover:border-primary/40 text-zinc-100 hover:text-white text-[14px] font-bold rounded-xl transition-colors"
+                  className="flex items-center justify-center gap-2 py-3 bg-card border border-border hover:border-primary/40 text-foreground hover:text-foreground text-[14px] font-bold rounded-xl transition-colors"
                 >
                   <Mountain size={15} className="text-primary" />
                   Directions to trail
-                  <ExternalLink size={14} className="text-zinc-500" />
+                  <ExternalLink size={14} className="text-muted-foreground" />
                 </a>
               )}
               {stagingDirectionsUrl && (
@@ -1601,11 +1848,11 @@ export default function RunDetailPage() {
                   href={stagingDirectionsUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center justify-center gap-2 py-3 bg-zinc-900/80 border border-zinc-700 hover:border-primary/35 text-zinc-300 hover:text-white text-[13px] font-semibold rounded-xl transition-colors"
+                  className="flex items-center justify-center gap-2 py-3 bg-card/80 border border-border hover:border-primary/35 text-muted-foreground hover:text-foreground text-[13px] font-semibold rounded-xl transition-colors"
                 >
                   <MapPin size={15} className="text-primary" />
                   Directions to staging pin
-                  <ExternalLink size={13} className="text-zinc-500" />
+                  <ExternalLink size={13} className="text-muted-foreground" />
                 </a>
               )}
             </div>
@@ -1626,8 +1873,8 @@ export default function RunDetailPage() {
                     joined
                       ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
                       : isFull
-                      ? 'bg-zinc-700 text-zinc-500 cursor-not-allowed'
-                      : 'bg-primary hover:opacity-90 text-black'
+                      ? 'bg-zinc-700 text-muted-foreground cursor-not-allowed'
+                      : 'bg-primary hover:opacity-90 text-primary-foreground'
                   }`}
                 >
                   {joining ? (
@@ -1676,7 +1923,7 @@ export default function RunDetailPage() {
                 <div className="flex items-start justify-between gap-2 mb-3">
                   <div className="flex items-center gap-2">
                     <span className="flex items-center justify-center w-7 h-7 rounded-full bg-red-500 animate-pulse flex-shrink-0">
-                      <Siren size={14} className="text-white" />
+                      <Siren size={14} className="text-foreground" />
                     </span>
                     <div>
                       <p className="text-[14px] font-black text-red-400 leading-none">SOS ALERT</p>
@@ -1693,7 +1940,7 @@ export default function RunDetailPage() {
                     <button
                       type="button"
                       onClick={() => setDismissedAlerts((prev) => new Set([...prev, alert.id]))}
-                      className="text-zinc-500 hover:text-zinc-300 transition-colors flex-shrink-0"
+                      className="text-muted-foreground hover:text-muted-foreground transition-colors flex-shrink-0"
                       aria-label="Dismiss alert"
                     >
                       <X size={16} />
@@ -1710,7 +1957,7 @@ export default function RunDetailPage() {
                     href={`https://www.google.com/maps/dir/?api=1&destination=${alert.latitude},${alert.longitude}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center justify-center gap-2 w-full py-2.5 bg-red-500 hover:bg-red-600 text-white text-[13px] font-black rounded-xl transition-colors mb-2"
+                    className="flex items-center justify-center gap-2 w-full py-2.5 bg-red-500 hover:bg-red-600 text-foreground text-[13px] font-black rounded-xl transition-colors mb-2"
                   >
                     <Navigation size={14} />
                     Navigate to Stranded Rider
@@ -1740,18 +1987,18 @@ export default function RunDetailPage() {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.08 }}
-            className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden flex flex-col max-h-[min(380px,52dvh)]"
+            className="bg-card border border-border rounded-2xl overflow-hidden flex flex-col max-h-[min(380px,52dvh)]"
           >
-            <div className="flex items-center gap-2 px-4 py-3 border-b border-zinc-800/80 bg-zinc-900/80">
+            <div className="flex items-center gap-2 px-4 py-3 border-b border-border/80 bg-card/80">
               <MessageCircle size={16} className="text-primary flex-shrink-0" />
               <div className="min-w-0">
-                <p className="text-[13px] font-bold text-white leading-none">Group chat</p>
-                <p className="text-[11px] text-zinc-500 mt-1">Live updates for this run</p>
+                <p className="text-[13px] font-bold text-foreground leading-none">Group chat</p>
+                <p className="text-[11px] text-muted-foreground mt-1">Live updates for this run</p>
               </div>
             </div>
             <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2.5 min-h-[100px]">
               {chatMessages.length === 0 ? (
-                <p className="text-center text-zinc-600 text-[13px] py-8 px-2">
+                <p className="text-center text-muted-foreground text-[13px] py-8 px-2">
                   No messages yet — coordinate meetup time or trail notes here.
                 </p>
               ) : (
@@ -1763,22 +2010,22 @@ export default function RunDetailPage() {
                         {m.users?.avatar_url ? (
                           <img src={m.users.avatar_url} alt="" className="w-full h-full object-cover" />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center text-[10px] font-bold text-zinc-500">
+                          <div className="w-full h-full flex items-center justify-center text-[10px] font-bold text-muted-foreground">
                             {(m.users?.name ?? 'R')[0].toUpperCase()}
                           </div>
                         )}
                       </div>
                       <div className={`min-w-0 max-w-[82%] ${mine ? 'text-right' : ''}`}>
-                        <p className="text-[11px] text-zinc-500 mb-0.5">
+                        <p className="text-[11px] text-muted-foreground mb-0.5">
                           {m.users?.name ?? 'Rider'}
-                          <span className="text-zinc-600 mx-1">·</span>
+                          <span className="text-muted-foreground mx-1">·</span>
                           {new Date(m.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
                         </p>
                         <p
                           className={`text-[13px] leading-snug rounded-xl px-3 py-2 inline-block text-left ${
                             mine
                               ? 'bg-primary/20 text-primary/60 border border-primary/25'
-                              : 'bg-zinc-800 text-zinc-200 border border-zinc-700/80'
+                              : 'bg-zinc-800 text-foreground/90 border border-border/80'
                           }`}
                         >
                           {m.content}
@@ -1790,7 +2037,7 @@ export default function RunDetailPage() {
               )}
               <div ref={chatEndRef} />
             </div>
-            <div className="border-t border-zinc-800 bg-black/20 p-2 space-y-2">
+            <div className="border-t border-border bg-background/20 p-2 space-y-2">
               <div className="flex gap-1.5 overflow-x-auto pb-0.5 -mx-1 px-1 scrollbar-thin">
                 {RUN_GROUP_CHAT_PRESETS.map((preset) => (
                   <button
@@ -1798,7 +2045,7 @@ export default function RunDetailPage() {
                     type="button"
                     onClick={() => void handleSendChat(preset)}
                     disabled={chatSending}
-                    className="flex-shrink-0 max-w-[min(240px,78vw)] text-left text-[11px] font-semibold text-zinc-200 bg-zinc-800/90 hover:bg-zinc-700 border border-zinc-700/80 rounded-lg px-2.5 py-1.5 leading-snug transition-colors disabled:opacity-50"
+                    className="flex-shrink-0 max-w-[min(240px,78vw)] text-left text-[11px] font-semibold text-foreground/90 bg-zinc-800/90 hover:bg-zinc-700 border border-border/80 rounded-lg px-2.5 py-1.5 leading-snug transition-colors disabled:opacity-50"
                   >
                     {preset}
                   </button>
@@ -1816,7 +2063,7 @@ export default function RunDetailPage() {
                     }
                   }}
                   placeholder="Message the group…"
-                  className="flex-1 min-w-0 bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-[14px] text-white placeholder:text-zinc-600 focus:outline-none focus:border-primary/50"
+                  className="flex-1 min-w-0 bg-muted border border-border rounded-xl px-3 py-2.5 text-[14px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50"
                   maxLength={2000}
                   aria-label="Group message"
                 />
@@ -1824,7 +2071,7 @@ export default function RunDetailPage() {
                   type="button"
                   onClick={() => void handleSendChat()}
                   disabled={chatSending || !chatInput.trim()}
-                  className="flex-shrink-0 w-11 h-11 flex items-center justify-center rounded-xl bg-primary hover:opacity-90 text-black disabled:bg-zinc-800 disabled:text-zinc-600 transition-colors"
+                  className="flex-shrink-0 w-11 h-11 flex items-center justify-center rounded-xl bg-primary hover:opacity-90 text-primary-foreground disabled:bg-zinc-800 disabled:text-muted-foreground transition-colors"
                   aria-label="Send message"
                 >
                   {chatSending ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
@@ -1867,7 +2114,7 @@ export default function RunDetailPage() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 onClick={() => setSosConfirmOpen(false)}
-                className="fixed inset-0 bg-black/70 backdrop-blur-sm z-40"
+                className="fixed inset-0 bg-background/70 backdrop-blur-sm z-40"
               />
               {/* Modal */}
               <motion.div
@@ -1877,24 +2124,24 @@ export default function RunDetailPage() {
                 exit={{ opacity: 0, scale: 0.92, y: 20 }}
                 className="fixed bottom-0 left-0 right-0 z-50 max-w-app-shell mx-auto px-4 pb-8"
               >
-                <div className="bg-zinc-950 border border-red-500/40 rounded-2xl p-5">
+                <div className="bg-muted border border-red-500/40 rounded-2xl p-5">
                   <div className="flex items-center justify-center w-12 h-12 rounded-full bg-red-500/15 border border-red-500/30 mx-auto mb-4">
                     <Siren size={22} className="text-red-400" />
                   </div>
-                  <h3 className="text-[17px] font-black text-white text-center mb-2">Send SOS Alert?</h3>
-                  <p className="text-[13px] text-zinc-400 text-center leading-relaxed mb-5">
+                  <h3 className="text-[17px] font-black text-foreground text-center mb-2">Send SOS Alert?</h3>
+                  <p className="text-[13px] text-muted-foreground text-center leading-relaxed mb-5">
                     This will broadcast an emergency alert with your GPS location to everyone in this run. Only use for genuine emergencies.
                   </p>
                   <div className="grid grid-cols-2 gap-3">
                     <button
                       onClick={() => setSosConfirmOpen(false)}
-                      className="py-3 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-[14px] font-bold rounded-xl transition-colors"
+                      className="py-3 bg-zinc-800 hover:bg-zinc-700 text-muted-foreground text-[14px] font-bold rounded-xl transition-colors"
                     >
                       Cancel
                     </button>
                     <button
                       onClick={handleSendSOS}
-                      className="py-3 bg-red-500 hover:bg-red-600 text-white text-[14px] font-black rounded-xl transition-colors"
+                      className="py-3 bg-red-500 hover:bg-red-600 text-foreground text-[14px] font-black rounded-xl transition-colors"
                     >
                       Send SOS
                     </button>
@@ -1912,28 +2159,28 @@ export default function RunDetailPage() {
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
-              className="bg-zinc-900 border border-zinc-700 rounded-2xl p-4 space-y-3"
+              className="bg-card border border-border rounded-2xl p-4 space-y-3"
             >
               <div className="flex items-center gap-2">
                 <BadgeCheck size={15} className="text-primary" />
-                <p className="text-[13px] font-bold text-zinc-300">Host controls</p>
+                <p className="text-[13px] font-bold text-muted-foreground">Host controls</p>
               </div>
 
               {run.status === 'completed' && (
-                <p className="text-[13px] text-zinc-500">
+                <p className="text-[13px] text-muted-foreground">
                   This run is marked complete. You can remove the listing from the app when you no longer need it.
                 </p>
               )}
 
               {run.status === 'upcoming' && (
                 <>
-                  <p className="text-[13px] text-zinc-500">
+                  <p className="text-[13px] text-muted-foreground">
                     Activate when you are ready to depart. Riders can use SOS only while the run is active.
                   </p>
                   <button
                     onClick={handleActivate}
                     disabled={activating || !!hostBusy}
-                    className="w-full flex items-center justify-center gap-2 py-2.5 bg-emerald-500 hover:bg-emerald-600 disabled:bg-zinc-700 text-black disabled:text-zinc-500 text-[14px] font-black rounded-xl transition-colors"
+                    className="w-full flex items-center justify-center gap-2 py-2.5 bg-emerald-500 hover:bg-emerald-600 disabled:bg-zinc-700 text-emerald-950 disabled:text-muted-foreground text-[14px] font-black rounded-xl transition-colors"
                   >
                     {activating ? (
                       <Loader2 size={15} className="animate-spin" />
@@ -1947,13 +2194,13 @@ export default function RunDetailPage() {
 
               {run.status === 'active' && (
                 <>
-                  <p className="text-[13px] text-zinc-500">
+                  <p className="text-[13px] text-muted-foreground">
                     When everyone is back safe, mark complete. It closes chat and SOS for this event.
                   </p>
                   <button
                     onClick={handleCompleteRun}
                     disabled={!!hostBusy}
-                    className="w-full flex items-center justify-center gap-2 py-2.5 bg-emerald-500/90 hover:bg-emerald-500 disabled:bg-zinc-700 text-black disabled:text-zinc-500 text-[14px] font-black rounded-xl transition-colors"
+                    className="w-full flex items-center justify-center gap-2 py-2.5 bg-emerald-500/90 hover:bg-emerald-500 disabled:bg-zinc-700 text-emerald-950 disabled:text-muted-foreground text-[14px] font-black rounded-xl transition-colors"
                   >
                     {hostBusy === 'complete' ? (
                       <Loader2 size={15} className="animate-spin" />
@@ -2003,21 +2250,21 @@ export default function RunDetailPage() {
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden"
+          className="bg-card border border-border rounded-2xl overflow-hidden"
         >
-          <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800/60">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-border/60">
             <div className="flex items-center gap-2">
               <Users size={14} className="text-primary" />
-              <p className="text-[13px] font-bold text-white">Riders ({participants.length})</p>
+              <p className="text-[13px] font-bold text-foreground">Riders ({participants.length})</p>
             </div>
             {run.max_participants != null && (
-              <p className="text-[12px] text-zinc-500">{run.max_participants - participants.length} spots left</p>
+              <p className="text-[12px] text-muted-foreground">{run.max_participants - participants.length} spots left</p>
             )}
           </div>
 
           {participants.length === 0 ? (
             <div className="px-4 py-8 text-center">
-              <p className="text-zinc-600 text-[13px]">No riders yet — be the first!</p>
+              <p className="text-muted-foreground text-[13px]">No riders yet — be the first!</p>
             </div>
           ) : (
             <div className="divide-y divide-zinc-800/50">
@@ -2038,15 +2285,15 @@ export default function RunDetailPage() {
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
-                        <User size={15} className="text-zinc-600" />
+                        <User size={15} className="text-muted-foreground" />
                       </div>
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-[14px] font-semibold text-white truncate">
+                    <p className="text-[14px] font-semibold text-foreground truncate">
                       {p.users?.name ?? 'Rider'}
                       {run.host_id === p.user_id && (
-                        <span className="ml-1.5 px-1.5 py-px text-[9px] font-black text-black bg-primary rounded leading-none">
+                        <span className="ml-1.5 px-1.5 py-px text-[9px] font-black text-primary-foreground bg-primary rounded leading-none">
                           HOST
                         </span>
                       )}
@@ -2055,7 +2302,7 @@ export default function RunDetailPage() {
                   <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${
                     p.rsvp_status === 'going'
                       ? 'bg-emerald-500/15 text-emerald-400'
-                      : 'bg-zinc-700 text-zinc-400'
+                      : 'bg-zinc-700 text-muted-foreground'
                   }`}>
                     {p.rsvp_status === 'going'
                       ? 'Going'
@@ -2073,20 +2320,20 @@ export default function RunDetailPage() {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.11 }}
-            className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden"
+            className="bg-card border border-border rounded-2xl overflow-hidden"
           >
-            <div className="flex items-center gap-2 px-4 py-3 border-b border-zinc-800/60">
+            <div className="flex items-center gap-2 px-4 py-3 border-b border-border/60">
               <StickyNote size={15} className="text-primary flex-shrink-0" />
               <div className="min-w-0">
-                <p className="text-[13px] font-bold text-white leading-none">Trip notes</p>
-                <p className="text-[11px] text-zinc-500 mt-1">
+                <p className="text-[13px] font-bold text-foreground leading-none">Trip notes</p>
+                <p className="text-[11px] text-muted-foreground mt-1">
                   Short write-ups from people who were on this run — helpful for the next group. No scores or leaderboards.
                 </p>
               </div>
             </div>
             <div className="px-4 py-4 space-y-4">
               {runReflections.length === 0 ? (
-                <p className="text-[13px] text-zinc-600 text-center py-2">
+                <p className="text-[13px] text-muted-foreground text-center py-2">
                   No notes yet{user && (joined || isHost) ? ' — add yours below.' : '.'}
                 </p>
               ) : (
@@ -2094,29 +2341,29 @@ export default function RunDetailPage() {
                   {runReflections.map((r) => (
                     <li
                       key={r.id}
-                      className="rounded-xl border border-zinc-800 bg-zinc-950/50 px-3 py-3"
+                      className="rounded-xl border border-border bg-muted/50 px-3 py-3"
                     >
-                      <p className="text-[11px] text-zinc-500 mb-1.5">
+                      <p className="text-[11px] text-muted-foreground mb-1.5">
                         {(r.users?.name ?? participants.find((p) => p.user_id === r.user_id)?.users?.name) ?? 'Rider'}
-                        <span className="text-zinc-600 mx-1">·</span>
+                        <span className="text-muted-foreground mx-1">·</span>
                         {new Date(r.created_at).toLocaleDateString('en-US', {
                           month: 'short',
                           day: 'numeric',
                           year: 'numeric',
                         })}
                         {r.updated_at !== r.created_at && (
-                          <span className="text-zinc-600"> · edited</span>
+                          <span className="text-muted-foreground"> · edited</span>
                         )}
                       </p>
-                      <p className="text-[14px] text-zinc-200 leading-relaxed whitespace-pre-wrap">{r.body}</p>
+                      <p className="text-[14px] text-foreground/90 leading-relaxed whitespace-pre-wrap">{r.body}</p>
                     </li>
                   ))}
                 </ul>
               )}
 
               {user && (joined || isHost) && (
-                <div className="space-y-2 pt-1 border-t border-zinc-800/80">
-                  <label className="text-[11px] font-bold uppercase text-zinc-500 tracking-wide">
+                <div className="space-y-2 pt-1 border-t border-border/80">
+                  <label className="text-[11px] font-bold uppercase text-muted-foreground tracking-wide">
                     Your note
                   </label>
                   <textarea
@@ -2128,13 +2375,13 @@ export default function RunDetailPage() {
                     placeholder="How were trail conditions, pacing, and the convoy? Anything the next crew should know."
                     rows={4}
                     maxLength={4000}
-                    className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-[14px] text-white placeholder:text-zinc-600 focus:outline-none focus:border-primary/50 resize-y min-h-[100px]"
+                    className="w-full bg-muted border border-border rounded-xl px-3 py-2.5 text-[14px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 resize-y min-h-[100px]"
                   />
                   <button
                     type="button"
                     onClick={() => void handleSaveReflection()}
                     disabled={reflectionSaving || !reflectionBody.trim()}
-                    className="w-full flex items-center justify-center gap-2 py-3 bg-primary hover:opacity-90 disabled:bg-zinc-800 text-black disabled:text-zinc-500 text-[14px] font-bold rounded-xl transition-colors"
+                    className="w-full flex items-center justify-center gap-2 py-3 bg-primary hover:opacity-90 disabled:bg-zinc-800 text-primary-foreground disabled:text-muted-foreground text-[14px] font-bold rounded-xl transition-colors"
                   >
                     {reflectionSaving ? <Loader2 size={16} className="animate-spin" /> : null}
                     {reflectionSaving ? 'Saving…' : 'Save trip note'}
