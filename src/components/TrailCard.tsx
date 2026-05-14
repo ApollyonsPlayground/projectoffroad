@@ -128,7 +128,7 @@ export default function TrailCard({ trail }: TrailCardProps) {
               href={trail.onxUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex w-full items-center justify-center gap-2 py-3 bg-primary hover:opacity-90 text-center text-white text-xs font-bold uppercase transition-colors"
+              className="flex w-full items-center justify-center gap-2 py-3 bg-primary hover:opacity-90 text-center text-foreground text-xs font-bold uppercase transition-colors"
             >
               <span className="font-medium">Open in onX</span>
             </a>

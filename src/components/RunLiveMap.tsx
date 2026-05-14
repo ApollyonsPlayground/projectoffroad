@@ -257,12 +257,12 @@ export default function RunLiveMap({
   const defaultZoom = markerPoints.length === 0 && !refLatLng ? 9 : 12;
 
   return (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden">
-      <div className="flex items-center gap-2 px-4 py-3 border-b border-zinc-800/80">
+    <div className="bg-card border border-border rounded-2xl overflow-hidden">
+      <div className="flex items-center gap-2 px-4 py-3 border-b border-border/80">
         <Navigation size={16} className="text-primary flex-shrink-0" />
         <div className="min-w-0 flex-1">
-          <p className="text-[13px] font-bold text-white leading-none">Live map</p>
-          <p className="text-[11px] text-zinc-500 mt-1">
+          <p className="text-[13px] font-bold text-foreground leading-none">Live map</p>
+          <p className="text-[11px] text-muted-foreground mt-1">
             Riders who opt in appear here when they have signal. Positions older than 45 minutes are hidden.
           </p>
         </div>
@@ -294,7 +294,7 @@ export default function RunLiveMap({
               }}
             >
               <Popup className="run-live-map-popup" closeButton={false}>
-                <div className="text-[12px] text-zinc-200 font-semibold">Trail / staging reference</div>
+                <div className="text-[12px] text-foreground/90 font-semibold">Trail / staging reference</div>
               </Popup>
             </CircleMarker>
           )}
@@ -342,8 +342,8 @@ export default function RunLiveMap({
         </MapContainer>
 
         {visibleRows.length === 0 && (
-          <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/25 px-6">
-            <p className="text-center text-[13px] text-zinc-400 font-medium">
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-background/25 px-6">
+            <p className="text-center text-[13px] text-muted-foreground font-medium">
               No live positions yet. Turn on sharing below when you are on the trail.
             </p>
           </div>
@@ -351,7 +351,7 @@ export default function RunLiveMap({
       </div>
 
       {user && (
-        <div className="p-4 border-t border-zinc-800 flex flex-col gap-2">
+        <div className="p-4 border-t border-border flex flex-col gap-2">
           <button
             type="button"
             onClick={() => void handleToggleShare()}
@@ -359,13 +359,13 @@ export default function RunLiveMap({
             className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl text-[14px] font-bold transition-colors ${
               sharing
                 ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/35 hover:bg-emerald-500/25'
-                : 'bg-primary hover:opacity-90 text-black border border-primary/30'
+                : 'bg-primary hover:opacity-90 text-primary-foreground border border-primary/30'
             } disabled:opacity-60`}
           >
             {shareBusy ? <Loader2 size={17} className="animate-spin" /> : <MapPin size={17} />}
             {shareBusy ? 'Working…' : sharing ? 'Stop sharing my location' : 'Share my location'}
           </button>
-          <p className="text-[11px] text-zinc-600 text-center leading-snug">
+          <p className="text-[11px] text-muted-foreground text-center leading-snug">
             Battery tip: sharing sends your GPS about every 12 seconds while this page is open.
           </p>
         </div>

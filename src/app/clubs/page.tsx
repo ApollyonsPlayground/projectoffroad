@@ -148,7 +148,7 @@ function ClubPosterCard({ club, index }: { club: Club; index: number }) {
           )}
         </div>
         {club.distance !== undefined && (
-          <span className="flex items-center gap-1 px-2 py-1 bg-black/50 backdrop-blur-sm text-white text-xs font-semibold rounded">
+          <span className="flex items-center gap-1 px-2 py-1 bg-background/50 backdrop-blur-sm text-foreground text-xs font-semibold rounded">
             <Navigation size={12} className="text-primary" />
             {club.distance < 1 ? '<1' : Math.round(club.distance)} mi
           </span>
@@ -158,7 +158,7 @@ function ClubPosterCard({ club, index }: { club: Club; index: number }) {
       {/* Content at Bottom */}
       <div className="absolute bottom-0 left-0 right-0 p-4">
         {/* Logo */}
-        <div className="w-16 h-16 rounded-full bg-zinc-900/90 backdrop-blur-sm border-2 border-primary/50 overflow-hidden mb-3 shadow-xl">
+        <div className="w-16 h-16 rounded-full bg-card/90 backdrop-blur-sm border-2 border-primary/50 overflow-hidden mb-3 shadow-xl">
           {club.logo ? (
             <img
               src={club.logo}
@@ -173,14 +173,14 @@ function ClubPosterCard({ club, index }: { club: Club; index: number }) {
         </div>
 
         {/* Name & Location */}
-        <h3 className="text-xl font-bold text-white mb-1 text-balance">{club.name}</h3>
-        <div className="flex items-center gap-1.5 text-sm text-zinc-300 mb-2">
+        <h3 className="text-xl font-bold text-foreground mb-1 text-balance">{club.name}</h3>
+        <div className="flex items-center gap-1.5 text-sm text-muted-foreground mb-2">
           <MapPin size={14} className="text-primary" />
           <span>{club.location}</span>
         </div>
 
         {/* Member Count */}
-        <div className="flex items-center gap-1.5 text-sm text-zinc-400 mb-4">
+        <div className="flex items-center gap-1.5 text-sm text-muted-foreground mb-4">
           <Users size={14} />
           <span>{club.member_count || 0} members</span>
         </div>
@@ -205,7 +205,7 @@ function ClubPosterCard({ club, index }: { club: Club; index: number }) {
               href={club.website_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-zinc-800/80 hover:bg-zinc-700 backdrop-blur-sm text-white text-sm font-semibold rounded-lg transition-colors border border-zinc-700"
+              className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-zinc-800/80 hover:bg-zinc-700 backdrop-blur-sm text-foreground text-sm font-semibold rounded-lg transition-colors border border-border"
             >
               <Globe size={18} />
               Website

@@ -155,7 +155,7 @@ export default function ClubGarage({ clubId, currentUserId, canUpload, isClubOwn
                   <button
                     type="button"
                     onClick={() => void removePhoto(photo)}
-                    className="absolute top-2 right-2 p-2 rounded-lg bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="absolute top-2 right-2 p-2 rounded-lg bg-background/60 text-foreground opacity-0 group-hover:opacity-100 transition-opacity"
                     aria-label="Remove photo"
                   >
                     <Trash2 size={16} />

@@ -217,8 +217,8 @@ export default function ClubChatPage() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-black flex flex-col items-center justify-center gap-3 px-6 text-center">
-        <p className="text-zinc-400">Sign in to open club chat.</p>
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-3 px-6 text-center">
+        <p className="text-muted-foreground">Sign in to open club chat.</p>
         <Link href="/login/" className="text-primary/90 font-bold">Sign in</Link>
       </div>
     );
@@ -226,7 +226,7 @@ export default function ClubChatPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <Loader2 size={28} className="animate-spin text-primary" />
       </div>
     );
@@ -234,20 +234,20 @@ export default function ClubChatPage() {
 
   if (!allowed) {
     return (
-      <div className="min-h-screen bg-black pb-24">
-        <header className="sticky top-0 z-40 bg-black/90 backdrop-blur-xl border-b border-zinc-900 safe-top">
+      <div className="min-h-screen bg-background pb-24">
+        <header className="sticky top-0 z-40 bg-background/90 backdrop-blur-xl border-b border-border safe-top">
           <div className="max-w-app-shell mx-auto px-4 py-3 flex items-center gap-3">
             <button
               onClick={() => router.back()}
-              className="w-9 h-9 rounded-full bg-zinc-900 text-zinc-400 flex items-center justify-center"
+              className="w-9 h-9 rounded-full bg-card text-muted-foreground flex items-center justify-center"
               aria-label="Back"
             >
               <ArrowLeft size={18} />
             </button>
-            <h1 className="text-[16px] font-black text-white truncate flex-1">Club chat</h1>
+            <h1 className="text-[16px] font-black text-foreground truncate flex-1">Club chat</h1>
           </div>
         </header>
-        <div className="max-w-app-shell mx-auto px-4 py-10 text-center text-zinc-500">
+        <div className="max-w-app-shell mx-auto px-4 py-10 text-center text-muted-foreground">
           This chat is for approved club members only.
         </div>
         <BottomNav />
@@ -256,46 +256,46 @@ export default function ClubChatPage() {
   }
 
   return (
-    <div className="min-h-screen bg-black pb-28">
-      <header className="sticky top-0 z-40 bg-black/90 backdrop-blur-xl border-b border-zinc-900 safe-top">
+    <div className="min-h-screen bg-background pb-28">
+      <header className="sticky top-0 z-40 bg-background/90 backdrop-blur-xl border-b border-border safe-top">
         <div className="max-w-app-shell mx-auto px-4 py-3 flex items-center gap-3">
           <button
             onClick={() => router.back()}
-            className="w-9 h-9 rounded-full bg-zinc-900 text-zinc-400 flex items-center justify-center"
+            className="w-9 h-9 rounded-full bg-card text-muted-foreground flex items-center justify-center"
             aria-label="Back"
           >
             <ArrowLeft size={18} />
           </button>
-          <h1 className="text-[16px] font-black text-white truncate flex-1">Club chat</h1>
+          <h1 className="text-[16px] font-black text-foreground truncate flex-1">Club chat</h1>
         </div>
       </header>
 
       <main className="max-w-app-shell mx-auto px-4 pt-4 space-y-3">
         {messages.length === 0 ? (
-          <p className="text-zinc-600 text-[13px] text-center py-10">No messages yet.</p>
+          <p className="text-muted-foreground text-[13px] text-center py-10">No messages yet.</p>
         ) : (
           messages.map((m) => {
             const mine = m.user_id === user.id;
             const label = (m.author?.name ?? 'Member').trim() || 'Member';
             return (
               <div key={m.id} className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[86%] rounded-2xl border ${mine ? 'bg-primary/15 border-primary/25' : 'bg-zinc-950 border-zinc-800'} overflow-hidden`}>
+                <div className={`max-w-[86%] rounded-2xl border ${mine ? 'bg-primary/15 border-primary/25' : 'bg-muted border-border'} overflow-hidden`}>
                   <div className="px-3 pt-2">
-                    {!mine && <p className="text-[11px] font-bold text-zinc-400">{label}</p>}
+                    {!mine && <p className="text-[11px] font-bold text-muted-foreground">{label}</p>}
                     {m.content?.trim() ? (
-                      <p className="text-[14px] text-zinc-200 leading-relaxed whitespace-pre-wrap break-words pb-2">
+                      <p className="text-[14px] text-foreground/90 leading-relaxed whitespace-pre-wrap break-words pb-2">
                         {m.content}
                       </p>
                     ) : null}
                   </div>
                   {m.signedUrl ? (
                     m.media_type === 'video' ? (
-                      <video src={m.signedUrl} controls playsInline className="w-full max-h-[340px] bg-black" />
+                      <video src={m.signedUrl} controls playsInline className="w-full max-h-[340px] bg-background" />
                     ) : (
                       <img src={m.signedUrl} alt="" className="w-full max-h-[420px] object-cover" />
                     )
                   ) : null}
-                  <div className="px-3 py-1.5 text-[11px] text-zinc-600">
+                  <div className="px-3 py-1.5 text-[11px] text-muted-foreground">
                     {new Date(m.created_at).toLocaleString()}
                   </div>
                 </div>
@@ -309,31 +309,31 @@ export default function ClubChatPage() {
       <div className="fixed bottom-[72px] left-0 right-0">
         <div className="max-w-app-shell mx-auto px-4">
           {previewUrl ? (
-            <div className="mb-2 rounded-xl border border-zinc-800 bg-zinc-950 overflow-hidden">
-              <div className="flex items-center justify-between px-3 py-2 border-b border-zinc-800">
-                <p className="text-[12px] text-zinc-300 flex items-center gap-2">
+            <div className="mb-2 rounded-xl border border-border bg-muted overflow-hidden">
+              <div className="flex items-center justify-between px-3 py-2 border-b border-border">
+                <p className="text-[12px] text-muted-foreground flex items-center gap-2">
                   <ImageIcon size={14} className="text-primary/90" />
                   Attachment ready
                 </p>
                 <button
                   type="button"
                   onClick={() => setFile(null)}
-                  className="text-zinc-400 hover:text-white"
+                  className="text-muted-foreground hover:text-foreground"
                   aria-label="Remove attachment"
                 >
                   <X size={16} />
                 </button>
               </div>
               {file?.type.startsWith('video/') ? (
-                <video src={previewUrl} controls className="w-full max-h-[240px] bg-black" />
+                <video src={previewUrl} controls className="w-full max-h-[240px] bg-background" />
               ) : (
                 <img src={previewUrl} alt="" className="w-full max-h-[240px] object-cover" />
               )}
             </div>
           ) : null}
 
-          <div className="flex items-end gap-2 rounded-2xl border border-zinc-800 bg-zinc-950 p-2">
-            <label className="w-10 h-10 rounded-xl border border-zinc-800 bg-black/40 flex items-center justify-center text-zinc-400 hover:text-white cursor-pointer">
+          <div className="flex items-end gap-2 rounded-2xl border border-border bg-muted p-2">
+            <label className="w-10 h-10 rounded-xl border border-border bg-background/40 flex items-center justify-center text-muted-foreground hover:text-foreground cursor-pointer">
               <input
                 type="file"
                 accept="image/*,video/*"
@@ -348,13 +348,13 @@ export default function ClubChatPage() {
               onChange={(e) => setText(e.target.value)}
               placeholder="Message the club…"
               rows={1}
-              className="flex-1 bg-transparent text-zinc-200 text-[14px] resize-none outline-none px-1 py-2 max-h-28"
+              className="flex-1 bg-transparent text-foreground/90 text-[14px] resize-none outline-none px-1 py-2 max-h-28"
             />
             <button
               type="button"
               onClick={send}
               disabled={sending}
-              className="w-10 h-10 rounded-xl bg-primary text-black flex items-center justify-center disabled:opacity-50"
+              className="w-10 h-10 rounded-xl bg-primary text-primary-foreground flex items-center justify-center disabled:opacity-50"
               aria-label="Send"
             >
               {sending ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}

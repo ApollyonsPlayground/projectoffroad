@@ -51,7 +51,7 @@ export default function RigPostCard({ post }: RigPostCardProps) {
       {/* Header */}
       <div className="flex items-center justify-between p-3 border-b border-neutral-800">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-moss rounded-full flex items-center justify-center text-xs font-bold text-white">
+          <div className="w-8 h-8 bg-moss rounded-full flex items-center justify-center text-xs font-bold text-foreground">
             {post.user_name.charAt(0).toUpperCase()}
           </div>
           <span className="text-sm font-bold text-neutral-200">{post.user_name}</span>
@@ -87,12 +87,12 @@ export default function RigPostCard({ post }: RigPostCardProps) {
           <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3">
             <div className="flex flex-wrap gap-1">
               {post.rig_specs.vehicle && (
-                <span className="px-2 py-0.5 bg-moss/80 text-white text-xs font-medium">
+                <span className="px-2 py-0.5 bg-moss/80 text-foreground text-xs font-medium">
                   {post.rig_specs.vehicle}
                 </span>
               )}
               {post.rig_specs.mods && (
-                <span className="px-2 py-0.5 bg-muted-gold/80 text-black text-xs font-medium">
+                <span className="px-2 py-0.5 bg-muted-gold/80 text-primary-foreground text-xs font-medium">
                   {post.rig_specs.mods}
                 </span>
               )}
@@ -116,10 +116,10 @@ export default function RigPostCard({ post }: RigPostCardProps) {
           >
             <Heart size={22} fill={liked ? "currentColor" : "none"} />
           </button>
-          <button className="text-neutral-300 hover:text-white">
+          <button className="text-neutral-300 hover:text-foreground">
             <MessageCircle size={22} />
           </button>
-          <button className="text-neutral-300 hover:text-white">
+          <button className="text-neutral-300 hover:text-foreground">
             <Share2 size={22} />
           </button>
         </div>

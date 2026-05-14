@@ -209,8 +209,8 @@ export function FollowingStoriesStrip({
       <div className={`px-4 ${embedded ? 'pt-2 pb-2' : 'pt-3 pb-2'}`}>
         {!embedded && (
           <div className="flex items-center justify-between mb-2 px-0.5">
-            <p className="text-[11px] font-black uppercase tracking-wider text-zinc-500">Stories</p>
-            {loading && <Loader2 size={14} className="animate-spin text-zinc-600" />}
+            <p className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Stories</p>
+            {loading && <Loader2 size={14} className="animate-spin text-muted-foreground" />}
           </div>
         )}
         <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-1 [overscroll-behavior-x:contain] touch-pan-x">
@@ -221,7 +221,7 @@ export function FollowingStoriesStrip({
             className="flex flex-col items-center gap-1.5 flex-shrink-0 select-none disabled:opacity-50"
           >
             <div className="relative w-[58px] h-[58px] rounded-full p-[2px] bg-gradient-to-br from-primary to-primary/70">
-              <div className="w-full h-full rounded-full bg-black flex items-center justify-center overflow-hidden border-2 border-black">
+              <div className="w-full h-full rounded-full bg-background flex items-center justify-center overflow-hidden border-2 border-black">
                 {postingStory ? (
                   <Loader2 size={20} className="animate-spin text-primary/90" />
                 ) : (
@@ -229,7 +229,7 @@ export function FollowingStoriesStrip({
                 )}
               </div>
             </div>
-            <span className="text-[9px] text-zinc-500 font-medium max-w-[76px] truncate">Add story</span>
+            <span className="text-[9px] text-muted-foreground font-medium max-w-[76px] truncate">Add story</span>
           </button>
 
           {ownBucket && (
@@ -240,7 +240,7 @@ export function FollowingStoriesStrip({
             >
               <motion.div whileTap={{ scale: 0.91 }} className="relative">
                 <div className="relative w-[58px] h-[58px] rounded-full p-[2px] bg-gradient-to-br from-primary to-primary/70">
-                  <div className="w-full h-full rounded-full overflow-hidden bg-zinc-950">
+                  <div className="w-full h-full rounded-full overflow-hidden bg-muted">
                     <img
                       src={
                         ownBucket.profile?.avatar_url ??
@@ -253,8 +253,8 @@ export function FollowingStoriesStrip({
                   </div>
                 </div>
               </motion.div>
-              <span className="text-[9px] text-zinc-500 text-center font-medium max-w-[76px] truncate">Your story</span>
-              <span className="text-[8px] text-zinc-600 -mt-1">{storyPreviewLabel(ownBucket.stories.length)}</span>
+              <span className="text-[9px] text-muted-foreground text-center font-medium max-w-[76px] truncate">Your story</span>
+              <span className="text-[8px] text-muted-foreground -mt-1">{storyPreviewLabel(ownBucket.stories.length)}</span>
             </button>
           )}
 
@@ -280,15 +280,15 @@ export function FollowingStoriesStrip({
               >
                 <motion.div whileTap={{ scale: 0.91 }} className="relative">
                   <div className="relative w-[58px] h-[58px] rounded-full p-[2px] bg-gradient-to-br from-primary to-primary/70">
-                    <div className="w-full h-full rounded-full overflow-hidden bg-zinc-950">
+                    <div className="w-full h-full rounded-full overflow-hidden bg-muted">
                       <img src={src} alt="" className="w-full h-full object-cover" loading="lazy" />
                     </div>
                   </div>
                 </motion.div>
-                <span className="text-[9px] text-zinc-500 text-center font-medium leading-tight max-w-[76px] w-[76px] line-clamp-2">
+                <span className="text-[9px] text-muted-foreground text-center font-medium leading-tight max-w-[76px] w-[76px] line-clamp-2">
                   {dn}
                 </span>
-                <span className="text-[8px] text-zinc-600 -mt-1">{storyPreviewLabel(b.stories.length)}</span>
+                <span className="text-[8px] text-muted-foreground -mt-1">{storyPreviewLabel(b.stories.length)}</span>
               </button>
             );
           })}

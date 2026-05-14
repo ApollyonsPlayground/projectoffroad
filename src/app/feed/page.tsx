@@ -486,7 +486,7 @@ function NewPostDrawer({ open, onClose, onPosted }: {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[9990] bg-black/70 backdrop-blur-sm"
+            className="fixed inset-0 z-[9990] bg-background/70 backdrop-blur-sm"
             onClick={onClose}
           />
           {/* Drawer panel */}
@@ -495,7 +495,7 @@ function NewPostDrawer({ open, onClose, onPosted }: {
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', stiffness: 420, damping: 36 }}
-            className="fixed bottom-0 left-0 right-0 z-[9991] max-w-app-shell mx-auto bg-zinc-950 border border-zinc-800 rounded-t-2xl overflow-hidden"
+            className="fixed bottom-0 left-0 right-0 z-[9991] max-w-app-shell mx-auto bg-muted border border-border rounded-t-2xl overflow-hidden"
             style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -505,16 +505,16 @@ function NewPostDrawer({ open, onClose, onPosted }: {
             </div>
 
             {/* Header */}
-            <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-900">
-              <button onClick={onClose} aria-label="Close drawer" className="p-1 text-zinc-400 hover:text-white transition-colors">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+              <button onClick={onClose} aria-label="Close drawer" className="p-1 text-muted-foreground hover:text-foreground transition-colors">
                 <ChevronDown size={22} />
               </button>
-              <span className="font-bold text-white text-[15px]">New Post</span>
+              <span className="font-bold text-foreground text-[15px]">New Post</span>
               <motion.button
                 whileTap={{ scale: 0.92 }}
                 onClick={handleSubmit}
                 disabled={!body.trim() || isSubmitting}
-                className="flex items-center gap-1.5 px-4 py-1.5 bg-primary disabled:bg-zinc-800 disabled:text-zinc-600 text-black font-bold text-[13px] rounded-full transition-colors min-w-[68px] justify-center"
+                className="flex items-center gap-1.5 px-4 py-1.5 bg-primary disabled:bg-zinc-800 disabled:text-muted-foreground text-primary-foreground font-bold text-[13px] rounded-full transition-colors min-w-[68px] justify-center"
               >
                 {isSubmitting ? (
                   <motion.span
@@ -540,23 +540,23 @@ function NewPostDrawer({ open, onClose, onPosted }: {
                 placeholder="What happened on the trail today?"
                 maxLength={500}
                 rows={4}
-                className="w-full bg-transparent text-zinc-100 text-[15px] leading-relaxed placeholder:text-zinc-600 resize-none outline-none"
+                className="w-full bg-transparent text-foreground text-[15px] leading-relaxed placeholder:text-muted-foreground resize-none outline-none"
               />
 
               <input
                 value={rig}
                 onChange={(e) => setRig(e.target.value)}
                 placeholder="Vehicle (e.g. 2022 Tacoma TRD Pro)"
-                className="w-full mt-2 bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2.5 text-[13px] text-zinc-300 placeholder:text-zinc-600 outline-none focus:border-primary/60 transition-colors"
+                className="w-full mt-2 bg-card border border-border rounded-xl px-3 py-2.5 text-[13px] text-muted-foreground placeholder:text-muted-foreground outline-none focus:border-primary/60 transition-colors"
               />
 
               {/* Image preview */}
               {imagePreview && (
-                <div className="relative mt-3 rounded-xl overflow-hidden border border-zinc-800">
+                <div className="relative mt-3 rounded-xl overflow-hidden border border-border">
                   <img src={imagePreview} alt="Preview" className="w-full max-h-56 object-cover" />
                   <button
                     onClick={() => { setMediaFile(null); setImagePreview(null); }}
-                    className="absolute top-2 right-2 p-1.5 bg-black/70 rounded-full text-zinc-300 hover:text-white"
+                    className="absolute top-2 right-2 p-1.5 bg-background/70 rounded-full text-muted-foreground hover:text-foreground"
                     aria-label="Remove image"
                   >
                     <X size={14} />
@@ -566,7 +566,7 @@ function NewPostDrawer({ open, onClose, onPosted }: {
             </div>
 
             {/* Footer toolbar */}
-            <div className="flex items-center justify-between px-4 py-3 border-t border-zinc-900">
+            <div className="flex items-center justify-between px-4 py-3 border-t border-border">
               <div className="flex items-center gap-3">
                 <input
                   ref={fileInputRef}
@@ -577,7 +577,7 @@ function NewPostDrawer({ open, onClose, onPosted }: {
                 />
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="flex items-center gap-2 text-[13px] text-zinc-500 hover:text-primary/90 transition-colors"
+                  className="flex items-center gap-2 text-[13px] text-muted-foreground hover:text-primary/90 transition-colors"
                 >
                   <ImageIcon size={18} strokeWidth={1.8} />
                   <span>
@@ -593,7 +593,7 @@ function NewPostDrawer({ open, onClose, onPosted }: {
                   </span>
                 )}
               </div>
-              <span className="text-[11px] text-zinc-600 font-mono">{body.length}/500</span>
+              <span className="text-[11px] text-muted-foreground font-mono">{body.length}/500</span>
             </div>
 
             {/* Sticky Post button */}
@@ -603,8 +603,8 @@ function NewPostDrawer({ open, onClose, onPosted }: {
                 onClick={handleSubmit}
                 disabled={!body.trim() || isSubmitting}
                 className="w-full py-4 rounded-2xl font-black text-[16px] flex items-center justify-center gap-2.5 transition-colors
-                  disabled:bg-zinc-900 disabled:text-zinc-600
-                  enabled:bg-primary enabled:text-black enabled:shadow-lg enabled:shadow-primary/30 enabled:hover:opacity-90"
+                  disabled:bg-card disabled:text-muted-foreground
+                  enabled:bg-primary enabled:text-primary-foreground enabled:shadow-lg enabled:shadow-primary/30 enabled:hover:opacity-90"
               >
                 {isSubmitting ? (
                   <Loader2 size={18} className="animate-spin" />
@@ -767,11 +767,11 @@ function ImageLightbox({ src, alt, onClose }: { src: string; alt: string; onClos
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[9998] bg-black/95 flex items-center justify-center p-4"
+      className="fixed inset-0 z-[9998] bg-background/95 flex items-center justify-center p-4"
       onClick={onClose}
     >
       <button
-        className="absolute top-4 right-4 p-2 bg-zinc-900 rounded-full text-zinc-300 hover:text-white z-10"
+        className="absolute top-4 right-4 p-2 bg-card rounded-full text-muted-foreground hover:text-foreground z-10"
         onClick={onClose}
         aria-label="Close"
       >
@@ -836,20 +836,20 @@ function StoryAvatar({
           />
         )}
         <div className={`relative w-[58px] h-[58px] rounded-full p-[2px] ${live ? 'bg-gradient-to-br from-primary to-primary/70' : 'bg-zinc-800'}`}>
-          <div className="w-full h-full rounded-full overflow-hidden bg-zinc-950">
+          <div className="w-full h-full rounded-full overflow-hidden bg-muted">
             <img src={src} alt={alt} className="w-full h-full object-cover" loading="lazy" />
           </div>
         </div>
         {live && (
-          <span className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 px-1.5 py-px bg-primary text-black text-[8px] font-black uppercase rounded-full leading-tight">
+          <span className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 px-1.5 py-px bg-primary text-primary-foreground text-[8px] font-black uppercase rounded-full leading-tight">
             Live
           </span>
         )}
       </motion.div>
-      <span className="text-[9px] text-zinc-500 text-center font-medium leading-tight max-w-[76px] w-[76px]">
-        <span className="block line-clamp-2 break-words text-zinc-400">{label}</span>
+      <span className="text-[9px] text-muted-foreground text-center font-medium leading-tight max-w-[76px] w-[76px]">
+        <span className="block line-clamp-2 break-words text-muted-foreground">{label}</span>
         {subtitle ? (
-          <span className="block line-clamp-2 break-words text-zinc-500 mt-0.5">{subtitle}</span>
+          <span className="block line-clamp-2 break-words text-muted-foreground mt-0.5">{subtitle}</span>
         ) : null}
       </span>
     </button>
@@ -874,13 +874,13 @@ function RunsReelEmptyPlaceholder() {
         <div className="w-[56px] h-[56px] rounded-2xl bg-gradient-to-br from-primary/30 via-primary/10 to-zinc-900 border border-primary/45 flex items-center justify-center shadow-[0_8px_28px_-8px_rgba(249,115,22,0.35)]">
           <span className="text-primary/90 font-black text-[15px] tracking-tight">SO</span>
         </div>
-        <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full bg-black border border-primary/60 text-[8px] font-black uppercase tracking-wider text-primary/90 whitespace-nowrap">
+        <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full bg-background border border-primary/60 text-[8px] font-black uppercase tracking-wider text-primary/90 whitespace-nowrap">
           Coming soon
         </span>
       </div>
       <div className="space-y-0.5">
-        <p className="text-[11px] font-black uppercase tracking-[0.14em] text-zinc-300">Runs reel</p>
-        <p className="text-[10px] text-zinc-500 leading-snug px-1">
+        <p className="text-[11px] font-black uppercase tracking-[0.14em] text-muted-foreground">Runs reel</p>
+        <p className="text-[10px] text-muted-foreground leading-snug px-1">
           Live & upcoming runs will show here — check back after the next trail day.
         </p>
       </div>
@@ -969,7 +969,7 @@ function StoriesBar({ embedded = false }: { embedded?: boolean } = {}) {
     <div>
       {!embedded && (
         <div className="px-4 pt-2">
-          <p className="text-[11px] font-black uppercase tracking-wider text-zinc-500">Runs</p>
+          <p className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Runs</p>
         </div>
       )}
       <div
@@ -1034,13 +1034,13 @@ function HomeStoriesRunsPager({
   }, []);
 
   return (
-    <div className="sticky top-[52px] z-40 bg-black border-b border-zinc-900">
-      <div className="flex border-b border-zinc-800">
+    <div className="sticky top-[52px] z-40 bg-background border-b border-border">
+      <div className="flex border-b border-border">
         <button
           type="button"
           onClick={() => goStrip('runs')}
           className={`relative flex-1 py-2.5 text-center text-[11px] font-black uppercase tracking-wider transition-colors touch-manipulation ${
-            activeStrip === 'runs' ? 'text-primary' : 'text-zinc-500 hover:text-zinc-300'
+            activeStrip === 'runs' ? 'text-primary' : 'text-muted-foreground hover:text-muted-foreground'
           }`}
         >
           Runs
@@ -1052,7 +1052,7 @@ function HomeStoriesRunsPager({
           type="button"
           onClick={() => goStrip('stories')}
           className={`relative flex-1 py-2.5 text-center text-[11px] font-black uppercase tracking-wider transition-colors touch-manipulation ${
-            activeStrip === 'stories' ? 'text-primary' : 'text-zinc-500 hover:text-zinc-300'
+            activeStrip === 'stories' ? 'text-primary' : 'text-muted-foreground hover:text-muted-foreground'
           }`}
         >
           Stories
@@ -1108,7 +1108,7 @@ function StatBtn({
       onClick={onClick}
       aria-label={label}
       className={`flex items-center gap-1.5 group transition-colors ${
-        active && activeColor ? activeColor : 'text-zinc-500 hover:text-zinc-300'
+        active && activeColor ? activeColor : 'text-muted-foreground hover:text-muted-foreground'
       }`}
     >
       <Icon size={17} className={active ? '' : 'group-hover:scale-110 transition-transform'} strokeWidth={1.8} />
@@ -1140,23 +1140,23 @@ function CommentRow({
         {comment.avatar_url ? (
           <img src={comment.avatar_url} alt="" className="w-full h-full object-cover" />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-[8px] font-bold text-zinc-500">
+          <div className="w-full h-full flex items-center justify-center text-[8px] font-bold text-muted-foreground">
             {(comment.user_name ?? 'U')[0].toUpperCase()}
           </div>
         )}
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-baseline gap-1.5 flex-wrap">
-          <span className="text-[12px] font-semibold text-zinc-300">{comment.user_name ?? 'Rider'}</span>
+          <span className="text-[12px] font-semibold text-muted-foreground">{comment.user_name ?? 'Rider'}</span>
           {(comment.role?.toLowerCase() === 'owner' || comment.role?.toLowerCase() === 'admin') && (
             <span
               title={comment.role?.toLowerCase() === 'admin' ? 'Team admin' : 'Team owner'}
-              className="px-1.5 py-px text-[9px] font-black text-black bg-primary rounded leading-none flex-shrink-0"
+              className="px-1.5 py-px text-[9px] font-black text-primary-foreground bg-primary rounded leading-none flex-shrink-0"
             >
               SO
             </span>
           )}
-          <span className="text-[12px] text-zinc-400 break-words">{comment.content}</span>
+          <span className="text-[12px] text-muted-foreground break-words">{comment.content}</span>
         </div>
         {/* Sub-row: actions */}
         <div className="flex items-center gap-3 mt-0.5">
@@ -1165,7 +1165,7 @@ function CommentRow({
             onClick={() => onLike(comment)}
             aria-label={comment.liked_by_me ? 'Unlike comment' : 'Like comment'}
             className={`flex items-center gap-0.5 text-[11px] transition-colors ${
-              comment.liked_by_me ? 'text-primary/90' : 'text-zinc-600 hover:text-zinc-400'
+              comment.liked_by_me ? 'text-primary/90' : 'text-muted-foreground hover:text-muted-foreground'
             }`}
           >
             <Heart size={10} className={comment.liked_by_me ? 'fill-primary/90' : ''} strokeWidth={1.8} />
@@ -1175,7 +1175,7 @@ function CommentRow({
           <button
             onClick={() => onReply(comment)}
             aria-label="Reply"
-            className="text-[11px] text-zinc-600 hover:text-sky-400 transition-colors"
+            className="text-[11px] text-muted-foreground hover:text-sky-400 transition-colors"
           >
             Reply
           </button>
@@ -1183,7 +1183,7 @@ function CommentRow({
           <button
             onClick={() => onFlag(comment)}
             aria-label="Flag comment"
-            className="text-[11px] text-zinc-700 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
+            className="text-[11px] text-muted-foreground hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
           >
             <Flag size={10} strokeWidth={1.8} />
           </button>
@@ -1716,7 +1716,7 @@ function RigPostCard({ post, index }: {
         initial={false}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: index * 0.06, duration: 0.3 }}
-        className="flex gap-3 px-4 py-4 border-b border-zinc-900 bg-black"
+        className="flex gap-3 px-4 py-4 border-b border-border bg-background"
       >
         {/* ── Left column: avatar ───────────────── */}
         <Link href={`/profile/${post.user_id}`} className="flex-shrink-0 pt-0.5 hover:opacity-80 transition-opacity">
@@ -1730,7 +1730,7 @@ function RigPostCard({ post, index }: {
                 onError={() => setAvatarError(true)}
               />
             ) : (
-              <div className="w-full h-full flex items-center justify-center text-zinc-400 font-bold text-sm">
+              <div className="w-full h-full flex items-center justify-center text-muted-foreground font-bold text-sm">
                 {(post.username ?? 'U')[0].toUpperCase()}
               </div>
             )}
@@ -1739,19 +1739,19 @@ function RigPostCard({ post, index }: {
 
         {/* ── Right column: content ─────────────── */}
         <div
-          className={`flex-1 min-w-0${post.repost_of_id ? ' rounded-r-xl border-l-2 border-emerald-500/35 bg-zinc-950/40 pl-3 -ml-0.5' : ''}`}
+          className={`flex-1 min-w-0${post.repost_of_id ? ' rounded-r-xl border-l-2 border-emerald-500/35 bg-muted/40 pl-3 -ml-0.5' : ''}`}
         >
           {post.repost_of_id ? (
-            <div className="flex items-center gap-1.5 text-[11px] text-zinc-500 mb-1.5 -mt-0.5">
+            <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground mb-1.5 -mt-0.5">
               <Repeat2 size={12} className="text-emerald-500/90 shrink-0" aria-hidden />
               <span className="leading-snug">
-                <span className="font-semibold text-zinc-400">{post.username ?? 'Member'}</span>
+                <span className="font-semibold text-muted-foreground">{post.username ?? 'Member'}</span>
                 {' '}reposted
                 {post.original_user_name ? (
                   <>
                     {' '}
                     · Original by{' '}
-                    <span className="text-zinc-300 font-medium">{post.original_user_name}</span>
+                    <span className="text-muted-foreground font-medium">{post.original_user_name}</span>
                   </>
                 ) : null}
               </span>
@@ -1763,7 +1763,7 @@ function RigPostCard({ post, index }: {
             <div className="min-w-0 flex-1">
               {/* Name + verified */}
               <Link href={`/profile/${post.user_id}`} className="flex items-center gap-1 flex-wrap hover:opacity-80 transition-opacity">
-                <span className="font-bold text-[14px] text-white leading-snug">
+                <span className="font-bold text-[14px] text-foreground leading-snug">
                   {post.username ?? 'Anonymous'}
                 </span>
                 {post.verified && (
@@ -1772,7 +1772,7 @@ function RigPostCard({ post, index }: {
                 {(headerRole === 'owner' || headerRole === 'admin') && (
                   <span
                     title={headerRole === 'admin' ? 'SoCalOffroaders admin' : 'SoCalOffroaders owner'}
-                    className="px-1.5 py-0.5 text-[9px] font-black text-black bg-primary rounded-md leading-none flex-shrink-0"
+                    className="px-1.5 py-0.5 text-[9px] font-black text-primary-foreground bg-primary rounded-md leading-none flex-shrink-0"
                   >
                     SO
                   </span>
@@ -1787,17 +1787,17 @@ function RigPostCard({ post, index }: {
                 ) : null}
               </Link>
               {(post.rig_model || post.rig_specs) && (
-                <span className="text-[11px] text-zinc-500 bg-zinc-900 border border-zinc-800 px-1.5 py-px rounded-full font-medium leading-snug truncate max-w-[160px]">
+                <span className="text-[11px] text-muted-foreground bg-card border border-border px-1.5 py-px rounded-full font-medium leading-snug truncate max-w-[160px]">
                   {post.rig_model || post.rig_specs}
                 </span>
               )}
-              <span className="text-[11px] text-zinc-600">{timeAgo(post.created_at)}</span>
+              <span className="text-[11px] text-muted-foreground">{timeAgo(post.created_at)}</span>
             </div>
 
             <div className="relative flex-shrink-0" ref={menuRef}>
               <button
                 onClick={() => setMenuOpen((o) => !o)}
-                className="p-1 -mt-0.5 -mr-1 text-zinc-600 hover:text-zinc-400 transition-colors rounded-full"
+                className="p-1 -mt-0.5 -mr-1 text-muted-foreground hover:text-muted-foreground transition-colors rounded-full"
                 aria-label="More options"
               >
                 <MoreHorizontal size={18} />
@@ -1809,7 +1809,7 @@ function RigPostCard({ post, index }: {
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.92, y: -4 }}
                     transition={{ duration: 0.12 }}
-                    className="absolute right-0 top-7 z-50 min-w-[160px] bg-zinc-900 border border-zinc-800 rounded-xl shadow-xl shadow-black/60 overflow-hidden"
+                    className="absolute right-0 top-7 z-50 min-w-[160px] bg-card border border-border rounded-xl shadow-xl shadow-black/60 overflow-hidden"
                   >
                     <button
                       onClick={() => {
@@ -1819,13 +1819,13 @@ function RigPostCard({ post, index }: {
                         showToast('Link copied', 'success');
                         setMenuOpen(false);
                       }}
-                      className="flex items-center gap-2.5 w-full px-4 py-3 text-[13px] text-zinc-300 hover:bg-zinc-800 transition-colors text-left"
+                      className="flex items-center gap-2.5 w-full px-4 py-3 text-[13px] text-muted-foreground hover:bg-zinc-800 transition-colors text-left"
                     >
-                      <Share2 size={14} className="text-zinc-500" /> Copy Link
+                      <Share2 size={14} className="text-muted-foreground" /> Copy Link
                     </button>
                     <button
                       onClick={() => { setReportOpen(true); setMenuOpen(false); }}
-                      className="flex items-center gap-2.5 w-full px-4 py-3 text-[13px] text-red-400 hover:bg-zinc-800 transition-colors text-left border-t border-zinc-800"
+                      className="flex items-center gap-2.5 w-full px-4 py-3 text-[13px] text-red-400 hover:bg-zinc-800 transition-colors text-left border-t border-border"
                     >
                       <Flag size={14} /> Report Post
                     </button>
@@ -1834,7 +1834,7 @@ function RigPostCard({ post, index }: {
                       profile?.role === 'admin') && (
                       <button
                         onClick={() => { handleDelete(); setMenuOpen(false); }}
-                        className="flex items-center gap-2.5 w-full px-4 py-3 text-[13px] text-red-500 hover:bg-red-500/10 transition-colors text-left border-t border-zinc-800"
+                        className="flex items-center gap-2.5 w-full px-4 py-3 text-[13px] text-red-500 hover:bg-red-500/10 transition-colors text-left border-t border-border"
                       >
                         <Trash2 size={14} /> Delete
                       </button>
@@ -1846,13 +1846,13 @@ function RigPostCard({ post, index }: {
           </div>
 
           {/* Caption body */}
-          <p className="text-[14px] text-zinc-200 leading-relaxed mb-3">
+          <p className="text-[14px] text-foreground/90 leading-relaxed mb-3">
               <Caption text={post.body ?? post.caption} />
           </p>
 
           {/* Optional media — natural aspect ratio, NOT forced square */}
           {String(post.media_type ?? '').toLowerCase() === 'video' ? (
-            <div className="relative mb-3 rounded-xl overflow-hidden border border-zinc-800 bg-zinc-950">
+            <div className="relative mb-3 rounded-xl overflow-hidden border border-border bg-muted">
               {videoSignedUrl ? (
                 <video
                   src={videoSignedUrl}
@@ -1871,11 +1871,11 @@ function RigPostCard({ post, index }: {
                   draggable={false}
                 />
               ) : (
-                <div className="w-full h-56 bg-zinc-900 animate-pulse" aria-hidden />
+                <div className="w-full h-56 bg-card animate-pulse" aria-hidden />
               )}
             </div>
           ) : post.image_url ? (
-            <div className="relative mb-3 rounded-xl overflow-hidden border border-zinc-800 bg-zinc-950 group cursor-zoom-in">
+            <div className="relative mb-3 rounded-xl overflow-hidden border border-border bg-muted group cursor-zoom-in">
               <img
                 src={ensureStoragePublicObjectUrl(post.image_url) || post.image_url}
                 alt={post.caption}
@@ -1886,7 +1886,7 @@ function RigPostCard({ post, index }: {
               />
               <button
                 onClick={() => setLightboxOpen(true)}
-                className="absolute bottom-2 right-2 p-1.5 bg-black/60 backdrop-blur-sm rounded-lg text-zinc-300 opacity-0 group-hover:opacity-100 transition-opacity"
+                className="absolute bottom-2 right-2 p-1.5 bg-background/60 backdrop-blur-sm rounded-lg text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity"
                 aria-label="Zoom image"
               >
                 <ZoomIn size={14} />
@@ -1896,8 +1896,8 @@ function RigPostCard({ post, index }: {
 
           {/* Rig specs pill row */}
           {post.rig_specs && (
-            <p className="text-[11px] text-zinc-500 mb-3 leading-relaxed">
-              <span className="inline-block bg-zinc-900 border border-zinc-800 rounded-full px-2 py-0.5 text-zinc-400">
+            <p className="text-[11px] text-muted-foreground mb-3 leading-relaxed">
+              <span className="inline-block bg-card border border-border rounded-full px-2 py-0.5 text-muted-foreground">
                 {post.rig_specs}
               </span>
             </p>
@@ -1943,7 +1943,7 @@ function RigPostCard({ post, index }: {
                 disabled={postFlagged}
                 aria-label="Flag post"
                 title="Flag for review"
-                className={`transition-colors ${postFlagged ? 'text-red-400' : 'text-zinc-600 hover:text-red-400'}`}
+                className={`transition-colors ${postFlagged ? 'text-red-400' : 'text-muted-foreground hover:text-red-400'}`}
               >
                 <Flag size={15} strokeWidth={1.8} />
               </motion.button>
@@ -1953,7 +1953,7 @@ function RigPostCard({ post, index }: {
               transition={{ type: 'spring', stiffness: 600, damping: 14 }}
               onClick={toggleBookmark}
               aria-label={bookmarked ? 'Remove bookmark' : 'Bookmark post'}
-              className={`transition-colors ${bookmarked ? 'text-primary' : 'text-zinc-500 hover:text-zinc-300'}`}
+              className={`transition-colors ${bookmarked ? 'text-primary' : 'text-muted-foreground hover:text-muted-foreground'}`}
             >
               <Bookmark size={17} strokeWidth={1.8} className={bookmarked ? 'fill-primary/40' : ''} />
             </motion.button>
@@ -1969,12 +1969,12 @@ function RigPostCard({ post, index }: {
                 transition={{ duration: 0.2 }}
                 className="overflow-hidden"
               >
-                <div className="pt-3 border-t border-zinc-800/60 mt-3 space-y-3">
+                <div className="pt-3 border-t border-border/60 mt-3 space-y-3">
                   {/* Comment list */}
                   {commentsLoading ? (
-                    <div className="text-zinc-600 text-[12px] py-1">Loading comments...</div>
+                    <div className="text-muted-foreground text-[12px] py-1">Loading comments...</div>
                   ) : comments.length === 0 ? (
-                    <div className="text-zinc-600 text-[12px] py-1">No comments yet. Be the first.</div>
+                    <div className="text-muted-foreground text-[12px] py-1">No comments yet. Be the first.</div>
                   ) : (
                     <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
                       {/* Top-level comments first, then replies */}
@@ -1988,7 +1988,7 @@ function RigPostCard({ post, index }: {
                           />
                           {/* Replies (indented) */}
                           {comments.filter((r) => r.parent_id === c.id).map((reply) => (
-                            <div key={reply.id} className="ml-7 mt-1.5 flex items-start gap-1 text-zinc-600">
+                            <div key={reply.id} className="ml-7 mt-1.5 flex items-start gap-1 text-muted-foreground">
                               <CornerDownRight size={11} className="mt-1 flex-shrink-0" />
                               <div className="flex-1 min-w-0">
                                 <CommentRow
@@ -2008,10 +2008,10 @@ function RigPostCard({ post, index }: {
 
                   {/* Reply-to chip */}
                   {replyingTo && (
-                    <div className="flex items-center gap-2 text-[11px] text-zinc-500 bg-zinc-900 rounded-lg px-2 py-1">
+                    <div className="flex items-center gap-2 text-[11px] text-muted-foreground bg-card rounded-lg px-2 py-1">
                       <CornerDownRight size={11} className="text-sky-400 flex-shrink-0" />
-                      <span className="flex-1 truncate">Replying to <span className="text-zinc-300 font-semibold">{replyingTo.user_name ?? 'Rider'}</span></span>
-                      <button onClick={() => setReplyingTo(null)} className="text-zinc-600 hover:text-white transition-colors flex-shrink-0">
+                      <span className="flex-1 truncate">Replying to <span className="text-muted-foreground font-semibold">{replyingTo.user_name ?? 'Rider'}</span></span>
+                      <button onClick={() => setReplyingTo(null)} className="text-muted-foreground hover:text-foreground transition-colors flex-shrink-0">
                         <X size={12} />
                       </button>
                     </div>
@@ -2023,7 +2023,7 @@ function RigPostCard({ post, index }: {
                       {user?.user_metadata?.avatar_url ? (
                         <img src={user.user_metadata.avatar_url as string} alt="" className="w-full h-full object-cover" />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-[8px] font-bold text-zinc-500">
+                        <div className="w-full h-full flex items-center justify-center text-[8px] font-bold text-muted-foreground">
                           {user?.email?.[0]?.toUpperCase() ?? 'U'}
                         </div>
                       )}
@@ -2035,14 +2035,14 @@ function RigPostCard({ post, index }: {
                       onChange={(e) => setCommentText(e.target.value)}
                       onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitComment(); } }}
                       placeholder={replyingTo ? `Reply to ${replyingTo.user_name ?? 'Rider'}…` : 'Add a comment…'}
-                      className="flex-1 bg-zinc-900 border border-zinc-800 rounded-full px-3 py-1.5 text-[12px] text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-600 transition-colors"
+                      className="flex-1 bg-card border border-border rounded-full px-3 py-1.5 text-[12px] text-foreground placeholder-zinc-600 focus:outline-none focus:border-border transition-colors"
                     />
                     <motion.button
                       whileTap={{ scale: 0.9 }}
                       onClick={submitComment}
                       disabled={!commentText.trim() || submittingComment}
                       aria-label="Post comment"
-                      className="text-primary disabled:text-zinc-700 transition-colors flex-shrink-0"
+                      className="text-primary disabled:text-muted-foreground transition-colors flex-shrink-0"
                     >
                       {submittingComment ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} strokeWidth={2} />}
                     </motion.button>
@@ -2071,25 +2071,25 @@ function RigPostCard({ post, index }: {
           <>
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[9992] bg-black/70 backdrop-blur-sm"
+              className="fixed inset-0 z-[9992] bg-background/70 backdrop-blur-sm"
               onClick={() => setReportOpen(false)}
             />
             <motion.div
               initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
               transition={{ type: 'spring', stiffness: 420, damping: 36 }}
-              className="fixed bottom-0 left-0 right-0 z-[9993] max-w-app-shell mx-auto bg-zinc-950 border border-zinc-800 rounded-t-2xl p-5"
+              className="fixed bottom-0 left-0 right-0 z-[9993] max-w-app-shell mx-auto bg-muted border border-border rounded-t-2xl p-5"
               style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center justify-between mb-4">
-                <h3 className="font-bold text-white text-[15px] flex items-center gap-2">
+                <h3 className="font-bold text-foreground text-[15px] flex items-center gap-2">
                   <Flag size={15} className="text-red-400" /> Report Post
                 </h3>
-                <button onClick={() => setReportOpen(false)} className="text-zinc-500 hover:text-white transition-colors">
+                <button onClick={() => setReportOpen(false)} className="text-muted-foreground hover:text-foreground transition-colors">
                   <X size={18} />
                 </button>
               </div>
-              <p className="text-[13px] text-zinc-400 mb-3">Why are you reporting this post?</p>
+              <p className="text-[13px] text-muted-foreground mb-3">Why are you reporting this post?</p>
               <div className="grid grid-cols-2 gap-2 mb-4">
                 {['Spam', 'Misinformation', 'Harassment', 'Inappropriate', 'Dangerous activity', 'Other'].map((r) => (
                   <button
@@ -2098,7 +2098,7 @@ function RigPostCard({ post, index }: {
                     className={`py-2.5 px-3 rounded-xl text-[12px] font-medium border transition-colors text-left ${
                       reportReason === r
                         ? 'bg-primary/15 border-primary/50 text-primary/90'
-                        : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-600'
+                        : 'bg-card border-border text-muted-foreground hover:border-border'
                     }`}
                   >
                     {r}
@@ -2109,7 +2109,7 @@ function RigPostCard({ post, index }: {
                 whileTap={{ scale: 0.96 }}
                 onClick={submitReport}
                 disabled={!reportReason || isReporting}
-                className="w-full py-3 bg-red-500 disabled:bg-zinc-800 disabled:text-zinc-600 text-white font-bold text-[14px] rounded-xl flex items-center justify-center gap-2 transition-colors"
+                className="w-full py-3 bg-red-500 disabled:bg-zinc-800 disabled:text-muted-foreground text-foreground font-bold text-[14px] rounded-xl flex items-center justify-center gap-2 transition-colors"
               >
                 {isReporting ? <Loader2 size={16} className="animate-spin" /> : <Flag size={15} />}
                 {isReporting ? 'Submitting…' : 'Submit Report'}
@@ -2262,7 +2262,7 @@ function ModerationPanel() {
         <ShieldAlert size={13} />
         Moderation
         {totalFlags > 0 && (
-          <span className="ml-0.5 bg-red-500 text-white text-[10px] font-black rounded-full px-1.5 py-px leading-none">
+          <span className="ml-0.5 bg-red-500 text-foreground text-[10px] font-black rounded-full px-1.5 py-px leading-none">
             {totalFlags}
           </span>
         )}
@@ -2273,49 +2273,49 @@ function ModerationPanel() {
           <>
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[9990] bg-black/80 backdrop-blur-sm"
+              className="fixed inset-0 z-[9990] bg-background/80 backdrop-blur-sm"
               onClick={() => setOpen(false)}
             />
             <motion.div
               initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
               transition={{ type: 'spring', stiffness: 420, damping: 36 }}
-              className="fixed bottom-0 left-0 right-0 z-[9991] max-w-app-shell mx-auto bg-zinc-950 border border-zinc-800 rounded-t-2xl max-h-[80dvh] flex flex-col"
+              className="fixed bottom-0 left-0 right-0 z-[9991] max-w-app-shell mx-auto bg-muted border border-border rounded-t-2xl max-h-[80dvh] flex flex-col"
               style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex items-center justify-between px-4 py-4 border-b border-zinc-800 flex-shrink-0">
+              <div className="flex items-center justify-between px-4 py-4 border-b border-border flex-shrink-0">
                 <div className="flex items-center gap-2">
                   <ShieldAlert size={15} className="text-red-400" />
-                  <h3 className="font-bold text-white text-[15px]">Moderation Queue</h3>
+                  <h3 className="font-bold text-foreground text-[15px]">Moderation Queue</h3>
                 </div>
-                <button onClick={() => setOpen(false)} className="text-zinc-500 hover:text-white transition-colors">
+                <button onClick={() => setOpen(false)} className="text-muted-foreground hover:text-foreground transition-colors">
                   <X size={18} />
                 </button>
               </div>
               <div className="flex-1 overflow-y-auto p-4 space-y-4">
                 {loading ? (
-                  <div className="flex justify-center pt-4"><Loader2 size={20} className="animate-spin text-zinc-600" /></div>
+                  <div className="flex justify-center pt-4"><Loader2 size={20} className="animate-spin text-muted-foreground" /></div>
                 ) : (flaggedPosts.length + flaggedComments.length) === 0 ? (
-                  <p className="text-zinc-600 text-[14px] text-center pt-4">No flagged content.</p>
+                  <p className="text-muted-foreground text-[14px] text-center pt-4">No flagged content.</p>
                 ) : (
                   <>
                     {flaggedPosts.length > 0 && (
                       <div>
-                        <p className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider mb-2">
+                        <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider mb-2">
                           Flagged Posts ({flaggedPosts.length})
                         </p>
                         <div className="space-y-2">
                           {flaggedPosts.map((p) => (
-                            <div key={String(p.id)} className="bg-zinc-900 border border-zinc-800 rounded-xl p-3 flex items-start gap-3">
+                            <div key={String(p.id)} className="bg-card border border-border rounded-xl p-3 flex items-start gap-3">
                               <div className="flex-1 min-w-0">
-                                <p className="text-zinc-400 text-[11px] mb-0.5">{String(p.user_name ?? 'Unknown')}</p>
-                                <p className="text-white text-[13px] leading-relaxed line-clamp-3">
+                                <p className="text-muted-foreground text-[11px] mb-0.5">{String(p.user_name ?? 'Unknown')}</p>
+                                <p className="text-foreground text-[13px] leading-relaxed line-clamp-3">
                                   {String(p.body ?? p.content ?? p.caption ?? '')}
                                 </p>
                               </div>
                               <button
                                 onClick={() => dismiss('post', String(p.id))}
-                                className="flex-shrink-0 text-[11px] text-zinc-500 hover:text-emerald-400 transition-colors border border-zinc-700 rounded-lg px-2 py-1"
+                                className="flex-shrink-0 text-[11px] text-muted-foreground hover:text-emerald-400 transition-colors border border-border rounded-lg px-2 py-1"
                               >
                                 Dismiss
                               </button>
@@ -2326,21 +2326,21 @@ function ModerationPanel() {
                     )}
                     {flaggedComments.length > 0 && (
                       <div>
-                        <p className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider mb-2">
+                        <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider mb-2">
                           Flagged Comments ({flaggedComments.length})
                         </p>
                         <div className="space-y-2">
                           {flaggedComments.map((c) => (
-                            <div key={String(c.id)} className="bg-zinc-900 border border-zinc-800 rounded-xl p-3 flex items-start gap-3">
+                            <div key={String(c.id)} className="bg-card border border-border rounded-xl p-3 flex items-start gap-3">
                               <div className="flex-1 min-w-0">
-                                <p className="text-zinc-400 text-[11px] mb-0.5">{String(c.user_name ?? 'Unknown')}</p>
-                                <p className="text-white text-[13px] leading-relaxed line-clamp-3">
+                                <p className="text-muted-foreground text-[11px] mb-0.5">{String(c.user_name ?? 'Unknown')}</p>
+                                <p className="text-foreground text-[13px] leading-relaxed line-clamp-3">
                                   {String(c.content ?? c.body ?? '')}
                                 </p>
                               </div>
                               <button
                                 onClick={() => dismiss('comment', String(c.id))}
-                                className="flex-shrink-0 text-[11px] text-zinc-500 hover:text-emerald-400 transition-colors border border-zinc-700 rounded-lg px-2 py-1"
+                                className="flex-shrink-0 text-[11px] text-muted-foreground hover:text-emerald-400 transition-colors border border-border rounded-lg px-2 py-1"
                               >
                                 Dismiss
                               </button>
@@ -2707,16 +2707,16 @@ export default function HomePage() {
   }, [fetchPosts]);
 
   return (
-    <div className="min-h-screen bg-black">
+    <div className="min-h-screen bg-background">
 
       {/* ── Sticky Top Header ─────────────────────── */}
-      <header className="sticky top-0 z-50 bg-black/90 backdrop-blur-xl border-b border-zinc-900">
+      <header className="sticky top-0 z-50 bg-background/90 backdrop-blur-xl border-b border-border">
         <div className="flex items-center justify-between px-4 py-3 max-w-app-shell mx-auto">
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center flex-shrink-0">
-              <span className="text-black font-black text-[10px] tracking-tight">SO</span>
+              <span className="text-primary-foreground font-black text-[10px] tracking-tight">SO</span>
             </div>
-            <span className="font-black text-white text-base tracking-tight">
+            <span className="font-black text-foreground text-base tracking-tight">
               SoCal<span className="text-primary">Offroaders</span>
             </span>
           </div>
@@ -2725,7 +2725,7 @@ export default function HomePage() {
       </header>
 
       {/* ── Main ──────────────────────────────────── */}
-      <main className="max-w-app-shell mx-auto min-h-screen bg-black pb-24">
+      <main className="max-w-app-shell mx-auto min-h-screen bg-background pb-24">
         <HomeStoriesRunsPager supabaseClient={supabaseClient} user={user} />
 
         {/* Feed — avoid Framer opacity-from-0 here (can stick invisible on some mobile Chrome builds). */}
@@ -2752,7 +2752,7 @@ export default function HomePage() {
         aria-label="Create post"
         className="fixed bottom-[88px] right-4 z-40 w-[52px] h-[52px] bg-primary hover:opacity-90 rounded-full flex items-center justify-center shadow-lg shadow-primary/30"
       >
-        <Plus size={22} className="text-black" strokeWidth={2.5} />
+        <Plus size={22} className="text-primary-foreground" strokeWidth={2.5} />
       </motion.button>
 
       {/* ── New Post Drawer ────────────────────────── */}

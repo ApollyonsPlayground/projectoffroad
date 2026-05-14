@@ -72,11 +72,11 @@ function ToastBubble({ toast, onClose }: { toast: ToastItem; onClose: () => void
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: 10, scale: 0.94 }}
       transition={{ type: 'spring', stiffness: 500, damping: 28 }}
-      className="pointer-events-auto flex items-center gap-2.5 bg-zinc-900 border border-zinc-700 text-zinc-100 text-[13px] font-medium px-4 py-3 rounded-2xl shadow-xl shadow-black/60 max-w-[320px]"
+      className="pointer-events-auto flex items-center gap-2.5 bg-card border border-border text-foreground text-[13px] font-medium px-4 py-3 rounded-2xl shadow-xl shadow-black/60 max-w-[320px]"
     >
       {icons[toast.type]}
       <span className="flex-1">{toast.message}</span>
-      <button onClick={onClose} className="text-zinc-500 hover:text-zinc-300 transition-colors ml-1">
+      <button onClick={onClose} className="text-muted-foreground hover:text-muted-foreground transition-colors ml-1">
         <X size={13} />
       </button>
     </motion.div>

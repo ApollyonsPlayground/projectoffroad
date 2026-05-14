@@ -51,10 +51,10 @@ import { useSavedTrailIds } from '@/lib/hooks/useSavedTrailIds';
 const TrailMap = dynamic(() => import('@/components/TrailMap'), {
   ssr: false,
   loading: () => (
-    <div className="w-full h-full flex items-center justify-center bg-zinc-900 rounded-xl border border-zinc-800">
+    <div className="w-full h-full flex items-center justify-center bg-card rounded-xl border border-border">
       <div className="flex flex-col items-center gap-2">
         <div className="w-8 h-8 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
-        <p className="text-zinc-500 text-[12px]">Loading map…</p>
+        <p className="text-muted-foreground text-[12px]">Loading map…</p>
       </div>
     </div>
   ),
@@ -94,7 +94,7 @@ function TrailCard({ trail, index, isSaved, onToggleSave }: {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: Math.min(index, 8) * 0.025 }}
-      className="bg-zinc-900 border border-zinc-800 overflow-hidden hover:border-primary/50 transition-colors"
+      className="bg-card border border-border overflow-hidden hover:border-primary/50 transition-colors"
     >
       {/* Trail Image or title header when no photo */}
       {trail.image ? (
@@ -126,12 +126,12 @@ function TrailCard({ trail, index, isSaved, onToggleSave }: {
           </div>
 
           <div className="absolute bottom-3 left-3 right-3">
-            <h3 className="text-lg font-bold text-white leading-tight">{trail.name}</h3>
-            <p className="text-sm text-zinc-400">{trail.location}</p>
+            <h3 className="text-lg font-bold text-foreground leading-tight">{trail.name}</h3>
+            <p className="text-sm text-muted-foreground">{trail.location}</p>
           </div>
         </div>
       ) : (
-        <div className="relative h-32 bg-zinc-800 border-b border-zinc-800 px-4 py-3 flex flex-col justify-end">
+        <div className="relative h-32 bg-zinc-800 border-b border-border px-4 py-3 flex flex-col justify-end">
           <div className="absolute top-3 left-3 right-3 flex items-start justify-between gap-2">
             <div className="flex flex-wrap gap-2 min-w-0">
               {trail.isVerified && (
@@ -150,15 +150,15 @@ function TrailCard({ trail, index, isSaved, onToggleSave }: {
               {trail.difficultyLabel}
             </span>
           </div>
-          <h3 className="text-lg font-bold text-white leading-tight pr-16">{trail.name}</h3>
-          <p className="text-sm text-zinc-400">{trail.location}</p>
+          <h3 className="text-lg font-bold text-foreground leading-tight pr-16">{trail.name}</h3>
+          <p className="text-sm text-muted-foreground">{trail.location}</p>
         </div>
       )}
 
       {/* Content */}
       <div className="p-4">
         {/* Stats */}
-        <div className="flex items-center gap-4 text-sm text-zinc-500 mb-3">
+        <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
           <div className="flex items-center gap-1.5">
             <Ruler size={14} />
             <span>{trail.distance}</span>
@@ -174,7 +174,7 @@ function TrailCard({ trail, index, isSaved, onToggleSave }: {
         </div>
 
         {/* Description */}
-        <p className="text-sm text-zinc-400 line-clamp-2 mb-4">
+        <p className="text-sm text-muted-foreground line-clamp-2 mb-4">
           {trail.description}
         </p>
 
@@ -192,7 +192,7 @@ function TrailCard({ trail, index, isSaved, onToggleSave }: {
               href={trail.onxUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center justify-center gap-1.5 px-3 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-sm font-medium transition-colors"
+              className="flex items-center justify-center gap-1.5 px-3 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-muted-foreground text-sm font-medium transition-colors"
               onClick={(e) => e.stopPropagation()}
             >
               <ExternalLink size={15} />
@@ -200,7 +200,7 @@ function TrailCard({ trail, index, isSaved, onToggleSave }: {
             </a>
           ) : (
             <span
-              className="flex items-center justify-center gap-1.5 px-3 py-2.5 bg-zinc-800/50 text-zinc-600 text-sm font-medium cursor-not-allowed"
+              className="flex items-center justify-center gap-1.5 px-3 py-2.5 bg-zinc-800/50 text-muted-foreground text-sm font-medium cursor-not-allowed"
               title="No onX link for this trail"
             >
               <ExternalLink size={15} />
@@ -212,7 +212,7 @@ function TrailCard({ trail, index, isSaved, onToggleSave }: {
             className={`flex items-center justify-center px-3 py-2.5 transition-colors ${
               isSaved
                 ? 'bg-primary/15 text-primary/90 border border-primary/40'
-                : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-400'
+                : 'bg-zinc-800 hover:bg-zinc-700 text-muted-foreground'
             }`}
             aria-label={isSaved ? 'Unsave trail' : 'Save trail'}
           >
@@ -382,12 +382,12 @@ export default function TrailsPage() {
     searchFocused && nameSuggestions.length > 0 && searchQuery.trim().length >= 2;
 
   return (
-    <div className="min-h-screen bg-black">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="sticky top-0 z-50 glass border-b border-zinc-800 safe-top">
+      <header className="sticky top-0 z-50 glass border-b border-border safe-top">
         <div className="max-w-7xl mx-auto w-full px-4 md:px-8 py-3">
           <div className="flex items-center justify-between mb-3">
-            <h1 className="text-xl font-bold text-white">Trail Explorer</h1>
+            <h1 className="text-xl font-bold text-foreground">Trail Explorer</h1>
             <div className="flex items-center gap-2">
               {/* List / Map toggle */}
               <div className="flex items-center bg-zinc-800 rounded-lg p-0.5">
@@ -395,7 +395,7 @@ export default function TrailsPage() {
                   whileTap={{ scale: 0.92 }}
                   onClick={() => setView('list')}
                   className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[12px] font-semibold transition-colors ${
-                    view === 'list' ? 'bg-primary text-black' : 'text-zinc-400 hover:text-zinc-200'
+                    view === 'list' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground/90'
                   }`}
                 >
                   <List size={14} />
@@ -405,7 +405,7 @@ export default function TrailsPage() {
                   whileTap={{ scale: 0.92 }}
                   onClick={() => setView('map')}
                   className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[12px] font-semibold transition-colors ${
-                    view === 'map' ? 'bg-primary text-black' : 'text-zinc-400 hover:text-zinc-200'
+                    view === 'map' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground/90'
                   }`}
                 >
                   <Map size={14} />
@@ -416,7 +416,7 @@ export default function TrailsPage() {
                 whileTap={{ scale: 0.95 }}
                 onClick={() => setShowFilters(!showFilters)}
                 className={`p-2 rounded-lg transition-colors ${
-                  showFilters ? 'bg-primary text-zinc-950' : 'bg-zinc-800 text-zinc-400'
+                  showFilters ? 'bg-primary text-zinc-950' : 'bg-zinc-800 text-muted-foreground'
                 }`}
               >
                 <Filter size={18} />
@@ -426,7 +426,7 @@ export default function TrailsPage() {
 
           {/* Search */}
           <div className="relative z-[60]">
-            <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none" />
+            <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
             <input
               type="search"
               autoComplete="off"
@@ -436,13 +436,13 @@ export default function TrailsPage() {
               onChange={(e) => setSearchQuery(e.target.value)}
               onFocus={() => setSearchFocused(true)}
               onBlur={() => window.setTimeout(() => setSearchFocused(false), 160)}
-              className="w-full pl-10 pr-10 py-2.5 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-primary transition-colors"
+              className="w-full pl-10 pr-10 py-2.5 bg-zinc-800 border border-border rounded-lg text-foreground placeholder-zinc-500 focus:outline-none focus:border-primary transition-colors"
             />
             {searchQuery.trim().length > 0 && (
               <button
                 type="button"
                 aria-label="Clear search"
-                className="absolute right-2 top-1/2 -translate-y-1/2 px-2 py-1 text-[11px] font-bold uppercase tracking-wide text-zinc-500 hover:text-white"
+                className="absolute right-2 top-1/2 -translate-y-1/2 px-2 py-1 text-[11px] font-bold uppercase tracking-wide text-muted-foreground hover:text-foreground"
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => setSearchQuery('')}
               >
@@ -451,29 +451,29 @@ export default function TrailsPage() {
             )}
             {showSuggest ? (
               <ul
-                className="absolute left-0 right-0 top-full mt-1 max-h-56 overflow-y-auto rounded-lg border border-zinc-700 bg-zinc-900 shadow-xl shadow-black/40 py-1"
+                className="absolute left-0 right-0 top-full mt-1 max-h-56 overflow-y-auto rounded-lg border border-border bg-card shadow-xl shadow-black/40 py-1"
                 role="listbox"
               >
                 {nameSuggestions.map((t) => (
                   <li key={t.id} role="option" aria-selected={false}>
                     <button
                       type="button"
-                      className="w-full text-left px-3 py-2.5 text-[13px] text-zinc-200 hover:bg-zinc-800"
+                      className="w-full text-left px-3 py-2.5 text-[13px] text-foreground/90 hover:bg-zinc-800"
                       onMouseDown={(e) => {
                         e.preventDefault();
                         setSearchQuery(t.name);
                         setSearchFocused(false);
                       }}
                     >
-                      <span className="font-semibold text-white">{t.name}</span>
-                      <span className="block text-[11px] text-zinc-500 truncate mt-0.5">{t.location}</span>
+                      <span className="font-semibold text-foreground">{t.name}</span>
+                      <span className="block text-[11px] text-muted-foreground truncate mt-0.5">{t.location}</span>
                     </button>
                   </li>
                 ))}
               </ul>
             ) : null}
-            <p className="text-[11px] text-zinc-500 mt-1.5 leading-snug">
-              Matches when <strong className="text-zinc-400 font-semibold">every</strong> word appears somewhere (name,
+            <p className="text-[11px] text-muted-foreground mt-1.5 leading-snug">
+              Matches when <strong className="text-muted-foreground font-semibold">every</strong> word appears somewhere (name,
               location, description, tags, terrain…). Use the rig chips for ATV vs truck — those words are not auto-matched in search.
             </p>
           </div>
@@ -487,22 +487,22 @@ export default function TrailsPage() {
                 onClick={() => setSelectedVehicle(v)}
                 className={`shrink-0 px-3 py-2 rounded-lg text-[11px] font-black uppercase tracking-wide border transition-colors ${
                   selectedVehicle === v
-                    ? 'bg-primary text-black border-primary'
-                    : 'bg-zinc-900 text-zinc-400 border-zinc-700 hover:border-zinc-600 hover:text-zinc-200'
+                    ? 'bg-primary text-primary-foreground border-primary'
+                    : 'bg-card text-muted-foreground border-border hover:border-border hover:text-foreground/90'
                 }`}
               >
                 {vehicleFilterChipLabel(v)}
               </button>
             ))}
           </div>
-            <p className="text-[10px] text-zinc-600 mt-1.5 leading-snug">
-              <strong className="text-zinc-500">ATV / Trucks</strong> filters use trail metadata and keywords. “Both” is
-              only when the listing clearly references both. Ambiguous rows show as <strong className="text-zinc-500">Rig type TBD</strong> until set in the database (TBD only appears under All rigs).
+            <p className="text-[10px] text-muted-foreground mt-1.5 leading-snug">
+              <strong className="text-muted-foreground">ATV / Trucks</strong> filters use trail metadata and keywords. “Both” is
+              only when the listing clearly references both. Ambiguous rows show as <strong className="text-muted-foreground">Rig type TBD</strong> until set in the database (TBD only appears under All rigs).
             </p>
 
           {/* Area — narrows list, suggestions, and map pins before text search */}
           <div className="mt-3">
-            <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-2">Area</p>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">Area</p>
             <div className="flex gap-2 overflow-x-auto pb-0.5 scrollbar-hide -mx-0.5 px-0.5">
               {EXPLORER_AREA_OPTIONS.map((opt) => (
                 <button
@@ -511,15 +511,15 @@ export default function TrailsPage() {
                   onClick={() => setSelectedArea(opt.id)}
                   className={`shrink-0 px-3 py-2 rounded-lg text-[11px] font-black uppercase tracking-wide border transition-colors ${
                     selectedArea === opt.id
-                      ? 'bg-primary text-black border-primary'
-                      : 'bg-zinc-900 text-zinc-400 border-zinc-700 hover:border-zinc-600 hover:text-zinc-200'
+                      ? 'bg-primary text-primary-foreground border-primary'
+                      : 'bg-card text-muted-foreground border-border hover:border-border hover:text-foreground/90'
                   }`}
                 >
                   {opt.label}
                 </button>
               ))}
             </div>
-            <p className="text-[10px] text-zinc-600 mt-1.5 leading-snug">
+            <p className="text-[10px] text-muted-foreground mt-1.5 leading-snug">
               Area chips match keywords in trail name, location, and tags (no dedicated region column yet).
             </p>
           </div>
@@ -532,11 +532,11 @@ export default function TrailsPage() {
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: 'auto', opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
-              className="overflow-hidden border-t border-zinc-800"
+              className="overflow-hidden border-t border-border"
             >
               <div className="px-4 py-3 space-y-4">
                 <div>
-                  <p className="text-xs text-zinc-500 uppercase tracking-wider mb-2">Rig type</p>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">Rig type</p>
                   <div className="flex flex-wrap gap-2">
                     {vehicleFilters.map((v) => (
                       <button
@@ -546,7 +546,7 @@ export default function TrailsPage() {
                         className={`px-3 py-1.5 text-xs font-semibold uppercase tracking-wider transition-all ${
                           selectedVehicle === v
                             ? 'bg-primary text-zinc-950'
-                            : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
+                            : 'bg-zinc-800 text-muted-foreground hover:bg-zinc-700'
                         }`}
                       >
                         {vehicleFilterChipLabel(v)}
@@ -555,7 +555,7 @@ export default function TrailsPage() {
                   </div>
                 </div>
                 <div>
-                  <p className="text-xs text-zinc-500 uppercase tracking-wider mb-2">Difficulty</p>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">Difficulty</p>
                   <div className="flex flex-wrap gap-2">
                     {difficulties.map((difficulty) => (
                       <button
@@ -564,7 +564,7 @@ export default function TrailsPage() {
                         className={`px-3 py-1.5 text-xs font-semibold uppercase tracking-wider transition-all ${
                           selectedDifficulty === difficulty
                             ? 'bg-primary text-zinc-950'
-                            : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
+                            : 'bg-zinc-800 text-muted-foreground hover:bg-zinc-700'
                         }`}
                       >
                         {difficulty}
@@ -589,8 +589,8 @@ export default function TrailsPage() {
       </div>
 
       {fromCache && (
-        <div className="px-4 py-2 bg-zinc-800/80 border-b border-zinc-700">
-          <p className="text-[11px] text-zinc-400 max-w-7xl mx-auto text-center">
+        <div className="px-4 py-2 bg-zinc-800/80 border-b border-border">
+          <p className="text-[11px] text-muted-foreground max-w-7xl mx-auto text-center">
             Offline — showing your last cached trail list from this device.
           </p>
         </div>
@@ -642,9 +642,9 @@ export default function TrailsPage() {
               animate={{ opacity: 1, y: 0 }}
               className="text-center py-12"
             >
-              <Mountain size={48} className="mx-auto text-zinc-700 mb-4" />
-              <h3 className="text-lg font-semibold text-zinc-400 mb-2">No trails loaded</h3>
-              <p className="text-sm text-zinc-600">Check your connection or Supabase configuration.</p>
+              <Mountain size={48} className="mx-auto text-muted-foreground mb-4" />
+              <h3 className="text-lg font-semibold text-muted-foreground mb-2">No trails loaded</h3>
+              <p className="text-sm text-muted-foreground">Check your connection or Supabase configuration.</p>
             </motion.div>
           ) : selectedArea !== 'all' && areaFilteredTrails.length === 0 ? (
             <motion.div
@@ -653,9 +653,9 @@ export default function TrailsPage() {
               animate={{ opacity: 1, y: 0 }}
               className="text-center py-12"
             >
-              <Mountain size={48} className="mx-auto text-zinc-700 mb-4" />
-              <h3 className="text-lg font-semibold text-zinc-400 mb-2">No trails in this area</h3>
-              <p className="text-sm text-zinc-600">Try another region or choose All areas.</p>
+              <Mountain size={48} className="mx-auto text-muted-foreground mb-4" />
+              <h3 className="text-lg font-semibold text-muted-foreground mb-2">No trails in this area</h3>
+              <p className="text-sm text-muted-foreground">Try another region or choose All areas.</p>
             </motion.div>
           ) : filteredTrails.length === 0 ? (
             <motion.div
@@ -664,9 +664,9 @@ export default function TrailsPage() {
               animate={{ opacity: 1, y: 0 }}
               className="text-center py-12"
             >
-              <Mountain size={48} className="mx-auto text-zinc-700 mb-4" />
-              <h3 className="text-lg font-semibold text-zinc-400 mb-2">No trails found</h3>
-              <p className="text-sm text-zinc-600">
+              <Mountain size={48} className="mx-auto text-muted-foreground mb-4" />
+              <h3 className="text-lg font-semibold text-muted-foreground mb-2">No trails found</h3>
+              <p className="text-sm text-muted-foreground">
                 Try adjusting your search or filters
               </p>
             </motion.div>
@@ -677,7 +677,7 @@ export default function TrailsPage() {
               animate={{ opacity: 1 }}
               className="space-y-4"
             >
-              <p className="text-sm text-zinc-500">
+              <p className="text-sm text-muted-foreground">
                 {filteredTrails.length} trail{filteredTrails.length !== 1 ? 's' : ''} found
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

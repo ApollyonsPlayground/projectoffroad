@@ -15,8 +15,8 @@ export default function PostDeepLinkPage() {
   }, [postId, router]);
 
   return (
-    <div className="min-h-screen bg-black flex flex-col items-center justify-center pb-28">
-      <p className="text-zinc-500 text-sm">Opening feed…</p>
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center pb-28">
+      <p className="text-muted-foreground text-sm">Opening feed…</p>
       <BottomNav />
     </div>
   );

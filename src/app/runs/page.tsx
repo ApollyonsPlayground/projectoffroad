@@ -71,7 +71,7 @@ function HostRunDrawer({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[9990] bg-black/80 backdrop-blur-sm"
+            className="fixed inset-0 z-[9990] bg-background/80 backdrop-blur-sm"
             onClick={onClose}
           />
           <motion.div
@@ -80,19 +80,19 @@ function HostRunDrawer({
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', stiffness: 420, damping: 38 }}
-            className="fixed bottom-0 left-0 right-0 z-[9991] max-w-app-shell mx-auto bg-zinc-950 border border-zinc-800 rounded-t-2xl max-h-[92dvh] flex flex-col"
+            className="fixed bottom-0 left-0 right-0 z-[9991] max-w-app-shell mx-auto bg-muted border border-border rounded-t-2xl max-h-[92dvh] flex flex-col"
             style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-zinc-800 flex-shrink-0">
+            <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-border flex-shrink-0">
               <div className="flex items-center gap-2">
                 <Flag size={16} className="text-primary" />
-                <h2 className="text-[16px] font-black text-white">Host a Run</h2>
+                <h2 className="text-[16px] font-black text-foreground">Host a Run</h2>
               </div>
               <button
                 type="button"
                 onClick={onClose}
-                className="w-10 h-10 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full bg-zinc-800 text-zinc-400 hover:text-white transition-colors touch-manipulation"
+                className="w-10 h-10 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full bg-zinc-800 text-muted-foreground hover:text-foreground transition-colors touch-manipulation"
                 aria-label="Close"
               >
                 <X size={16} />
@@ -121,7 +121,7 @@ function getDifficultyColor(difficulty: string): string {
   if (level === 'moderate' || level === 'intermediate') return 'bg-yellow-500/15 text-yellow-500 border border-yellow-500/30';
   if (level === 'advanced' || level === 'challenging') return 'bg-primary/15 text-primary/90 border border-primary/30';
   if (level === 'extreme') return 'bg-red-500/15 text-red-400 border border-red-500/30';
-  return 'bg-zinc-700/50 text-zinc-400';
+  return 'bg-zinc-700/50 text-muted-foreground';
 }
 
 function formatRunDate(dateStr: string): string {
@@ -182,7 +182,7 @@ function RunCard({
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ delay: index * 0.08 }}
-      className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden hover:border-primary/40 transition-colors"
+      className="bg-card border border-border rounded-xl overflow-hidden hover:border-primary/40 transition-colors"
     >
       {/* Trail imagery + trail name (same catalog as Trail Explorer) */}
       <div className="relative h-[132px] bg-zinc-800 shrink-0">
@@ -195,7 +195,7 @@ function RunCard({
         <div className="absolute bottom-2.5 left-3 right-3">
           {run.trail?.name ? (
             <>
-              <p className="text-[16px] font-black text-white leading-tight drop-shadow-[0_1px_8px_rgba(0,0,0,0.85)]">
+              <p className="text-[16px] font-black text-foreground leading-tight drop-shadow-[0_1px_8px_rgba(0,0,0,0.85)]">
                 {run.trail.name}
               </p>
               <p className="text-[12px] font-semibold text-primary/80/95 mt-1 truncate drop-shadow-md">
@@ -204,10 +204,10 @@ function RunCard({
             </>
           ) : (
             <>
-              <p className="text-[16px] font-black text-white leading-tight drop-shadow-[0_1px_8px_rgba(0,0,0,0.85)]">
+              <p className="text-[16px] font-black text-foreground leading-tight drop-shadow-[0_1px_8px_rgba(0,0,0,0.85)]">
                 {run.title}
               </p>
-              <p className="text-[11px] text-zinc-400 mt-0.5">Meetup / trail TBD</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">Meetup / trail TBD</p>
             </>
           )}
         </div>
@@ -219,7 +219,7 @@ function RunCard({
           <div className="flex-1 min-w-0">
             <div className="flex flex-wrap items-center gap-1.5 mb-0.5">
               {!run.trail?.name ? (
-                <h3 className="font-bold text-white text-[15px] leading-snug">{run.title}</h3>
+                <h3 className="font-bold text-foreground text-[15px] leading-snug">{run.title}</h3>
               ) : null}
               {run.run_source === 'user_submitted' && (
                 <span className="px-2 py-0.5 text-[10px] font-black uppercase rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/35">
@@ -239,14 +239,14 @@ function RunCard({
               <p className="text-[12px] text-emerald-400/95 font-semibold">Staff verified</p>
             )}
             {run.trail?.name && (
-              <p className="text-[12px] text-zinc-400 mt-0.5 truncate">
-                Trail · <span className="text-zinc-300 font-medium">{run.trail.name}</span>
+              <p className="text-[12px] text-muted-foreground mt-0.5 truncate">
+                Trail · <span className="text-muted-foreground font-medium">{run.trail.name}</span>
               </p>
             )}
             {run.host_id && (
               <Link
                 href={`/profile/${run.host_id}`}
-                className="text-[12px] text-zinc-500 hover:text-primary/90 mt-0.5 inline-block font-medium"
+                className="text-[12px] text-muted-foreground hover:text-primary/90 mt-0.5 inline-block font-medium"
               >
                 Organizer: {run.host_display_name ?? 'View profile'}
               </Link>
@@ -258,23 +258,23 @@ function RunCard({
         </div>
 
         {/* Description */}
-        <p className="text-[13px] text-zinc-400 leading-relaxed line-clamp-2 mb-3">
+        <p className="text-[13px] text-muted-foreground leading-relaxed line-clamp-2 mb-3">
           {run.description}
         </p>
 
         {/* Details */}
         <div className="space-y-1.5 mb-3">
-          <div className="flex items-center gap-2 text-[13px] text-zinc-500">
+          <div className="flex items-center gap-2 text-[13px] text-muted-foreground">
             <Calendar size={13} className="text-primary flex-shrink-0" />
             <span>{formatRunDate(run.date)}</span>
           </div>
-          <div className="flex items-center gap-2 text-[13px] text-zinc-500">
+          <div className="flex items-center gap-2 text-[13px] text-muted-foreground">
             <MapPin size={13} className="text-primary flex-shrink-0" />
             <span className="truncate">{run.meetup_location}</span>
           </div>
           <div className="flex items-center gap-2 text-[13px]">
             <Users size={13} className="text-primary flex-shrink-0" />
-            <span className={isAlmostFull ? 'text-primary/90' : isFull ? 'text-red-400' : 'text-zinc-500'}>
+            <span className={isAlmostFull ? 'text-primary/90' : isFull ? 'text-red-400' : 'text-muted-foreground'}>
               {participantCount}{run.max_participants != null ? `/${run.max_participants}` : ''} joined
               {isAlmostFull && ' · Almost full!'}
               {isFull && ' · Full'}
@@ -283,7 +283,7 @@ function RunCard({
           {run.comms_note && String(run.comms_note).trim() && (
             <div className="flex items-start gap-2 text-[13px]">
               <Radio size={13} className="text-cyan-400 flex-shrink-0 mt-0.5" />
-              <span className="text-zinc-300 leading-snug break-words">{run.comms_note}</span>
+              <span className="text-muted-foreground leading-snug break-words">{run.comms_note}</span>
             </div>
           )}
         </div>
@@ -292,7 +292,7 @@ function RunCard({
         <div className="flex gap-2">
           <Link
             href={`/runs/${run.id}`}
-            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-[13px] font-semibold rounded-lg transition-colors"
+            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-muted-foreground text-[13px] font-semibold rounded-lg transition-colors"
           >
             Details
             <ChevronRight size={14} />
@@ -310,8 +310,8 @@ function RunCard({
                 joined
                   ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
                   : isFull
-                  ? 'bg-zinc-700 text-zinc-500 cursor-not-allowed'
-                  : 'bg-primary hover:opacity-90 text-black'
+                  ? 'bg-zinc-700 text-muted-foreground cursor-not-allowed'
+                  : 'bg-primary hover:opacity-90 text-primary-foreground'
               }`}
             >
               {joining ? (
@@ -564,16 +564,16 @@ export default function RunsPage() {
   }, [user, supabaseClient, joinedRunIds, showToast]);
 
   return (
-    <div className="min-h-screen bg-black">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-black/90 backdrop-blur-xl border-b border-zinc-900 safe-top">
+      <header className="sticky top-0 z-50 bg-background/90 backdrop-blur-xl border-b border-border safe-top">
         <div className="px-4 py-3 max-w-app-shell mx-auto">
           <div className="flex items-center justify-between mb-3">
-            <h1 className="text-[20px] font-black text-white">Runs</h1>
+            <h1 className="text-[20px] font-black text-foreground">Runs</h1>
             {user && (
               <button
                 onClick={() => setHostDrawerOpen(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-primary hover:opacity-90 text-black text-[13px] font-bold rounded-lg transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-primary hover:opacity-90 text-primary-foreground text-[13px] font-bold rounded-lg transition-colors"
               >
                 <Plus size={15} />
                 Host a Run
@@ -587,7 +587,7 @@ export default function RunsPage() {
                 key={f}
                 onClick={() => setFilter(f)}
                 className={`px-3 py-1.5 text-[12px] font-bold uppercase tracking-wider rounded-lg transition-all ${
-                  filter === f ? 'bg-primary text-black' : 'bg-zinc-900 text-zinc-400 hover:bg-zinc-800'
+                  filter === f ? 'bg-primary text-primary-foreground' : 'bg-card text-muted-foreground hover:bg-muted'
                 }`}
               >
                 {f}
@@ -620,12 +620,12 @@ export default function RunsPage() {
               className="text-center py-16"
             >
               <Calendar size={44} className="mx-auto text-zinc-800 mb-3" />
-              <h3 className="text-[16px] font-bold text-zinc-400 mb-1">No {filter} runs</h3>
-              <p className="text-[13px] text-zinc-600 mb-6">Be the first to organize one</p>
+              <h3 className="text-[16px] font-bold text-muted-foreground mb-1">No {filter} runs</h3>
+              <p className="text-[13px] text-muted-foreground mb-6">Be the first to organize one</p>
               {user && (
                 <button
                   onClick={() => setHostDrawerOpen(true)}
-                  className="inline-flex items-center gap-2 px-4 py-2.5 bg-primary hover:opacity-90 text-black text-[13px] font-bold rounded-xl transition-colors"
+                  className="inline-flex items-center gap-2 px-4 py-2.5 bg-primary hover:opacity-90 text-primary-foreground text-[13px] font-bold rounded-xl transition-colors"
                 >
                   <Plus size={15} />
                   Host a Run
@@ -634,7 +634,7 @@ export default function RunsPage() {
             </motion.div>
           ) : (
             <motion.div key="runs" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-3">
-              <p className="text-[13px] text-zinc-600">
+              <p className="text-[13px] text-muted-foreground">
                 {runs.length} {filter} run{runs.length !== 1 ? 's' : ''}
               </p>
               {runs.map((run, i) => (

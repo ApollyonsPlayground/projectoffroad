@@ -147,7 +147,7 @@ export default function TrailMap({ trails, listFilteredCount }: TrailMapProps) {
   const noCoords = Math.max(0, totalLoaded - plotted.length);
 
   return (
-    <div className="relative h-full w-full rounded-xl overflow-hidden border border-zinc-800">
+    <div className="relative h-full w-full rounded-xl overflow-hidden border border-border">
       <MapContainer
         ref={mapRef}
         center={center}
@@ -303,7 +303,7 @@ export default function TrailMap({ trails, listFilteredCount }: TrailMapProps) {
         <button
           type="button"
           onClick={locateUser}
-          className="rounded-lg border border-zinc-600 bg-zinc-900/95 px-3 py-2 text-[11px] font-bold uppercase tracking-wide text-white shadow-lg backdrop-blur-sm hover:bg-zinc-800"
+          className="rounded-lg border border-border bg-card/95 px-3 py-2 text-[11px] font-bold uppercase tracking-wide text-foreground shadow-lg backdrop-blur-sm hover:bg-zinc-800"
         >
           {userPos ? 'Center on me' : 'Use my location'}
         </button>

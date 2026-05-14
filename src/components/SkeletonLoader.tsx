@@ -12,9 +12,9 @@ function Skeleton({ className = '' }: { className?: string }) {
 // Post skeleton - Instagram style with shimmer
 export function PostSkeleton() {
   return (
-    <div className="bg-black border-b border-zinc-900 mb-0">
+    <div className="bg-background border-b border-border mb-0">
       {/* Header skeleton */}
-      <div className="flex items-center justify-between p-3 border-b border-zinc-800">
+      <div className="flex items-center justify-between p-3 border-b border-border">
         <div className="flex items-center gap-3">
           <Skeleton className="w-10 h-10 rounded-full" />
           <div className="space-y-1.5">
@@ -26,7 +26,7 @@ export function PostSkeleton() {
       </div>
 
       {/* Image skeleton - square */}
-      <div className="aspect-square w-full bg-zinc-900 relative overflow-hidden">
+      <div className="aspect-square w-full bg-card relative overflow-hidden">
         <motion.div
           className="absolute inset-0 bg-gradient-to-r from-zinc-800 via-zinc-700 to-zinc-800"
           style={{ backgroundSize: '200% 100%' }}
@@ -78,7 +78,7 @@ export function TrailCardSkeleton() {
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-zinc-900 border border-zinc-800 p-4"
+      className="bg-card border border-border p-4"
     >
       <div className="flex gap-4">
         {/* Thumbnail */}
@@ -122,7 +122,7 @@ export function ClubCardSkeleton() {
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
-      className="bg-zinc-900 border border-zinc-800 overflow-hidden"
+      className="bg-card border border-border overflow-hidden"
     >
       {/* Club poster/banner */}
       <Skeleton className="w-full h-32" />
@@ -172,7 +172,7 @@ export function RunCardSkeleton() {
     <motion.div
       initial={{ opacity: 0, x: -10 }}
       animate={{ opacity: 1, x: 0 }}
-      className="bg-zinc-900 border border-zinc-800 p-4"
+      className="bg-card border border-border p-4"
     >
       <div className="flex justify-between items-start mb-3">
         <Skeleton className="w-2/3 h-6" />
@@ -186,7 +186,7 @@ export function RunCardSkeleton() {
         <Skeleton className="w-24 h-4" />
         <Skeleton className="w-24 h-4" />
       </div>
-      <div className="mt-4 pt-3 border-t border-zinc-800 flex gap-3">
+      <div className="mt-4 pt-3 border-t border-border flex gap-3">
         <Skeleton className="flex-1 h-10" />
         <Skeleton className="w-10 h-10" />
       </div>
@@ -227,7 +227,7 @@ export function ProfileSkeleton() {
         </div>
         
         {/* Stats */}
-        <div className="flex justify-around py-4 border-y border-zinc-800">
+        <div className="flex justify-around py-4 border-y border-border">
           {[1, 2, 3].map((i) => (
             <div key={i} className="text-center space-y-1">
               <Skeleton className="w-12 h-6 mx-auto" />

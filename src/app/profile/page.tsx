@@ -29,6 +29,7 @@ import {
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import BottomNav from '@/components/BottomNav';
+import { ProfileThemeSwatches } from '@/components/ProfileThemeSwatches';
 import { ProfileSkeleton } from '@/components/SkeletonLoader';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/Toast';
@@ -189,12 +190,12 @@ function EditRigModal({
 
   const field = (label: string, key: keyof typeof form, type: 'text' | 'number' = 'text') => (
     <div>
-      <label className="block text-[11px] font-semibold text-zinc-500 uppercase tracking-wider mb-1.5">{label}</label>
+      <label className="block text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">{label}</label>
       <input
         type={type}
         value={form[key] as string}
         onChange={(e) => setForm((p) => ({ ...p, [key]: type === 'number' ? Number(e.target.value) : e.target.value }))}
-        className="w-full bg-zinc-900 border border-zinc-800 focus:border-primary/60 rounded-xl px-3 py-2.5 text-[14px] text-zinc-200 placeholder:text-zinc-600 outline-none transition-colors"
+        className="w-full bg-card border border-border focus:border-primary/60 rounded-xl px-3 py-2.5 text-[14px] text-foreground/90 placeholder:text-muted-foreground outline-none transition-colors"
       />
     </div>
   );
@@ -205,7 +206,7 @@ function EditRigModal({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[9992] bg-black/75 backdrop-blur-sm"
+        className="fixed inset-0 z-[9992] bg-background/75 backdrop-blur-sm"
         onClick={onClose}
       />
       <motion.div
@@ -213,28 +214,28 @@ function EditRigModal({
         animate={{ y: 0 }}
         exit={{ y: '100%' }}
         transition={{ type: 'spring', stiffness: 420, damping: 36 }}
-        className="fixed bottom-0 left-0 right-0 z-[9993] max-w-app-shell mx-auto bg-zinc-950 border border-zinc-800 rounded-t-2xl"
+        className="fixed bottom-0 left-0 right-0 z-[9993] max-w-app-shell mx-auto bg-muted border border-border rounded-t-2xl"
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Handle */}
         <div className="flex justify-center pt-3">
-          <div className="w-9 h-1 bg-zinc-800 rounded-full" />
+          <div className="w-9 h-1 bg-muted rounded-full" />
         </div>
 
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-900">
-          <button onClick={onClose} className="p-1 text-zinc-500 hover:text-white transition-colors">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+          <button onClick={onClose} className="p-1 text-muted-foreground hover:text-foreground transition-colors">
             <X size={20} />
           </button>
-          <span className="font-bold text-white text-[15px]">
+          <span className="font-bold text-foreground text-[15px]">
             {isNew ? 'Add Rig' : 'Edit Rig'}
           </span>
           <motion.button
             whileTap={{ scale: 0.92 }}
             onClick={handleSave}
             disabled={saving}
-            className="flex items-center gap-1.5 px-4 py-1.5 bg-primary disabled:bg-zinc-800 disabled:text-zinc-600 text-black font-bold text-[13px] rounded-full transition-colors min-w-[68px] justify-center"
+            className="flex items-center gap-1.5 px-4 py-1.5 bg-primary disabled:bg-muted disabled:text-muted-foreground text-primary-foreground font-bold text-[13px] rounded-full transition-colors min-w-[68px] justify-center"
           >
             {saving
               ? <Loader2 size={14} className="animate-spin" />
@@ -250,13 +251,13 @@ function EditRigModal({
           {field('Model', 'model')}
           {field('Trim', 'trim')}
           <div>
-            <label className="block text-[11px] font-semibold text-zinc-500 uppercase tracking-wider mb-1.5">Modifications</label>
+            <label className="block text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Modifications</label>
             <textarea
               rows={3}
               value={form.modifications}
               onChange={(e) => setForm((p) => ({ ...p, modifications: e.target.value }))}
               placeholder="Lift kit, tires, armor, recovery gear..."
-              className="w-full bg-zinc-900 border border-zinc-800 focus:border-primary/60 rounded-xl px-3 py-2.5 text-[14px] text-zinc-200 placeholder:text-zinc-600 outline-none resize-none transition-colors"
+              className="w-full bg-card border border-border focus:border-primary/60 rounded-xl px-3 py-2.5 text-[14px] text-foreground/90 placeholder:text-muted-foreground outline-none resize-none transition-colors"
             />
           </div>
         </div>
@@ -565,7 +566,7 @@ export default function ProfilePage() {
 
   if (isLoading || loading) {
     return (
-      <div className="min-h-screen bg-black">
+      <div className="min-h-screen bg-background">
         <div className="max-w-app-shell mx-auto">
           <ProfileSkeleton />
         </div>
@@ -578,16 +579,16 @@ export default function ProfilePage() {
   if (!user || fetchError || (!profile && isConfigured)) {
     const isProfileMissing = user && (!profile || fetchError);
     return (
-      <div className="min-h-screen bg-black flex flex-col items-center justify-center px-6">
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6">
         <div className="w-full max-w-sm flex flex-col items-center gap-8 text-center">
-          <div className="w-20 h-20 rounded-2xl bg-zinc-950 border-2 border-zinc-800 flex items-center justify-center">
-            <User size={36} className="text-zinc-600" />
+          <div className="w-20 h-20 rounded-2xl bg-muted border-2 border-border flex items-center justify-center">
+            <User size={36} className="text-muted-foreground" />
           </div>
           <div className="flex flex-col gap-2">
-            <h2 className="text-[22px] font-black text-white tracking-tight">
+            <h2 className="text-[22px] font-black text-foreground tracking-tight">
               {isProfileMissing ? 'Profile Not Found' : 'Your Profile'}
             </h2>
-            <p className="text-[14px] text-zinc-500 leading-relaxed max-w-[260px] mx-auto">
+            <p className="text-[14px] text-muted-foreground leading-relaxed max-w-[260px] mx-auto">
               {isProfileMissing
                 ? 'Your account was created but the profile record is missing. Try signing out and back in.'
                 : 'Sign in to view your rig portfolio, posts, and community profile.'}
@@ -596,14 +597,14 @@ export default function ProfilePage() {
           {isProfileMissing ? (
             <button
               onClick={async () => { await signOut(); router.push('/login'); }}
-              className="w-full flex items-center justify-center gap-3 py-5 rounded-2xl bg-zinc-900 border-2 border-zinc-700 hover:border-primary text-white font-black text-[17px] transition-colors"
+              className="w-full flex items-center justify-center gap-3 py-5 rounded-2xl bg-card border-2 border-border hover:border-primary text-foreground font-black text-[17px] transition-colors"
             >
               Sign Out and Try Again
             </button>
           ) : (
             <Link
               href="/login"
-              className="w-full flex items-center justify-center gap-3 py-5 rounded-2xl bg-primary hover:opacity-90 text-black font-black text-[17px] transition-colors shadow-lg shadow-primary/30"
+              className="w-full flex items-center justify-center gap-3 py-5 rounded-2xl bg-primary hover:opacity-90 text-primary-foreground font-black text-[17px] transition-colors shadow-lg shadow-primary/30"
             >
               Sign In to View Profile
             </Link>
@@ -617,11 +618,11 @@ export default function ProfilePage() {
   const isVerified = (displayProfile as typeof PLACEHOLDER_PROFILE).is_verified ?? false;
 
   return (
-    <div className="min-h-screen bg-black">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="sticky top-0 z-30 bg-black/90 backdrop-blur-xl border-b border-zinc-900">
+      <header className="sticky top-0 z-30 bg-background/90 backdrop-blur-xl border-b border-border">
         <div className="max-w-app-shell mx-auto flex items-center justify-between px-4 py-3">
-          <h1 className="text-[17px] font-bold text-white">Rig Portfolio</h1>
+          <h1 className="text-[17px] font-bold text-foreground">Rig Portfolio</h1>
           <div className="flex items-center gap-0.5">
             {(profile?.role === 'owner' || profile?.role === 'admin') && (
               <button
@@ -641,7 +642,7 @@ export default function ProfilePage() {
             </Link>
             <Link
               href="/settings/"
-              className="p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center text-zinc-500 hover:text-white transition-colors touch-manipulation"
+              className="p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors touch-manipulation"
             >
               <Settings size={20} />
             </Link>
@@ -649,9 +650,21 @@ export default function ProfilePage() {
         </div>
       </header>
 
+      {supabaseClient && user ? (
+        <div className="max-w-app-shell mx-auto px-4 py-2.5 border-b border-border flex flex-wrap items-center justify-between gap-3 bg-muted/80">
+          <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider shrink-0">Theme</span>
+          <ProfileThemeSwatches
+            supabaseClient={supabaseClient}
+            userId={user.id}
+            profileUiTheme={profile?.ui_theme as string | undefined}
+            onApplied={refreshProfile}
+          />
+        </div>
+      ) : null}
+
       <main className="max-w-app-shell mx-auto pb-24">
         {/* Avatar + Bio ──────────────────────────── */}
-        <section className="px-4 pt-5 pb-4 border-b border-zinc-900">
+        <section className="px-4 pt-5 pb-4 border-b border-border">
           <div className="flex items-start gap-4">
             {/* Avatar */}
             <div className="relative flex-shrink-0">
@@ -659,7 +672,7 @@ export default function ProfilePage() {
                 onClick={() => avatarInputRef.current?.click()}
                 disabled={avatarUploading}
                 aria-label="Change avatar"
-                className="relative w-20 h-20 rounded-full bg-zinc-900 overflow-hidden ring-2 ring-primary/40 block focus:outline-none focus-visible:ring-4 focus-visible:ring-primary"
+                className="relative w-20 h-20 rounded-full bg-card overflow-hidden ring-2 ring-primary/40 block focus:outline-none focus-visible:ring-4 focus-visible:ring-primary"
               >
                 {(localAvatarUrl ?? displayProfile.avatar_url) ? (
                   <img
@@ -669,12 +682,12 @@ export default function ProfilePage() {
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
-                    <User size={32} className="text-zinc-600" />
+                    <User size={32} className="text-muted-foreground" />
                   </div>
                 )}
                 {/* Uploading overlay */}
                 {avatarUploading && (
-                  <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                  <div className="absolute inset-0 bg-background/60 flex items-center justify-center">
                     <Loader2 size={20} className="animate-spin text-primary" />
                   </div>
                 )}
@@ -682,13 +695,13 @@ export default function ProfilePage() {
               <button
                 onClick={() => avatarInputRef.current?.click()}
                 disabled={avatarUploading}
-                className="absolute -bottom-1 -right-1 w-7 h-7 bg-primary disabled:bg-zinc-700 rounded-full flex items-center justify-center transition-colors"
+                className="absolute -bottom-1 -right-1 w-7 h-7 bg-primary disabled:bg-muted rounded-full flex items-center justify-center transition-colors"
                 aria-label="Change avatar"
                 tabIndex={-1}
               >
                 {avatarUploading
-                  ? <Loader2 size={11} className="animate-spin text-black" />
-                  : <Camera size={13} className="text-black" />
+                  ? <Loader2 size={11} className="animate-spin text-primary-foreground" />
+                  : <Camera size={13} className="text-primary-foreground" />
                 }
               </button>
               <input
@@ -703,7 +716,7 @@ export default function ProfilePage() {
             {/* Name + meta */}
             <div className="flex-1 min-w-0 pt-1">
               <div className="flex items-center gap-1.5 flex-wrap">
-                <h2 className="text-[17px] font-bold text-white leading-tight">{displayName}</h2>
+                <h2 className="text-[17px] font-bold text-foreground leading-tight">{displayName}</h2>
                 {isVerified && (
                   <div className="relative flex items-center" aria-label="Verified member">
                     <motion.div
@@ -722,7 +735,7 @@ export default function ProfilePage() {
                 )}
               </div>
               {displayProfile.location && (
-                <div className="flex items-center gap-1 text-[13px] text-zinc-500 mt-0.5">
+                <div className="flex items-center gap-1 text-[13px] text-muted-foreground mt-0.5">
                   <MapPin size={12} />
                   <span>{String(displayProfile.location)}</span>
                 </div>
@@ -742,31 +755,31 @@ export default function ProfilePage() {
           </div>
 
           {displayProfile.bio && (
-            <p className="mt-3 text-[14px] text-zinc-400 leading-relaxed">{String(displayProfile.bio)}</p>
+            <p className="mt-3 text-[14px] text-muted-foreground leading-relaxed">{String(displayProfile.bio)}</p>
           )}
 
           {/* Stats row — aligned with typical social profiles */}
-          <div className="flex justify-around mt-4 pt-4 border-t border-zinc-900">
+          <div className="flex justify-around mt-4 pt-4 border-t border-border">
             {[
               { label: 'Posts', value: postsCount },
               { label: 'Followers', value: followersCount },
               { label: 'Following', value: followingCount },
             ].map(({ label, value }) => (
               <div key={label} className="text-center min-w-[72px]">
-                <p className="text-[18px] font-bold text-white">{value}</p>
-                <p className="text-[11px] text-zinc-600 uppercase tracking-wider">{label}</p>
+                <p className="text-[18px] font-bold text-foreground">{value}</p>
+                <p className="text-[11px] text-muted-foreground uppercase tracking-wider">{label}</p>
               </div>
             ))}
           </div>
-          <p className="text-center text-[11px] text-zinc-600 mt-3">
+          <p className="text-center text-[11px] text-muted-foreground mt-3">
             {vehicles.length} rig{vehicles.length !== 1 ? 's' : ''} in garage · {clubsCount} club{clubsCount !== 1 ? 's' : ''} · {runsJoinedCount} run{runsJoinedCount !== 1 ? 's' : ''} joined
           </p>
         </section>
 
         {/* Rigs ─────────────────────────────────── */}
-        <section className="px-4 py-4 border-b border-zinc-900">
+        <section className="px-4 py-4 border-b border-border">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-[14px] font-bold text-white flex items-center gap-2">
+            <h3 className="text-[14px] font-bold text-foreground flex items-center gap-2">
               <Truck size={16} className="text-primary" />
               Your Garage
               {vehicles.filter((v) => v.is_primary).length > 0 && (
@@ -790,12 +803,12 @@ export default function ProfilePage() {
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.05 }}
-                  className="bg-zinc-900 border border-zinc-800 rounded-xl p-3.5"
+                  className="bg-card border border-border rounded-xl p-3.5"
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-[14px] font-semibold text-white">
+                        <span className="text-[14px] font-semibold text-foreground">
                           {v.year} {v.make} {v.model}
                           {v.trim ? ` ${v.trim}` : ''}
                         </span>
@@ -806,7 +819,7 @@ export default function ProfilePage() {
                         )}
                       </div>
                       {v.modifications && (
-                        <p className="text-[12px] text-zinc-500 mt-1 leading-relaxed">{v.modifications}</p>
+                        <p className="text-[12px] text-muted-foreground mt-1 leading-relaxed">{v.modifications}</p>
                       )}
                       {!v.is_primary && (
                         <button
@@ -819,7 +832,7 @@ export default function ProfilePage() {
                               showToast('Primary rig updated', 'success');
                             } catch { showToast('Could not set primary rig', 'error'); }
                           }}
-                          className="mt-2 text-[11px] text-zinc-600 hover:text-primary/90 transition-colors"
+                          className="mt-2 text-[11px] text-muted-foreground hover:text-primary/90 transition-colors"
                         >
                           Set as Primary
                         </button>
@@ -827,7 +840,7 @@ export default function ProfilePage() {
                     </div>
                     <button
                       onClick={() => setEditingVehicle(v)}
-                      className="p-1.5 text-zinc-600 hover:text-primary/90 transition-colors ml-2 flex-shrink-0"
+                      className="p-1.5 text-muted-foreground hover:text-primary/90 transition-colors ml-2 flex-shrink-0"
                       aria-label="Edit rig"
                     >
                       <Edit2 size={15} />
@@ -839,18 +852,18 @@ export default function ProfilePage() {
           ) : (
             <button
               onClick={() => setEditingVehicle(null)}
-              className="w-full py-6 border border-dashed border-zinc-800 rounded-xl text-[13px] text-zinc-600 hover:text-primary/90 hover:border-primary/30 transition-colors flex flex-col items-center gap-2"
+              className="w-full py-6 border border-dashed border-border rounded-xl text-[13px] text-muted-foreground hover:text-primary/90 hover:border-primary/30 transition-colors flex flex-col items-center gap-2"
             >
-              <Truck size={24} className="text-zinc-700" />
+              <Truck size={24} className="text-muted-foreground" />
               Tap to add your first rig
             </button>
           )}
         </section>
 
         {/* My runs — host + joined ───────────────── */}
-        <section className="px-4 py-4 border-b border-zinc-900">
+        <section className="px-4 py-4 border-b border-border">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-[14px] font-bold text-white flex items-center gap-2">
+            <h3 className="text-[14px] font-bold text-foreground flex items-center gap-2">
               <Calendar size={16} className="text-primary" />
               My runs
             </h3>
@@ -864,11 +877,11 @@ export default function ProfilePage() {
           </div>
           {runsLoading ? (
             <div className="flex justify-center py-10">
-              <Loader2 size={22} className="animate-spin text-zinc-600" />
+              <Loader2 size={22} className="animate-spin text-muted-foreground" />
             </div>
           ) : myRuns.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-zinc-800 py-8 px-4 text-center">
-              <p className="text-[13px] text-zinc-600 mb-3">Join or host a run — it will show up here.</p>
+            <div className="rounded-xl border border-dashed border-border py-8 px-4 text-center">
+              <p className="text-[13px] text-muted-foreground mb-3">Join or host a run — it will show up here.</p>
               <Link href="/runs" className="text-[13px] font-bold text-primary hover:text-primary/90">
                 Browse runs
               </Link>
@@ -879,21 +892,21 @@ export default function ProfilePage() {
                 <Link
                   key={`${r.role}-${r.id}`}
                   href={`/runs/${r.id}`}
-                  className="flex items-center gap-3 bg-zinc-900 border border-zinc-800 rounded-xl p-3 hover:border-primary/35 transition-colors"
+                  className="flex items-center gap-3 bg-card border border-border rounded-xl p-3 hover:border-primary/35 transition-colors"
                 >
-                  <div className="w-10 h-10 rounded-full bg-zinc-950 border border-zinc-800 flex items-center justify-center flex-shrink-0">
-                    <Zap size={18} className={r.status === 'active' ? 'text-primary/90' : 'text-zinc-600'} />
+                  <div className="w-10 h-10 rounded-full bg-muted border border-border flex items-center justify-center flex-shrink-0">
+                    <Zap size={18} className={r.status === 'active' ? 'text-primary/90' : 'text-muted-foreground'} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-[14px] font-semibold text-white truncate">{r.title}</p>
-                    <p className="text-[12px] text-zinc-500 mt-0.5">
+                    <p className="text-[14px] font-semibold text-foreground truncate">{r.title}</p>
+                    <p className="text-[12px] text-muted-foreground mt-0.5">
                       {new Date(r.date).toLocaleString('en-US', {
                         month: 'short',
                         day: 'numeric',
                         hour: 'numeric',
                         minute: '2-digit',
                       })}
-                      <span className="text-zinc-600"> · </span>
+                      <span className="text-muted-foreground"> · </span>
                       <span className="capitalize">{r.status}</span>
                     </p>
                   </div>
@@ -906,7 +919,7 @@ export default function ProfilePage() {
                   >
                     {r.role === 'hosting' ? 'Hosting' : 'Joined'}
                   </span>
-                  <ChevronRight size={16} className="text-zinc-600 flex-shrink-0" />
+                  <ChevronRight size={16} className="text-muted-foreground flex-shrink-0" />
                 </Link>
               ))}
             </div>
@@ -916,7 +929,7 @@ export default function ProfilePage() {
         {/* Activity tabs ────────────────────────── */}
         <section>
           {/* Tab bar */}
-          <div className="flex border-b border-zinc-900">
+          <div className="flex border-b border-border">
             {(
               [
                 { id: 'posts',     label: 'Posts',     Icon: Grid3X3 },
@@ -931,7 +944,7 @@ export default function ProfilePage() {
                 className={`flex-1 flex items-center justify-center gap-1 py-3 text-[12px] font-semibold transition-colors border-b-2 ${
                   activeTab === id
                     ? 'border-primary text-primary'
-                    : 'border-transparent text-zinc-500 hover:text-zinc-300'
+                    : 'border-transparent text-muted-foreground hover:text-muted-foreground'
                 }`}
               >
                 <Icon size={13} />
@@ -954,7 +967,7 @@ export default function ProfilePage() {
             if (tabLoading) {
               return (
                 <div className="flex justify-center py-12">
-                  <Loader2 size={22} className="animate-spin text-zinc-600" />
+                  <Loader2 size={22} className="animate-spin text-muted-foreground" />
                 </div>
               );
             }
@@ -962,15 +975,15 @@ export default function ProfilePage() {
             if (data.length === 0) {
               return (
                 <div className="py-12 text-center">
-                  <p className="text-zinc-600 text-[14px]">{emptyMessages[activeTab]}</p>
+                  <p className="text-muted-foreground text-[14px]">{emptyMessages[activeTab]}</p>
                 </div>
               );
             }
 
             return (
-              <div className="grid grid-cols-3 gap-px bg-zinc-900">
+              <div className="grid grid-cols-3 gap-px bg-card">
                 {data.map((p) => (
-                  <Link key={p.id} href={`/posts/${p.id}`} className="relative aspect-square bg-black overflow-hidden group">
+                  <Link key={p.id} href={`/posts/${p.id}`} className="relative aspect-square bg-background overflow-hidden group">
                     {p.image_url ? (
                       <img
                         src={p.image_url}
@@ -979,8 +992,8 @@ export default function ProfilePage() {
                         loading="lazy"
                       />
                     ) : (
-                      <div className="w-full h-full bg-zinc-950 flex items-center justify-center p-2">
-                        <span className="text-[10px] text-zinc-600 text-center line-clamp-4 leading-tight">
+                      <div className="w-full h-full bg-muted flex items-center justify-center p-2">
+                        <span className="text-[10px] text-muted-foreground text-center line-clamp-4 leading-tight">
                           {p.body ?? p.caption}
                         </span>
                       </div>
@@ -992,9 +1005,9 @@ export default function ProfilePage() {
                       </div>
                     )}
                     {/* Hover overlay */}
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
-                      <div className="flex items-center gap-1 text-white text-[12px] font-bold">
-                        <Heart size={13} className="fill-white text-white" />
+                    <div className="absolute inset-0 bg-transparent group-hover:bg-background/50 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                      <div className="flex items-center gap-1 text-foreground text-[12px] font-bold">
+                        <Heart size={13} className="fill-foreground text-foreground" />
                         {p.likes_count ?? 0}
                       </div>
                     </div>
@@ -1006,28 +1019,28 @@ export default function ProfilePage() {
         </section>
 
         {/* Quick links ───────────────────────────── */}
-        <section className="px-4 py-4 border-t border-zinc-900 space-y-2">
+        <section className="px-4 py-4 border-t border-border space-y-2">
           {[
             { href: '/achievements', icon: Award, label: 'Achievements' },
             { href: '/runs?filter=completed', icon: Calendar, label: 'Run History' },
           ].map(({ href, icon: Icon, label }) => (
-            <Link key={href} href={href} className="flex items-center justify-between p-3.5 bg-zinc-900 border border-zinc-800 rounded-xl hover:border-zinc-700 transition-colors">
+            <Link key={href} href={href} className="flex items-center justify-between p-3.5 bg-card border border-border rounded-xl hover:border-border transition-colors">
               <div className="flex items-center gap-3">
                 <Icon size={18} className="text-primary" />
-                <span className="text-[14px] text-zinc-200">{label}</span>
+                <span className="text-[14px] text-foreground/90">{label}</span>
               </div>
-              <ChevronRight size={16} className="text-zinc-600" />
+              <ChevronRight size={16} className="text-muted-foreground" />
             </Link>
           ))}
         </section>
 
         {/* Sign out ──────────────────────────────── */}
         <section className="px-4 pb-12 pt-2">
-          <div className="border-t border-zinc-900 pt-8">
+          <div className="border-t border-border pt-8">
             <motion.button
               whileTap={{ scale: 0.97 }}
               onClick={handleSignOut}
-              className="w-full flex items-center justify-center gap-3 py-5 bg-black border-2 border-zinc-800 hover:border-red-500 hover:bg-red-500/8 text-zinc-400 hover:text-red-400 text-[17px] font-black rounded-2xl transition-all"
+              className="w-full flex items-center justify-center gap-3 py-5 bg-background border-2 border-border hover:border-red-500 hover:bg-red-500/8 text-muted-foreground hover:text-red-400 text-[17px] font-black rounded-2xl transition-all"
             >
               <LogOut size={22} />
               Log Out

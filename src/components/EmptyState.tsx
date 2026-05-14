@@ -110,7 +110,7 @@ export function EmptyState({
         >
           <Link
             href={actionHref || config.actionHref || '/'}
-            className="inline-flex items-center gap-2 px-6 py-3 bg-muted-gold text-black font-bold rounded-lg hover:bg-muted-gold/90 transition-colors"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-muted-gold text-primary-foreground font-bold rounded-lg hover:bg-muted-gold/90 transition-colors"
           >
             <Plus size={18} />
             {actionLabel || config.actionLabel}

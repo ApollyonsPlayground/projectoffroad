@@ -60,13 +60,13 @@ function PostGrid({ posts }: { posts: PostRow[] }) {
         <Link
           key={p.id}
           href={`/posts/${p.id}`}
-          className="aspect-square bg-zinc-900 overflow-hidden relative block focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          className="aspect-square bg-card overflow-hidden relative block focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
           {p.image_url ? (
             <img src={p.image_url} alt="" className="w-full h-full object-cover" loading="lazy" />
           ) : (
             <div className="w-full h-full flex items-center justify-center p-2">
-              <p className="text-zinc-500 text-[10px] text-center leading-tight line-clamp-4">{p.body}</p>
+              <p className="text-muted-foreground text-[10px] text-center leading-tight line-clamp-4">{p.body}</p>
             </div>
           )}
         </Link>
@@ -378,8 +378,8 @@ export default function UserProfilePage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <Loader2 size={24} className="animate-spin text-zinc-600" />
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 size={24} className="animate-spin text-muted-foreground" />
         <BottomNav />
       </div>
     );
@@ -387,10 +387,10 @@ export default function UserProfilePage() {
 
   if (error || !profile) {
     return (
-      <div className="min-h-screen bg-black flex flex-col items-center justify-center px-6 gap-6">
-        <h2 className="text-[22px] font-black text-white">Profile Not Found</h2>
-        <p className="text-zinc-500 text-[14px]">{error ?? 'This user does not exist.'}</p>
-        <Link href="/feed/" className="px-5 py-3 bg-primary text-black font-bold rounded-xl text-[14px]">
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6 gap-6">
+        <h2 className="text-[22px] font-black text-foreground">Profile Not Found</h2>
+        <p className="text-muted-foreground text-[14px]">{error ?? 'This user does not exist.'}</p>
+        <Link href="/feed/" className="px-5 py-3 bg-primary text-primary-foreground font-bold rounded-xl text-[14px]">
           Back to Feed
         </Link>
         <BottomNav />
@@ -433,52 +433,52 @@ export default function UserProfilePage() {
       });
 
   return (
-    <div className="min-h-screen bg-black pb-24">
+    <div className="min-h-screen bg-background pb-24">
       {/* Sticky header */}
-      <div className="sticky top-0 z-40 bg-black/90 backdrop-blur-md border-b border-zinc-900 px-4 py-3 flex items-center gap-3">
-        <Link href="/feed/" className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-zinc-900 transition-colors">
-          <ArrowLeft size={19} className="text-white" />
+      <div className="sticky top-0 z-40 bg-background/90 backdrop-blur-md border-b border-border px-4 py-3 flex items-center gap-3">
+        <Link href="/feed/" className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-card transition-colors">
+          <ArrowLeft size={19} className="text-foreground" />
         </Link>
-        <span className="text-[17px] font-black text-white leading-none">{memberDisplayName}</span>
+        <span className="text-[17px] font-black text-foreground leading-none">{memberDisplayName}</span>
       </div>
 
       {/* Profile header */}
       <div className="max-w-app-shell mx-auto px-4 pt-6 pb-4 flex flex-col items-center text-center gap-3">
         <div className="relative">
-          <div className="w-20 h-20 rounded-full overflow-hidden bg-zinc-800 border-2 border-zinc-700">
+          <div className="w-20 h-20 rounded-full overflow-hidden bg-zinc-800 border-2 border-border">
             {profile.avatar_url ? (
               <img src={profile.avatar_url} alt={memberDisplayName} className="w-full h-full object-cover" />
             ) : (
-              <div className="w-full h-full flex items-center justify-center text-zinc-500 font-black text-2xl">
+              <div className="w-full h-full flex items-center justify-center text-muted-foreground font-black text-2xl">
                 {(memberDisplayName ?? 'U')[0].toUpperCase()}
               </div>
             )}
           </div>
           {profile.role === 'owner' && (
             <span className="absolute -bottom-1 -right-1 w-[22px] h-[22px] rounded-full bg-[#FF8C00] flex items-center justify-center">
-              <span className="text-[8px] font-black text-black leading-none">SO</span>
+              <span className="text-[8px] font-black text-primary-foreground leading-none">SO</span>
             </span>
           )}
         </div>
 
         <div className="flex items-center gap-1.5">
-          <h1 className="text-[20px] font-black text-white leading-none">{memberDisplayName}</h1>
+          <h1 className="text-[20px] font-black text-foreground leading-none">{memberDisplayName}</h1>
           {profile.is_verified && <BadgeCheck size={17} className="text-primary flex-shrink-0" />}
         </div>
 
         {profile.bio && (
-          <p className="text-zinc-400 text-[13px] leading-relaxed max-w-[260px]">{profile.bio}</p>
+          <p className="text-muted-foreground text-[13px] leading-relaxed max-w-[260px]">{profile.bio}</p>
         )}
 
-        <div className="flex justify-around w-full max-w-xs mx-auto mt-4 pt-4 border-t border-zinc-900">
+        <div className="flex justify-around w-full max-w-xs mx-auto mt-4 pt-4 border-t border-border">
           {[
             { label: 'Posts', value: postsCount },
             { label: 'Followers', value: followersCount },
             { label: 'Following', value: followingCount },
           ].map(({ label, value }) => (
             <div key={label} className="text-center min-w-[72px]">
-              <p className="text-[17px] font-black text-white">{value}</p>
-              <p className="text-[10px] text-zinc-600 uppercase tracking-wider">{label}</p>
+              <p className="text-[17px] font-black text-foreground">{value}</p>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{label}</p>
             </div>
           ))}
         </div>
@@ -491,7 +491,7 @@ export default function UserProfilePage() {
                 type="button"
                 onClick={() => void toggleFollow()}
                 disabled={followBusy || blockRelation !== 'none'}
-                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-zinc-900 border border-zinc-700 text-white text-[13px] font-bold disabled:opacity-40"
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-card border border-border text-foreground text-[13px] font-bold disabled:opacity-40"
               >
                 {followBusy ? (
                   <Loader2 size={15} className="animate-spin" />
@@ -510,7 +510,7 @@ export default function UserProfilePage() {
                   type="button"
                   onClick={() => void handleMessage()}
                   disabled={messagingLoading}
-                  className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-primary hover:opacity-90 disabled:bg-zinc-800 disabled:text-zinc-500 text-black text-[13px] font-black rounded-xl transition-colors"
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-primary hover:opacity-90 disabled:bg-zinc-800 disabled:text-muted-foreground text-primary-foreground text-[13px] font-black rounded-xl transition-colors"
                 >
                   {messagingLoading ? (
                     <Loader2 size={15} className="animate-spin" />
@@ -525,7 +525,7 @@ export default function UserProfilePage() {
               type="button"
               onClick={() => void toggleBlock()}
               disabled={blockBusy || blockRelation === 'they_blocked'}
-              className="flex items-center justify-center gap-2 py-2 text-[12px] font-semibold text-zinc-500 hover:text-red-400 disabled:opacity-40"
+              className="flex items-center justify-center gap-2 py-2 text-[12px] font-semibold text-muted-foreground hover:text-red-400 disabled:opacity-40"
             >
               {blockBusy ? <Loader2 size={14} className="animate-spin" /> : <Ban size={14} />}
               {blockRelation === 'i_blocked' ? 'Unblock' : blockRelation === 'they_blocked' ? 'You are blocked' : 'Block'}
@@ -535,7 +535,7 @@ export default function UserProfilePage() {
       </div>
 
       {/* Tabs */}
-      <div className="max-w-app-shell mx-auto border-b border-zinc-800">
+      <div className="max-w-app-shell mx-auto border-b border-border">
         <div className="flex">
           {TABS.map(({ id, label, icon: Icon }) => (
             <button
@@ -543,8 +543,8 @@ export default function UserProfilePage() {
               onClick={() => setActiveTab(id)}
               className={`flex-1 flex items-center justify-center gap-1 py-3 text-[12px] font-semibold transition-colors border-b-2 ${
                 activeTab === id
-                  ? 'border-primary text-white'
-                  : 'border-transparent text-zinc-500 hover:text-zinc-300'
+                  ? 'border-primary text-foreground'
+                  : 'border-transparent text-muted-foreground hover:text-muted-foreground'
               }`}
             >
               <Icon size={13} />
@@ -558,11 +558,11 @@ export default function UserProfilePage() {
       <div className="max-w-app-shell mx-auto pt-1">
         {tabLoading ? (
           <div className="flex justify-center pt-10">
-            <Loader2 size={22} className="animate-spin text-zinc-600" />
+            <Loader2 size={22} className="animate-spin text-muted-foreground" />
           </div>
         ) : currentData.length === 0 ? (
           <div className="text-center pt-12">
-            <p className="text-zinc-600 text-[14px]">{emptyMessages[activeTab]}</p>
+            <p className="text-muted-foreground text-[14px]">{emptyMessages[activeTab]}</p>
           </div>
         ) : (
           <PostGrid posts={currentData} />

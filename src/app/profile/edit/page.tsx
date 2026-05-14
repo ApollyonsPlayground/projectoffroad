@@ -8,14 +8,6 @@ import BottomNav from '@/components/BottomNav';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/Toast';
 import { validateUsernameInput } from '@/lib/profileDisplay';
-import { THEME_STORAGE_KEY } from '@/components/ThemeSync';
-import {
-  DEFAULT_UI_PRESET,
-  UI_PRESET_OPTIONS,
-  normalizeUiPreset,
-  type UiPresetId,
-} from '@/lib/ui/uiPresets';
-
 const LEVELS = ['Beginner', 'Intermediate', 'Expert'] as const;
 
 export default function EditProfilePage() {
@@ -28,7 +20,6 @@ export default function EditProfilePage() {
   const [bio, setBio] = useState('');
   const [location, setLocation] = useState('');
   const [experienceLevel, setExperienceLevel] = useState<string>('Beginner');
-  const [uiPreset, setUiPreset] = useState<UiPresetId>(DEFAULT_UI_PRESET);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -39,7 +30,6 @@ export default function EditProfilePage() {
     setLocation(String(profile.location ?? ''));
     const lvl = String(profile.experience_level ?? 'Beginner');
     setExperienceLevel(LEVELS.includes(lvl as (typeof LEVELS)[number]) ? lvl : 'Beginner');
-    setUiPreset(normalizeUiPreset(String(profile.ui_theme ?? DEFAULT_UI_PRESET)));
   }, [profile]);
 
   const handleSave = async () => {
@@ -64,7 +54,6 @@ export default function EditProfilePage() {
           bio: bio.trim() || null,
           location: location.trim() || null,
           experience_level: experienceLevel,
-          ui_theme: uiPreset,
         })
         .eq('id', user.id);
       if (error) {
@@ -81,12 +70,6 @@ export default function EditProfilePage() {
         }
         throw error;
       }
-      try {
-        localStorage.setItem(THEME_STORAGE_KEY, uiPreset);
-      } catch {
-        /* ignore */
-      }
-      document.documentElement.setAttribute('data-ui-preset', uiPreset);
       await refreshProfile();
       showToast('Profile updated', 'success');
       router.push('/profile');
@@ -138,39 +121,6 @@ export default function EditProfilePage() {
       </header>
 
       <main className="max-w-app-shell mx-auto px-4 py-6 space-y-5">
-        <div>
-          <label className="block text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
-            Appearance
-          </label>
-          <div className="grid grid-cols-2 gap-2">
-            {UI_PRESET_OPTIONS.map((t) => (
-              <button
-                key={t.id}
-                type="button"
-                onClick={() => setUiPreset(t.id)}
-                className={`rounded-xl border px-2 py-3 text-left transition ${
-                  uiPreset === t.id
-                    ? 'border-primary bg-primary/10 ring-1 ring-primary'
-                    : 'border-border bg-card hover:border-muted-foreground/40'
-                }`}
-              >
-                <span
-                  className="mb-2 flex h-6 w-full max-w-[140px] overflow-hidden rounded-md border border-border"
-                  aria-hidden
-                  style={{
-                    background: `linear-gradient(90deg, ${t.preview.bg} 55%, ${t.preview.accent} 55%)`,
-                  }}
-                />
-                <span className="block text-[13px] font-bold text-foreground">{t.label}</span>
-                <span className="block text-[10px] text-muted-foreground mt-0.5 leading-snug">{t.hint}</span>
-              </button>
-            ))}
-          </div>
-          <p className="text-[11px] text-muted-foreground mt-2 leading-relaxed">
-            Applies across the app (including clubs). Stored on your profile.
-          </p>
-        </div>
-
         <div>
           <label className="block text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
             Display name
@@ -250,7 +200,7 @@ export default function EditProfilePage() {
         </div>
 
         <p className="text-[12px] text-muted-foreground leading-relaxed">
-          Avatar and garage — from your Rig Portfolio. Verified badge and role are managed by admins.
+          Avatar and garage — from your Rig Portfolio. Pick your app theme from the split-color circles on that page.
         </p>
       </main>
 

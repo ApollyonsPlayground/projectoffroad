@@ -322,8 +322,8 @@ export default function ConversationPage() {
 
   if (isLoading || !conversationId) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <Loader2 size={24} className="animate-spin text-zinc-600" />
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 size={24} className="animate-spin text-muted-foreground" />
       </div>
     );
   }
@@ -339,38 +339,38 @@ export default function ConversationPage() {
     : 'Rider';
 
   return (
-    <div className="flex flex-col h-[100dvh] bg-black">
-      <div className="flex-shrink-0 flex items-center gap-3 px-4 py-3 border-b border-zinc-900 bg-black/90 backdrop-blur-md">
+    <div className="flex flex-col h-[100dvh] bg-background">
+      <div className="flex-shrink-0 flex items-center gap-3 px-4 py-3 border-b border-border bg-background/90 backdrop-blur-md">
         <button
           type="button"
           onClick={() => router.push('/messages/')}
-          className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-zinc-900 transition-colors"
+          className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-card transition-colors"
           aria-label="Back to messages"
         >
-          <ArrowLeft size={19} className="text-white" />
+          <ArrowLeft size={19} className="text-foreground" />
         </button>
 
-        <div className="w-9 h-9 rounded-full bg-zinc-800 overflow-hidden border border-zinc-700 flex-shrink-0">
+        <div className="w-9 h-9 rounded-full bg-zinc-800 overflow-hidden border border-border flex-shrink-0">
           {otherUser?.avatar_url ? (
             <img src={otherUser.avatar_url} alt={otherUser.name ?? 'Rider'} className="w-full h-full object-cover" />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
-              <User size={16} className="text-zinc-500" />
+              <User size={16} className="text-muted-foreground" />
             </div>
           )}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-[15px] font-black text-white leading-none truncate">{otherDisplayName}</p>
+          <p className="text-[15px] font-black text-foreground leading-none truncate">{otherDisplayName}</p>
         </div>
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-1">
         {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full gap-3 text-center">
-            <div className="w-14 h-14 rounded-full bg-zinc-900 flex items-center justify-center">
-              <User size={24} className="text-zinc-600" />
+            <div className="w-14 h-14 rounded-full bg-card flex items-center justify-center">
+              <User size={24} className="text-muted-foreground" />
             </div>
-            <p className="text-zinc-500 text-[13px]">
+            <p className="text-muted-foreground text-[13px]">
               Say hi to {otherUser ? otherDisplayName : 'this rider'}
             </p>
           </div>
@@ -379,9 +379,9 @@ export default function ConversationPage() {
             {grouped.map((group) => (
               <div key={group.date}>
                 <div className="flex items-center gap-3 py-3">
-                  <div className="flex-1 h-px bg-zinc-900" />
-                  <span className="text-[11px] text-zinc-600 font-medium">{formatDateDivider(group.date)}</span>
-                  <div className="flex-1 h-px bg-zinc-900" />
+                  <div className="flex-1 h-px bg-card" />
+                  <span className="text-[11px] text-muted-foreground font-medium">{formatDateDivider(group.date)}</span>
+                  <div className="flex-1 h-px bg-card" />
                 </div>
 
                 <div className="space-y-1">
@@ -407,20 +407,20 @@ export default function ConversationPage() {
                           <div
                             className={`max-w-[75%] rounded-2xl overflow-hidden ${
                               isMe
-                                ? 'bg-primary text-black rounded-br-md'
-                                : 'bg-zinc-900 text-white rounded-bl-md border border-zinc-800'
+                                ? 'bg-primary text-primary-foreground rounded-br-md'
+                                : 'bg-card text-foreground rounded-bl-md border border-border'
                             }`}
                           >
                             {hasMedia && !dmSignedUrls[msg.id] && (
                               <div className="flex items-center justify-center py-10 px-14">
-                                <Loader2 size={22} className="animate-spin text-zinc-400" />
+                                <Loader2 size={22} className="animate-spin text-muted-foreground" />
                               </div>
                             )}
                             {hasMedia && msg.media_type === 'image' && dmSignedUrls[msg.id] && (
                               <img
                                 src={dmSignedUrls[msg.id]}
                                 alt=""
-                                className="max-h-72 w-full object-cover bg-black"
+                                className="max-h-72 w-full object-cover bg-background"
                               />
                             )}
                             {hasMedia && msg.media_type === 'video' && dmSignedUrls[msg.id] && (
@@ -428,13 +428,13 @@ export default function ConversationPage() {
                                 src={dmSignedUrls[msg.id]}
                                 controls
                                 playsInline
-                                className="max-h-72 w-full bg-black"
+                                className="max-h-72 w-full bg-background"
                               />
                             )}
                             {hasText && (
                               <div
                                 className={`px-4 py-2.5 text-[14px] leading-relaxed break-words ${
-                                  isMe ? 'font-medium text-black' : 'text-white'
+                                  isMe ? 'font-medium text-primary-foreground' : 'text-foreground'
                                 }`}
                               >
                                 {msg.content}
@@ -442,7 +442,7 @@ export default function ConversationPage() {
                             )}
                           </div>
                           {showTime && (
-                            <span className="text-[10px] text-zinc-600 mt-1 px-1">{timeLabel(msg.created_at)}</span>
+                            <span className="text-[10px] text-muted-foreground mt-1 px-1">{timeLabel(msg.created_at)}</span>
                           )}
                         </motion.div>
                       </AnimatePresence>
@@ -457,7 +457,7 @@ export default function ConversationPage() {
       </div>
 
       <div
-        className="flex-shrink-0 border-t border-zinc-900 bg-black px-3 py-3 flex items-end gap-2"
+        className="flex-shrink-0 border-t border-border bg-background px-3 py-3 flex items-end gap-2"
         style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 12px)' }}
       >
         <input
@@ -474,7 +474,7 @@ export default function ConversationPage() {
           type="button"
           onClick={() => mediaInputRef.current?.click()}
           disabled={uploadingMedia || sending}
-          className="w-10 h-10 flex-shrink-0 flex items-center justify-center rounded-full bg-zinc-900 border border-zinc-800 text-primary/90 hover:bg-zinc-800 disabled:opacity-40 transition-colors"
+          className="w-10 h-10 flex-shrink-0 flex items-center justify-center rounded-full bg-card border border-border text-primary/90 hover:bg-zinc-800 disabled:opacity-40 transition-colors"
           aria-label="Attach photo or video"
         >
           {uploadingMedia ? <Loader2 size={18} className="animate-spin" /> : <ImagePlus size={18} strokeWidth={2.2} />}
@@ -490,18 +490,18 @@ export default function ConversationPage() {
           onKeyDown={handleKeyDown}
           placeholder="Message..."
           rows={1}
-          className="flex-1 bg-zinc-900 border border-zinc-800 rounded-2xl px-4 py-2.5 text-[14px] text-white placeholder-zinc-600 resize-none focus:outline-none focus:border-primary/60 transition-colors leading-relaxed overflow-hidden"
+          className="flex-1 bg-card border border-border rounded-2xl px-4 py-2.5 text-[14px] text-foreground placeholder-zinc-600 resize-none focus:outline-none focus:border-primary/60 transition-colors leading-relaxed overflow-hidden"
           style={{ minHeight: '42px', maxHeight: '120px' }}
         />
         <button
           type="button"
           onClick={() => void handleSend()}
           disabled={!text.trim() || sending}
-          className="w-10 h-10 flex-shrink-0 flex items-center justify-center rounded-full bg-primary hover:opacity-90 disabled:bg-zinc-800 disabled:text-zinc-600 text-black transition-colors"
+          className="w-10 h-10 flex-shrink-0 flex items-center justify-center rounded-full bg-primary hover:opacity-90 disabled:bg-zinc-800 disabled:text-muted-foreground text-primary-foreground transition-colors"
           aria-label="Send message"
         >
           {sending ? (
-            <Loader2 size={16} className="animate-spin text-zinc-600" />
+            <Loader2 size={16} className="animate-spin text-muted-foreground" />
           ) : (
             <Send size={16} strokeWidth={2.5} />
           )}

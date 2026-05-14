@@ -13,7 +13,7 @@ export default function ChildSafetyStandardsPage() {
   return (
     <div className="min-h-screen bg-gray-900">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <h1 className="text-3xl font-bold text-white mb-2">
+        <h1 className="text-3xl font-bold text-foreground mb-2">
           Child safety &amp; exploitation standards
         </h1>
         <p className="text-gray-400 mb-8">
@@ -21,7 +21,7 @@ export default function ChildSafetyStandardsPage() {
         </p>
 
         <div className="prose prose-invert prose-amber">
-          <h2 className="text-white mt-8">Scope</h2>
+          <h2 className="text-foreground mt-8">Scope</h2>
           <p className="text-gray-300">
             SoCal Offroaders (&quot;we&quot;, &quot;the platform&quot;) prohibits any content or behavior that
             sexually exploits or endangers children, or that facilitates child sexual abuse and exploitation
@@ -29,7 +29,7 @@ export default function ChildSafetyStandardsPage() {
             linked materials accessible through our services.
           </p>
 
-          <h2 className="text-white mt-8">Zero tolerance</h2>
+          <h2 className="text-foreground mt-8">Zero tolerance</h2>
           <ul className="list-disc pl-6 text-gray-300 space-y-2">
             <li>
               <strong>Child sexual abuse material (CSAM)</strong> — We prohibit uploading, requesting,
@@ -50,14 +50,14 @@ export default function ChildSafetyStandardsPage() {
             </li>
           </ul>
 
-          <h2 className="text-white mt-8">Detection, moderation &amp; enforcement</h2>
+          <h2 className="text-foreground mt-8">Detection, moderation &amp; enforcement</h2>
           <p className="text-gray-300">
             We use a combination of automated signals, user reporting, and human review where appropriate to
             enforce these standards. Violations may result in immediate content removal, account suspension or
             permanent ban, and preservation of records as required for safety and legal compliance.
           </p>
 
-          <h2 className="text-white mt-8">Reporting</h2>
+          <h2 className="text-foreground mt-8">Reporting</h2>
           <p className="text-gray-300">
             If you become aware of content or conduct on SoCal Offroaders that may involve CSAE or risk to a
             child, contact us immediately at{' '}
@@ -80,14 +80,14 @@ export default function ChildSafetyStandardsPage() {
             or your country&apos;s equivalent reporting body.
           </p>
 
-          <h2 className="text-white mt-8">Cooperation with authorities</h2>
+          <h2 className="text-foreground mt-8">Cooperation with authorities</h2>
           <p className="text-gray-300">
             We cooperate with law enforcement and comply with applicable reporting obligations where CSAM or
             child safety threats are identified, consistent with applicable law and responsible disclosure
             practices.
           </p>
 
-          <h2 className="text-white mt-8">Related policies</h2>
+          <h2 className="text-foreground mt-8">Related policies</h2>
           <ul className="list-disc pl-6 text-gray-300 space-y-2">
             <li>
               <Link href="/guidelines/" className="text-amber-400 hover:underline">

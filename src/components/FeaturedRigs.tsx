@@ -83,7 +83,7 @@ export default function FeaturedRigs() {
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
                 <div className="absolute bottom-1 left-1 right-1">
-                  <p className="text-xs font-bold text-white truncate">{rig.user_name}</p>
+                  <p className="text-xs font-bold text-foreground truncate">{rig.user_name}</p>
                   <p className="text-xs text-neutral-400 truncate">{rig.vehicle}</p>
                 </div>
               </div>
@@ -97,7 +97,7 @@ export default function FeaturedRigs() {
           </p>
           <Link
             href="/feed/"
-            className="inline-flex items-center gap-2 px-4 py-2 bg-primary hover:opacity-90 text-black text-xs font-black uppercase transition-colors rounded"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-primary hover:opacity-90 text-primary-foreground text-xs font-black uppercase transition-colors rounded"
           >
             <Plus size={14} />
             Share Your Rig

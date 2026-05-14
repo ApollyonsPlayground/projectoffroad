@@ -84,7 +84,7 @@ export default function RightSidebar() {
             </p>
             <Link
               href="/runs/create"
-              className="inline-flex items-center gap-2 px-4 py-2 bg-muted-gold hover:bg-moss text-black text-xs font-black uppercase transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-muted-gold hover:bg-moss text-primary-foreground text-xs font-black uppercase transition-colors"
             >
               <Plus size={14} />
               New Run
@@ -124,7 +124,7 @@ export default function RightSidebar() {
             </p>
             <Link
               href="/clubs/create"
-              className="inline-flex items-center gap-2 px-4 py-2 bg-muted-gold hover:bg-moss text-black text-xs font-black uppercase transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-muted-gold hover:bg-moss text-primary-foreground text-xs font-black uppercase transition-colors"
             >
               <Plus size={14} />
               Create Club

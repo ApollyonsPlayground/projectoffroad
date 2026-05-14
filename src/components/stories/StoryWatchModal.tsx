@@ -393,11 +393,11 @@ export function StoryWatchModal({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.18 }}
-          className="fixed inset-0 z-[19900] isolate min-h-[100dvh] w-full bg-black overflow-hidden"
+          className="fixed inset-0 z-[19900] isolate min-h-[100dvh] w-full bg-background overflow-hidden"
           style={{ WebkitTapHighlightColor: 'transparent' }}
         >
           <motion.div
-            className="absolute inset-0 flex flex-col bg-black touch-pan-y"
+            className="absolute inset-0 flex flex-col bg-background touch-pan-y"
             style={{ y, touchAction: 'pan-y' }}
             drag="y"
             dragDirectionLock
@@ -429,7 +429,7 @@ export function StoryWatchModal({
                 <button
                   type="button"
                   onClick={onClose}
-                  className="w-9 h-9 flex items-center justify-center rounded-full bg-black/35 text-white/90 backdrop-blur-sm active:scale-95"
+                  className="w-9 h-9 flex items-center justify-center rounded-full bg-background/35 text-foreground/90 backdrop-blur-sm active:scale-95"
                   aria-label="Close"
                 >
                   <X size={20} strokeWidth={2.4} />
@@ -438,14 +438,14 @@ export function StoryWatchModal({
                   {avatarUrl ? (
                     <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-[11px] font-bold text-zinc-400">
+                    <div className="w-full h-full flex items-center justify-center text-[11px] font-bold text-muted-foreground">
                       {(displayName || '?')[0].toUpperCase()}
                     </div>
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-[14px] font-bold text-white truncate leading-tight">{displayName}</p>
-                  <p className="text-[11px] text-white/55 mt-0.5 leading-tight">
+                  <p className="text-[14px] font-bold text-foreground truncate leading-tight">{displayName}</p>
+                  <p className="text-[11px] text-foreground/55 mt-0.5 leading-tight">
                     {current
                       ? `${formatStoryMeta(current.created_at)} · Trail stories`
                       : ''}
@@ -457,7 +457,7 @@ export function StoryWatchModal({
                       type="button"
                       onClick={() => void deleteCurrentStory()}
                       disabled={deleting}
-                      className="w-9 h-9 flex items-center justify-center rounded-full bg-black/35 text-red-400 backdrop-blur-sm disabled:opacity-50 active:scale-95"
+                      className="w-9 h-9 flex items-center justify-center rounded-full bg-background/35 text-red-400 backdrop-blur-sm disabled:opacity-50 active:scale-95"
                       aria-label="Delete story"
                     >
                       <Trash2 size={18} strokeWidth={2.2} />
@@ -467,7 +467,7 @@ export function StoryWatchModal({
                     <button
                       type="button"
                       onClick={() => setVideoMuted((m) => !m)}
-                      className="w-9 h-9 flex items-center justify-center rounded-full bg-black/35 text-white backdrop-blur-sm"
+                      className="w-9 h-9 flex items-center justify-center rounded-full bg-background/35 text-foreground backdrop-blur-sm"
                       aria-label={videoMuted ? 'Unmute' : 'Mute'}
                     >
                       {videoMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
@@ -479,7 +479,7 @@ export function StoryWatchModal({
 
             {/* Full-bleed media */}
             <div
-              className="flex-1 relative flex items-center justify-center bg-black min-h-0"
+              className="flex-1 relative flex items-center justify-center bg-background min-h-0"
               onTouchStart={onTouchStart}
               onTouchEnd={onTouchEnd}
             >
@@ -515,7 +515,7 @@ export function StoryWatchModal({
                   src={signedUrl}
                   playsInline
                   muted={videoMuted}
-                  className="w-full h-full object-cover md:object-contain bg-black"
+                  className="w-full h-full object-cover md:object-contain bg-background"
                   onTimeUpdate={onVideoTimeUpdate}
                   onEnded={onVideoEnded}
                 />
@@ -528,7 +528,7 @@ export function StoryWatchModal({
 
               {/* Subtle brand cue */}
               <div className="absolute bottom-[calc(env(safe-area-inset-bottom)+12px)] left-3 z-10 pointer-events-none">
-                <p className="text-[10px] font-black uppercase tracking-[0.15em] text-white/35">
+                <p className="text-[10px] font-black uppercase tracking-[0.15em] text-foreground/35">
                   SoCal<span className="text-primary/90/80">Offroaders</span>
                 </p>
               </div>
@@ -537,7 +537,7 @@ export function StoryWatchModal({
             {/* Caption overlay */}
             {current?.caption?.trim() && (
               <div className="absolute bottom-0 left-0 right-0 z-[22] px-4 pb-[calc(env(safe-area-inset-bottom)+20px)] pt-16 bg-gradient-to-t from-black via-black/70 to-transparent pointer-events-none">
-                <p className="text-[15px] text-white font-medium leading-snug drop-shadow-lg shadow-black/80">
+                <p className="text-[15px] text-foreground font-medium leading-snug drop-shadow-lg shadow-black/80">
                   {current.caption}
                 </p>
               </div>
@@ -545,7 +545,7 @@ export function StoryWatchModal({
 
             {/* Hint pill — fades familiarity */}
             <div className="absolute bottom-[calc(env(safe-area-inset-bottom)+56px)] left-1/2 -translate-x-1/2 z-20 pointer-events-none md:hidden">
-              <p className="text-[10px] text-white/35 font-medium px-3 py-1 rounded-full bg-black/25 backdrop-blur-sm whitespace-nowrap">
+              <p className="text-[10px] text-foreground/35 font-medium px-3 py-1 rounded-full bg-background/25 backdrop-blur-sm whitespace-nowrap">
                 Tap sides · swipe ← → people · swipe down to close
               </p>
             </div>

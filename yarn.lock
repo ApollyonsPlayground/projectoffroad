@@ -862,6 +862,11 @@
   resolved "https://registry.npmjs.org/@capacitor/ios/-/ios-8.3.1.tgz"
   integrity sha512-BEhLyYYHWJLib4mpaPMaaylbC8meqgxbNYwQJH2svsSLW7yo/hFie+Zoo66a44XnqcMd2tvmAuzimWunXZi/xA==
 
+"@capacitor/local-notifications@^8.1.0":
+  version "8.1.0"
+  resolved "https://registry.npmjs.org/@capacitor/local-notifications/-/local-notifications-8.1.0.tgz"
+  integrity sha512-rc1vWw7G7LXLL9AOoi6DKA740UMDEVpBbRBFByI4KVPV4wJi30gtr5k2D3/WwiwwYvjm55eD1k03QhOrGYf9cA==
+
 "@capacitor/preferences@^8.0.1":
   version "8.0.1"
   resolved "https://registry.npmjs.org/@capacitor/preferences/-/preferences-8.0.1.tgz"

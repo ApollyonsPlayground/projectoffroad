@@ -359,22 +359,22 @@ export function AdminPanel({ variant, onCloseDrawer }: Props) {
       : 'Moderation & club verification';
 
   return (
-    <div className={variant === 'page' ? 'min-h-screen bg-black pb-28' : 'bg-black'}>
+    <div className={variant === 'page' ? 'min-h-screen bg-background pb-28' : 'bg-background'}>
       <header
-        className={`sticky top-0 z-40 bg-black/95 border-b border-zinc-800 backdrop-blur-xl safe-top ${
+        className={`sticky top-0 z-40 bg-background/95 border-b border-border backdrop-blur-xl safe-top ${
           variant === 'drawer' ? 'rounded-t-2xl' : ''
         }`}
       >
         <div className="max-w-lg mx-auto px-4 py-3 flex items-center gap-3">
           {variant === 'page' ? (
-            <Link href="/feed/" className="p-2 -ml-2 text-zinc-400 hover:text-white touch-manipulation">
+            <Link href="/feed/" className="p-2 -ml-2 text-muted-foreground hover:text-foreground touch-manipulation">
               <ArrowLeft size={22} />
             </Link>
           ) : (
             <button
               type="button"
               onClick={() => onCloseDrawer?.()}
-              className="p-2 -ml-2 text-zinc-400 hover:text-white rounded-lg touch-manipulation min-w-[44px] min-h-[44px] flex items-center justify-center"
+              className="p-2 -ml-2 text-muted-foreground hover:text-foreground rounded-lg touch-manipulation min-w-[44px] min-h-[44px] flex items-center justify-center"
               aria-label="Close"
             >
               <ArrowLeft size={22} />
@@ -383,8 +383,8 @@ export function AdminPanel({ variant, onCloseDrawer }: Props) {
           <div className="flex items-center gap-2 flex-1 min-w-0">
             <ShieldAlert className="text-primary shrink-0" size={22} />
             <div className="min-w-0">
-              <h1 className="text-lg font-black text-white truncate">{headerTitle}</h1>
-              <p className="text-[11px] text-zinc-500 truncate">{headerSubtitle}</p>
+              <h1 className="text-lg font-black text-foreground truncate">{headerTitle}</h1>
+              <p className="text-[11px] text-muted-foreground truncate">{headerSubtitle}</p>
             </div>
           </div>
           <div className="flex flex-col items-end gap-1 shrink-0">
@@ -397,7 +397,7 @@ export function AdminPanel({ variant, onCloseDrawer }: Props) {
                 Full page <ExternalLink size={12} />
               </Link>
             )}
-            <Link href="/feed/" className="text-[12px] font-semibold text-zinc-400 hover:text-white">
+            <Link href="/feed/" className="text-[12px] font-semibold text-muted-foreground hover:text-foreground">
               Home
             </Link>
           </div>
@@ -410,7 +410,7 @@ export function AdminPanel({ variant, onCloseDrawer }: Props) {
               type="button"
               onClick={() => setTab(id)}
               className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-[12px] font-bold whitespace-nowrap transition-colors touch-manipulation min-h-[40px] ${
-                tab === id ? 'bg-primary text-black' : 'bg-zinc-900 text-zinc-400'
+                tab === id ? 'bg-primary text-primary-foreground' : 'bg-card text-muted-foreground'
               }`}
             >
               <Icon size={14} />
@@ -423,8 +423,8 @@ export function AdminPanel({ variant, onCloseDrawer }: Props) {
       <main className="max-w-lg mx-auto px-4 pt-4 pb-6 space-y-4">
         {tab === 'overview' && (
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
-            <p className="text-[13px] text-zinc-500">
-              Use the <strong className="text-zinc-300">Clubs</strong> tab to turn verification on or off. Verified
+            <p className="text-[13px] text-muted-foreground">
+              Use the <strong className="text-muted-foreground">Clubs</strong> tab to turn verification on or off. Verified
               clubs can host official runs and show the badge in the app.
             </p>
             <div className="grid grid-cols-2 gap-3">
@@ -434,19 +434,19 @@ export function AdminPanel({ variant, onCloseDrawer }: Props) {
                 ['Clubs', stats?.clubs ?? '—'],
                 ['Flag rows', stats?.postFlagRows ?? '—'],
               ].map(([k, v]) => (
-                <div key={k} className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
-                  <p className="text-[11px] font-bold text-zinc-500 uppercase">{k}</p>
-                  <p className="text-2xl font-black text-white mt-1">{v}</p>
+                <div key={k} className="bg-card border border-border rounded-xl p-4">
+                  <p className="text-[11px] font-bold text-muted-foreground uppercase">{k}</p>
+                  <p className="text-2xl font-black text-foreground mt-1">{v}</p>
                 </div>
               ))}
             </div>
 
             <Link
               href="/admin/monitoring"
-              className="block w-full text-left bg-zinc-900 border border-zinc-800 hover:border-primary/40 rounded-xl p-4 transition-colors"
+              className="block w-full text-left bg-card border border-border hover:border-primary/40 rounded-xl p-4 transition-colors"
             >
-              <p className="font-bold text-white mb-1">Infrastructure monitoring</p>
-              <p className="text-[12px] text-zinc-500">
+              <p className="font-bold text-foreground mb-1">Infrastructure monitoring</p>
+              <p className="text-[12px] text-muted-foreground">
                 Vercel usage & deployments · Supabase disk & API analytics · Sightengine status
               </p>
             </Link>
@@ -482,8 +482,8 @@ export function AdminPanel({ variant, onCloseDrawer }: Props) {
                   onClick={() => setClubFilter(id)}
                   className={`px-3 py-2 rounded-lg text-[12px] font-bold touch-manipulation min-h-[40px] ${
                     clubFilter === id
-                      ? 'bg-primary text-black'
-                      : 'bg-zinc-900 text-zinc-400 border border-zinc-800'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-card text-muted-foreground border border-border'
                   }`}
                 >
                   {label}
@@ -491,9 +491,9 @@ export function AdminPanel({ variant, onCloseDrawer }: Props) {
               ))}
             </div>
 
-            <p className="text-[12px] text-zinc-500">
-              <strong className="text-zinc-300">Verified</strong> = real club on the platform (badge + official runs).{' '}
-              <strong className="text-zinc-300">Not verified</strong> = listing only until you confirm.
+            <p className="text-[12px] text-muted-foreground">
+              <strong className="text-muted-foreground">Verified</strong> = real club on the platform (badge + official runs).{' '}
+              <strong className="text-muted-foreground">Not verified</strong> = listing only until you confirm.
             </p>
 
             <button
@@ -507,23 +507,23 @@ export function AdminPanel({ variant, onCloseDrawer }: Props) {
             {filteredClubs.map((c) => (
               <div
                 key={c.id}
-                className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 flex flex-col gap-3"
+                className="bg-card border border-border rounded-xl p-4 flex flex-col gap-3"
               >
                 <div className="flex justify-between gap-2 items-start">
                   <div className="min-w-0 flex-1">
-                    <p className="font-bold text-white text-[16px] leading-snug">{c.name}</p>
-                    <p className="text-[12px] text-zinc-500 font-mono truncate mt-0.5">{c.slug}</p>
+                    <p className="font-bold text-foreground text-[16px] leading-snug">{c.name}</p>
+                    <p className="text-[12px] text-muted-foreground font-mono truncate mt-0.5">{c.slug}</p>
                     {c.location && (
-                      <p className="text-[12px] text-zinc-400 mt-2 flex items-start gap-1.5">
-                        <MapPin size={14} className="text-zinc-600 shrink-0 mt-0.5" />
+                      <p className="text-[12px] text-muted-foreground mt-2 flex items-start gap-1.5">
+                        <MapPin size={14} className="text-muted-foreground shrink-0 mt-0.5" />
                         <span>{c.location}</span>
                       </p>
                     )}
                     {c.description && (
-                      <p className="text-[13px] text-zinc-500 mt-2 line-clamp-3">{c.description}</p>
+                      <p className="text-[13px] text-muted-foreground mt-2 line-clamp-3">{c.description}</p>
                     )}
                     {formatSafeClubTimestamp(c.created_at) && (
-                      <p className="text-[11px] text-zinc-600 mt-2 flex items-center gap-1">
+                      <p className="text-[11px] text-muted-foreground mt-2 flex items-center gap-1">
                         <Calendar size={12} />
                         {formatSafeClubTimestamp(c.created_at)}
                       </p>
@@ -546,7 +546,7 @@ export function AdminPanel({ variant, onCloseDrawer }: Props) {
                       type="button"
                       disabled={busy}
                       onClick={() => verifyClub(c.id, true)}
-                      className="flex items-center justify-center gap-2 min-h-[48px] py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[14px] rounded-xl disabled:opacity-50 touch-manipulation"
+                      className="flex items-center justify-center gap-2 min-h-[48px] py-3 bg-emerald-600 hover:bg-emerald-500 text-foreground font-bold text-[14px] rounded-xl disabled:opacity-50 touch-manipulation"
                     >
                       <CheckCircle2 size={18} /> Designate as verified club
                     </button>
@@ -562,7 +562,7 @@ export function AdminPanel({ variant, onCloseDrawer }: Props) {
                         )
                           verifyClub(c.id, false);
                       }}
-                      className="flex items-center justify-center gap-2 min-h-[48px] py-3 bg-zinc-800 border border-zinc-600 text-zinc-300 font-semibold text-[14px] rounded-xl disabled:opacity-50 touch-manipulation"
+                      className="flex items-center justify-center gap-2 min-h-[48px] py-3 bg-zinc-800 border border-border text-muted-foreground font-semibold text-[14px] rounded-xl disabled:opacity-50 touch-manipulation"
                     >
                       <XCircle size={18} /> Remove verified status
                     </button>
@@ -578,7 +578,7 @@ export function AdminPanel({ variant, onCloseDrawer }: Props) {
               </div>
             ))}
             {filteredClubs.length === 0 && (
-              <p className="text-zinc-600 text-[14px] text-center py-10">
+              <p className="text-muted-foreground text-[14px] text-center py-10">
                 No clubs in this filter.
               </p>
             )}
@@ -591,10 +591,10 @@ export function AdminPanel({ variant, onCloseDrawer }: Props) {
               Refresh
             </button>
             {posts.map((p) => (
-              <div key={p.id} className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 space-y-2">
+              <div key={p.id} className="bg-card border border-border rounded-xl p-4 space-y-2">
                 <div className="flex justify-between gap-2">
-                  <p className="text-[11px] text-zinc-500">{p.user_name ?? 'User'}</p>
-                  <p className="text-[10px] text-zinc-600">
+                  <p className="text-[11px] text-muted-foreground">{p.user_name ?? 'User'}</p>
+                  <p className="text-[10px] text-muted-foreground">
                     {(() => {
                       try {
                         const d = new Date(p.created_at);
@@ -605,12 +605,12 @@ export function AdminPanel({ variant, onCloseDrawer }: Props) {
                     })()}
                   </p>
                 </div>
-                <p className="text-[14px] text-zinc-200 whitespace-pre-wrap break-words">{p.body}</p>
+                <p className="text-[14px] text-foreground/90 whitespace-pre-wrap break-words">{p.body}</p>
                 {p.image_url && (
                   <img
                     src={ensureStoragePublicObjectUrl(p.image_url) || p.image_url}
                     alt=""
-                    className="rounded-lg max-h-40 object-cover w-full border border-zinc-800"
+                    className="rounded-lg max-h-40 object-cover w-full border border-border"
                   />
                 )}
                 <div className="flex gap-2 pt-2">
@@ -626,7 +626,7 @@ export function AdminPanel({ variant, onCloseDrawer }: Props) {
                     type="button"
                     disabled={busy}
                     onClick={() => toggleHiddenPost(p.id, !p.hidden)}
-                    className="flex items-center gap-1.5 px-3 py-2 bg-zinc-800 text-zinc-300 rounded-lg text-[12px] font-bold touch-manipulation"
+                    className="flex items-center gap-1.5 px-3 py-2 bg-zinc-800 text-muted-foreground rounded-lg text-[12px] font-bold touch-manipulation"
                   >
                     {p.hidden ? <Eye size={14} /> : <EyeOff size={14} />}
                     {p.hidden ? 'Show in feed' : 'Hide from feed'}
@@ -634,7 +634,7 @@ export function AdminPanel({ variant, onCloseDrawer }: Props) {
                 </div>
               </div>
             ))}
-            {posts.length === 0 && <p className="text-zinc-600 text-[14px] text-center py-8">No posts.</p>}
+            {posts.length === 0 && <p className="text-muted-foreground text-[14px] text-center py-8">No posts.</p>}
           </div>
         )}
 
@@ -645,24 +645,24 @@ export function AdminPanel({ variant, onCloseDrawer }: Props) {
                 value={userQuery}
                 onChange={(e) => setUserQuery(e.target.value)}
                 placeholder="Search name or email"
-                className="flex-1 bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-[14px] text-white min-h-[44px]"
+                className="flex-1 bg-card border border-border rounded-lg px-3 py-2.5 text-[14px] text-foreground min-h-[44px]"
               />
               <button
                 type="button"
                 onClick={() => loadUsers()}
-                className="px-4 py-2 min-h-[44px] bg-primary text-black font-bold rounded-lg text-[13px] touch-manipulation"
+                className="px-4 py-2 min-h-[44px] bg-primary text-primary-foreground font-bold rounded-lg text-[13px] touch-manipulation"
               >
                 Search
               </button>
             </div>
-            <p className="text-[11px] text-zinc-600">
+            <p className="text-[11px] text-muted-foreground">
               Changing roles is owner-only. Use carefully when promoting admins.
             </p>
             {users.map((u) => (
-              <div key={u.id} className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 space-y-2">
-                <p className="font-semibold text-white truncate">{u.name ?? '—'}</p>
-                <p className="text-[12px] text-zinc-500 truncate">{u.email}</p>
-                <p className="text-[11px] text-zinc-600">
+              <div key={u.id} className="bg-card border border-border rounded-xl p-4 space-y-2">
+                <p className="font-semibold text-foreground truncate">{u.name ?? '—'}</p>
+                <p className="text-[12px] text-muted-foreground truncate">{u.email}</p>
+                <p className="text-[11px] text-muted-foreground">
                   Role: <span className="text-primary/90 font-bold">{u.role ?? 'user'}</span>
                 </p>
                 {role === 'owner' && u.id !== user.id && (
@@ -673,7 +673,7 @@ export function AdminPanel({ variant, onCloseDrawer }: Props) {
                         type="button"
                         disabled={busy}
                         onClick={() => setUserRole(u.id, r)}
-                        className="px-3 py-2 min-h-[40px] bg-zinc-800 border border-zinc-700 rounded-lg text-[11px] font-bold text-zinc-300 uppercase touch-manipulation"
+                        className="px-3 py-2 min-h-[40px] bg-zinc-800 border border-border rounded-lg text-[11px] font-bold text-muted-foreground uppercase touch-manipulation"
                       >
                         Set {r}
                       </button>
@@ -682,7 +682,7 @@ export function AdminPanel({ variant, onCloseDrawer }: Props) {
                 )}
               </div>
             ))}
-            {users.length === 0 && <p className="text-zinc-600 text-[14px] text-center py-8">No users.</p>}
+            {users.length === 0 && <p className="text-muted-foreground text-[14px] text-center py-8">No users.</p>}
           </div>
         )}
       </main>

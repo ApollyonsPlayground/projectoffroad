@@ -102,7 +102,7 @@ export default function SubmissionHub() {
             {/* Photo Submission Info */}
             <div className="text-center">
               <div className="w-16 h-16 bg-gradient-to-br from-primary to-pink-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Camera size={32} className="text-white" />
+                <Camera size={32} className="text-foreground" />
               </div>
               <h3 className="text-xl font-bold text-stone-50 mb-2">
                 Share Your Trail Photos

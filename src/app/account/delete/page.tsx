@@ -42,29 +42,29 @@ export default function DeleteAccountPage() {
   }
 
   return (
-    <div className="min-h-screen bg-black text-zinc-100 pb-28">
-      <header className="sticky top-0 z-30 bg-black/90 backdrop-blur-xl border-b border-zinc-900">
+    <div className="min-h-screen bg-background text-foreground pb-28">
+      <header className="sticky top-0 z-30 bg-background/90 backdrop-blur-xl border-b border-border">
         <div className="max-w-app-shell mx-auto flex items-center gap-3 px-4 py-3">
           <Link
             href="/settings/"
-            className="p-1.5 -ml-1.5 text-zinc-400 hover:text-white transition-colors"
+            className="p-1.5 -ml-1.5 text-muted-foreground hover:text-foreground transition-colors"
             aria-label="Back to settings"
           >
             <ArrowLeft size={22} />
           </Link>
-          <h1 className="text-[16px] font-bold text-white">Delete account</h1>
+          <h1 className="text-[16px] font-bold text-foreground">Delete account</h1>
         </div>
       </header>
 
       <main className="max-w-app-shell mx-auto px-4 pt-6 space-y-6">
         {!isConfigured && (
-          <p className="text-zinc-500 text-sm">App configuration error — cannot reach authentication.</p>
+          <p className="text-muted-foreground text-sm">App configuration error — cannot reach authentication.</p>
         )}
 
         <div className="rounded-xl border border-red-500/35 bg-red-500/10 p-4 flex gap-3">
           <AlertTriangle className="text-red-400 shrink-0 mt-0.5" size={22} aria-hidden />
           <div className="text-[13px] text-red-100/95 leading-relaxed space-y-2">
-            <p className="font-bold text-white">This is permanent</p>
+            <p className="font-bold text-foreground">This is permanent</p>
             <p className="text-red-100/85">
               We remove your login and delete data tied to your account where our database is set up to cascade,
               including your profile, saved trails, vehicles you added, posts you authored, comments, likes, follows,
@@ -82,7 +82,7 @@ export default function DeleteAccountPage() {
             <Loader2 className="animate-spin text-primary" size={28} />
           </div>
         ) : !user ? (
-          <div className="space-y-4 text-[14px] text-zinc-400 leading-relaxed">
+          <div className="space-y-4 text-[14px] text-muted-foreground leading-relaxed">
             <p>
               Sign in first, then return here to delete your account in one step. You can also email{' '}
               <a className="text-primary/90 hover:underline" href={`mailto:${SITE_SUPPORT_EMAIL}`}>
@@ -92,23 +92,23 @@ export default function DeleteAccountPage() {
             </p>
             <Link
               href={`/login/?next=${encodeURIComponent('/account/delete/')}`}
-              className="inline-flex items-center justify-center w-full py-3.5 rounded-xl bg-primary hover:opacity-90 text-black font-bold text-[15px] transition-colors"
+              className="inline-flex items-center justify-center w-full py-3.5 rounded-xl bg-primary hover:opacity-90 text-primary-foreground font-bold text-[15px] transition-colors"
             >
               Sign in to continue
             </Link>
           </div>
         ) : (
           <>
-            <p className="text-[13px] text-zinc-500">
-              Signed in as <span className="text-zinc-300">{user.email ?? user.id}</span>
+            <p className="text-[13px] text-muted-foreground">
+              Signed in as <span className="text-muted-foreground">{user.email ?? user.id}</span>
             </p>
 
-            <label className="flex items-start gap-3 cursor-pointer text-[14px] text-zinc-300 leading-snug">
+            <label className="flex items-start gap-3 cursor-pointer text-[14px] text-muted-foreground leading-snug">
               <input
                 type="checkbox"
                 checked={confirmed}
                 onChange={(e) => setConfirmed(e.target.checked)}
-                className="mt-1 w-5 h-5 accent-primary rounded border-zinc-600 shrink-0"
+                className="mt-1 w-5 h-5 accent-primary rounded border-border shrink-0"
               />
               <span>I understand this permanently deletes my account and associated personal data as described above.</span>
             </label>
@@ -117,7 +117,7 @@ export default function DeleteAccountPage() {
               type="button"
               disabled={!confirmed || submitting}
               onClick={() => void handleDelete()}
-              className="w-full py-3.5 rounded-xl bg-red-600 hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-[15px] transition-colors flex items-center justify-center gap-2"
+              className="w-full py-3.5 rounded-xl bg-red-600 hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed text-foreground font-bold text-[15px] transition-colors flex items-center justify-center gap-2"
             >
               {submitting ? (
                 <>
@@ -131,7 +131,7 @@ export default function DeleteAccountPage() {
           </>
         )}
 
-        <p className="text-[12px] text-zinc-600 pt-2">
+        <p className="text-[12px] text-muted-foreground pt-2">
           Questions?{' '}
           <a className="text-primary/90 hover:underline" href={`mailto:${SITE_SUPPORT_EMAIL}`}>
             {SITE_SUPPORT_EMAIL}

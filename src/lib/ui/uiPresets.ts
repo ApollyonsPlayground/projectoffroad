@@ -58,6 +58,6 @@ export const UI_PRESET_OPTIONS: {
     id: 'void-teal-violet',
     label: 'Void, teal & violet',
     hint: 'Dark UI — teal + purple highlights',
-    preview: { bg: '#0c0a12', accent: '#14b8a6' },
+    preview: { bg: '#0c0a12', accent: '#8b5cf6' },
   },
 ];

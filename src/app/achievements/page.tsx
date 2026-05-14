@@ -73,7 +73,7 @@ export default function AchievementsPage() {
   return (
     <div className="min-h-screen bg-gray-900 pb-28">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <h1 className="text-2xl font-bold text-white mb-2">Achievements</h1>
+        <h1 className="text-2xl font-bold text-foreground mb-2">Achievements</h1>
         <p className="text-gray-400 mb-8">Earn badges by participating in the community</p>
 
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
@@ -105,7 +105,7 @@ export default function AchievementsPage() {
         </div>
 
         <div className="mt-8 p-6 bg-gray-800 rounded-xl border border-gray-700">
-          <h2 className="text-lg font-semibold text-white mb-2">How to Earn More</h2>
+          <h2 className="text-lg font-semibold text-foreground mb-2">How to Earn More</h2>
           <ul className="text-gray-400 space-y-2">
             <li>
               • Attend runs to earn &ldquo;First Run&rdquo;, &ldquo;Offroad Veteran&rdquo;

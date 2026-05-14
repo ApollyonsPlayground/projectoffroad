@@ -163,31 +163,31 @@ export default function MessagesPage() {
   );
 
   return (
-    <div className="min-h-screen bg-black pb-24">
+    <div className="min-h-screen bg-background pb-24">
       {/* Header */}
-      <div className="sticky top-0 z-40 bg-black/90 backdrop-blur-md border-b border-zinc-900">
+      <div className="sticky top-0 z-40 bg-background/90 backdrop-blur-md border-b border-border">
         <div className="flex items-center gap-3 px-4 py-3">
           <button
             onClick={() => router.back()}
-            className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-zinc-900 transition-colors"
+            className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-card transition-colors"
             aria-label="Go back"
           >
-            <ArrowLeft size={19} className="text-white" />
+            <ArrowLeft size={19} className="text-foreground" />
           </button>
-          <h1 className="text-[17px] font-black text-white leading-none flex-1">Messages</h1>
+          <h1 className="text-[17px] font-black text-foreground leading-none flex-1">Messages</h1>
           <div className="w-2 h-2" />
         </div>
 
         {/* Search */}
         <div className="px-4 pb-3">
           <div className="relative">
-            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none" />
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
             <input
               type="text"
               placeholder="Search conversations..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full bg-zinc-900 border border-zinc-800 rounded-xl pl-9 pr-4 py-2.5 text-[13px] text-white placeholder-zinc-600 focus:outline-none focus:border-primary/60 transition-colors"
+              className="w-full bg-card border border-border rounded-xl pl-9 pr-4 py-2.5 text-[13px] text-foreground placeholder-zinc-600 focus:outline-none focus:border-primary/60 transition-colors"
             />
           </div>
         </div>
@@ -198,24 +198,24 @@ export default function MessagesPage() {
         {isLoading ? (
           <div className="flex flex-col gap-0">
             {[...Array(6)].map((_, i) => (
-              <div key={i} className="flex items-center gap-3 px-4 py-3 border-b border-zinc-900">
-                <div className="w-12 h-12 rounded-full bg-zinc-900 animate-pulse flex-shrink-0" />
+              <div key={i} className="flex items-center gap-3 px-4 py-3 border-b border-border">
+                <div className="w-12 h-12 rounded-full bg-card animate-pulse flex-shrink-0" />
                 <div className="flex-1 flex flex-col gap-2">
-                  <div className="h-3.5 bg-zinc-900 rounded-md animate-pulse w-28" />
-                  <div className="h-3 bg-zinc-900 rounded-md animate-pulse w-44" />
+                  <div className="h-3.5 bg-card rounded-md animate-pulse w-28" />
+                  <div className="h-3 bg-card rounded-md animate-pulse w-44" />
                 </div>
               </div>
             ))}
           </div>
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center px-6 py-24 gap-4 text-center">
-            <div className="w-16 h-16 rounded-full bg-zinc-900 flex items-center justify-center">
-              <MessageCircle size={28} className="text-zinc-600" />
+            <div className="w-16 h-16 rounded-full bg-card flex items-center justify-center">
+              <MessageCircle size={28} className="text-muted-foreground" />
             </div>
-            <h2 className="text-[18px] font-black text-white">
+            <h2 className="text-[18px] font-black text-foreground">
               {search ? 'No matches' : 'No messages yet'}
             </h2>
-            <p className="text-zinc-500 text-[13px] leading-relaxed max-w-[220px]">
+            <p className="text-muted-foreground text-[13px] leading-relaxed max-w-[220px]">
               {search
                 ? 'Try a different name or message.'
                 : 'Visit a rider\'s profile and tap Message to start a conversation.'}
@@ -232,11 +232,11 @@ export default function MessagesPage() {
               >
                 <Link
                   href={`/messages/${conv.id}`}
-                  className="flex items-center gap-3 px-4 py-3.5 border-b border-zinc-900 hover:bg-zinc-900/40 transition-colors active:bg-zinc-900/60"
+                  className="flex items-center gap-3 px-4 py-3.5 border-b border-border hover:bg-card/40 transition-colors active:bg-card/60"
                 >
                   {/* Avatar */}
                   <div className="relative flex-shrink-0">
-                    <div className="w-12 h-12 rounded-full bg-zinc-800 overflow-hidden border border-zinc-700">
+                    <div className="w-12 h-12 rounded-full bg-zinc-800 overflow-hidden border border-border">
                       {conv.other_participant.avatar_url ? (
                         <img
                           src={conv.other_participant.avatar_url}
@@ -245,7 +245,7 @@ export default function MessagesPage() {
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
-                          <User size={20} className="text-zinc-500" />
+                          <User size={20} className="text-muted-foreground" />
                         </div>
                       )}
                     </div>
@@ -258,14 +258,14 @@ export default function MessagesPage() {
                   {/* Content */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2">
-                      <span className={`text-[14px] leading-none ${conv.unread ? 'font-black text-white' : 'font-semibold text-white'}`}>
+                      <span className={`text-[14px] leading-none ${conv.unread ? 'font-black text-foreground' : 'font-semibold text-foreground'}`}>
                         {conv.other_participant.display_name}
                       </span>
-                      <span className="text-[11px] text-zinc-600 flex-shrink-0">
+                      <span className="text-[11px] text-muted-foreground flex-shrink-0">
                         {timeAgo(conv.last_message_at)}
                       </span>
                     </div>
-                    <p className={`text-[13px] leading-snug mt-1 truncate ${conv.unread ? 'text-zinc-300 font-medium' : 'text-zinc-500'}`}>
+                    <p className={`text-[13px] leading-snug mt-1 truncate ${conv.unread ? 'text-muted-foreground font-medium' : 'text-muted-foreground'}`}>
                       {conv.last_message_content ?? 'Start a conversation'}
                     </p>
                   </div>

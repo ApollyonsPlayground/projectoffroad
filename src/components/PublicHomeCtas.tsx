@@ -19,14 +19,14 @@ export function PublicHomeCtas() {
       </Link>
       <Link
         href="/feed/"
-        className="px-4 py-2.5 rounded-xl bg-primary text-black text-sm font-black hover:bg-primary/90 transition-colors"
+        className="px-4 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-black hover:bg-primary/90 transition-colors"
       >
         Open app
       </Link>
       {!showSignedIn && (
         <Link
           href="/login/"
-          className="px-4 py-2.5 rounded-xl border border-zinc-700 text-sm font-bold text-white hover:border-primary/60 transition-colors"
+          className="px-4 py-2.5 rounded-xl border border-border text-sm font-bold text-foreground hover:border-primary/60 transition-colors"
         >
           Sign in
         </Link>

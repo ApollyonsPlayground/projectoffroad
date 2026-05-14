@@ -43,8 +43,8 @@ function MiniBars(props: {
   const { title, rows, valueRender } = props;
   const max = Math.max(1, ...rows.map((r) => r.value));
   return (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 space-y-3">
-      <p className="text-[11px] font-bold text-zinc-500 uppercase">{title}</p>
+    <div className="bg-card border border-border rounded-xl p-4 space-y-3">
+      <p className="text-[11px] font-bold text-muted-foreground uppercase">{title}</p>
       <div className="flex items-end gap-1 h-24">
         {rows.map((r) => (
           <div key={r.label} className="flex-1 flex flex-col items-center gap-1 min-w-0">
@@ -53,7 +53,7 @@ function MiniBars(props: {
               style={{ height: `${Math.max(8, (r.value / max) * 100)}%` }}
               title={`${r.label}: ${valueRender ? valueRender(r.value) : r.value}`}
             />
-            <span className="text-[9px] text-zinc-600 truncate w-full text-center">
+            <span className="text-[9px] text-muted-foreground truncate w-full text-center">
               {r.label.includes('T') ? r.label.slice(5, 13) : r.label.slice(5)}
             </span>
           </div>
@@ -153,7 +153,7 @@ export function MonitoringDashboard() {
 
   if (authLoading || !user || role === null) {
     return (
-      <div className="min-h-[40vh] flex items-center justify-center bg-black">
+      <div className="min-h-[40vh] flex items-center justify-center bg-background">
         <Loader2 className="w-8 h-8 text-primary animate-spin" />
       </div>
     );
@@ -164,15 +164,15 @@ export function MonitoringDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-black pb-28">
-      <header className="sticky top-0 z-40 bg-black/95 border-b border-zinc-800 backdrop-blur-xl safe-top">
+    <div className="min-h-screen bg-background pb-28">
+      <header className="sticky top-0 z-40 bg-background/95 border-b border-border backdrop-blur-xl safe-top">
         <div className="max-w-lg mx-auto px-4 py-3 flex items-center gap-3">
-          <Link href="/admin" className="p-2 -ml-2 text-zinc-400 hover:text-white touch-manipulation">
+          <Link href="/admin" className="p-2 -ml-2 text-muted-foreground hover:text-foreground touch-manipulation">
             <ArrowLeft size={22} />
           </Link>
           <div className="flex-1 min-w-0">
-            <h1 className="text-lg font-black text-white truncate">Monitoring</h1>
-            <p className="text-[11px] text-zinc-500 truncate">Vercel · Supabase · Sightengine status</p>
+            <h1 className="text-lg font-black text-foreground truncate">Monitoring</h1>
+            <p className="text-[11px] text-muted-foreground truncate">Vercel · Supabase · Sightengine status</p>
           </div>
           <button
             type="button"
@@ -199,13 +199,13 @@ export function MonitoringDashboard() {
 
         {data && (
           <>
-            <p className="text-[12px] text-zinc-500">
-              Updated <span className="text-zinc-400 font-mono">{new Date(data.generatedAt).toLocaleString()}</span>
+            <p className="text-[12px] text-muted-foreground">
+              Updated <span className="text-muted-foreground font-mono">{new Date(data.generatedAt).toLocaleString()}</span>
             </p>
 
             {data.alerts.length > 0 && (
               <div className="space-y-2">
-                <p className="text-[11px] font-bold text-zinc-500 uppercase">Alerts</p>
+                <p className="text-[11px] font-bold text-muted-foreground uppercase">Alerts</p>
                 {data.alerts.map((a, i) => (
                   <div
                     key={i}
@@ -231,10 +231,10 @@ export function MonitoringDashboard() {
                       ? 'ok'
                       : 'unknown',
                 )}
-                <h2 className="text-sm font-black text-white uppercase tracking-wide">Vercel</h2>
+                <h2 className="text-sm font-black text-foreground uppercase tracking-wide">Vercel</h2>
               </div>
               {data.vercel.error && (
-                <p className="text-[13px] text-zinc-400 bg-zinc-900 border border-zinc-800 rounded-lg p-3">{data.vercel.error}</p>
+                <p className="text-[13px] text-muted-foreground bg-card border border-border rounded-lg p-3">{data.vercel.error}</p>
               )}
               {data.vercel.deploymentsError && (
                 <p className="text-[13px] text-amber-200/90 bg-amber-950/20 border border-amber-800/40 rounded-lg p-3">
@@ -243,24 +243,24 @@ export function MonitoringDashboard() {
               )}
               {!data.vercel.error && (
                 <div className="grid gap-3">
-                  <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 grid grid-cols-2 gap-3">
+                  <div className="bg-card border border-border rounded-xl p-4 grid grid-cols-2 gap-3">
                     <div>
-                      <p className="text-[11px] font-bold text-zinc-500 uppercase">Deployments (7d)</p>
-                      <p className="text-xl font-black text-white mt-1">{data.vercel.deploymentsLast7d ?? '—'}</p>
+                      <p className="text-[11px] font-bold text-muted-foreground uppercase">Deployments (7d)</p>
+                      <p className="text-xl font-black text-foreground mt-1">{data.vercel.deploymentsLast7d ?? '—'}</p>
                     </div>
                     <div>
-                      <p className="text-[11px] font-bold text-zinc-500 uppercase">Latest ready</p>
-                      <p className="text-xl font-black text-white mt-1">{data.vercel.latestReadyState ?? '—'}</p>
+                      <p className="text-[11px] font-bold text-muted-foreground uppercase">Latest ready</p>
+                      <p className="text-xl font-black text-foreground mt-1">{data.vercel.latestReadyState ?? '—'}</p>
                     </div>
                   </div>
 
                   {data.vercel.billing && (
-                    <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
-                      <p className="text-[11px] font-bold text-zinc-500 uppercase">Month-to-date (usage lines)</p>
+                    <div className="bg-card border border-border rounded-xl p-4">
+                      <p className="text-[11px] font-bold text-muted-foreground uppercase">Month-to-date (usage lines)</p>
                       <p className="text-2xl font-black text-primary/90 mt-1">
                         {formatUsd(data.vercel.billing.monthToDateCostUsd)}
                       </p>
-                      <p className="text-[11px] text-zinc-500 mt-2">
+                      <p className="text-[11px] text-muted-foreground mt-2">
                         From FOCUS billing export (Usage rows). May omit taxes & fixed plan fees.
                       </p>
                     </div>
@@ -272,9 +272,9 @@ export function MonitoringDashboard() {
                   )}
 
                   {data.vercel.usage && (
-                    <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 space-y-2">
-                      <p className="text-[11px] font-bold text-zinc-500 uppercase">Usage vs limits</p>
-                      <p className="text-[11px] text-zinc-500">{data.vercel.usageNote}</p>
+                    <div className="bg-card border border-border rounded-xl p-4 space-y-2">
+                      <p className="text-[11px] font-bold text-muted-foreground uppercase">Usage vs limits</p>
+                      <p className="text-[11px] text-muted-foreground">{data.vercel.usageNote}</p>
                       {(
                         [
                           ['Invocations', data.vercel.usage.invocations],
@@ -282,12 +282,12 @@ export function MonitoringDashboard() {
                           ['Build minutes', data.vercel.usage.buildMinutes],
                         ] as const
                       ).map(([label, u]) => (
-                        <div key={label} className="flex justify-between gap-2 text-[13px] border-t border-zinc-800 pt-2 first:border-t-0 first:pt-0">
-                          <span className="text-zinc-400">{label}</span>
-                          <span className="font-mono text-white text-right">
+                        <div key={label} className="flex justify-between gap-2 text-[13px] border-t border-border pt-2 first:border-t-0 first:pt-0">
+                          <span className="text-muted-foreground">{label}</span>
+                          <span className="font-mono text-foreground text-right">
                             {u?.used ?? '—'}
                             {u?.limit != null ? (
-                              <span className="text-zinc-500">
+                              <span className="text-muted-foreground">
                                 {' '}
                                 / {u.limit}
                                 {u?.pct != null ? (
@@ -298,7 +298,7 @@ export function MonitoringDashboard() {
                                 ) : null}
                               </span>
                             ) : (
-                              <span className="text-zinc-600 text-[11px] ml-1">no limit env</span>
+                              <span className="text-muted-foreground text-[11px] ml-1">no limit env</span>
                             )}
                           </span>
                         </div>
@@ -307,11 +307,11 @@ export function MonitoringDashboard() {
                   )}
 
                   {data.vercel.billing?.breakdown?.length ? (
-                    <details className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
-                      <summary className="text-[12px] font-bold text-zinc-300 cursor-pointer">
+                    <details className="bg-card border border-border rounded-xl p-4">
+                      <summary className="text-[12px] font-bold text-muted-foreground cursor-pointer">
                         Billing breakdown (top)
                       </summary>
-                      <ul className="mt-3 space-y-2 text-[12px] text-zinc-400">
+                      <ul className="mt-3 space-y-2 text-[12px] text-muted-foreground">
                         {data.vercel.billing.breakdown.slice(0, 12).map((r, i) => (
                           <li key={i} className="flex justify-between gap-2">
                             <span className="truncate">{r.serviceName}</span>
@@ -334,21 +334,21 @@ export function MonitoringDashboard() {
             <section className="space-y-2 pt-2">
               <div className="flex items-center gap-2">
                 {statusDot(data.supabase.error ? 'unknown' : data.supabase.configured ? 'ok' : 'unknown')}
-                <h2 className="text-sm font-black text-white uppercase tracking-wide">Supabase</h2>
+                <h2 className="text-sm font-black text-foreground uppercase tracking-wide">Supabase</h2>
               </div>
               {data.supabase.error && (
-                <p className="text-[13px] text-zinc-400 bg-zinc-900 border border-zinc-800 rounded-lg p-3">{data.supabase.error}</p>
+                <p className="text-[13px] text-muted-foreground bg-card border border-border rounded-lg p-3">{data.supabase.error}</p>
               )}
               {!data.supabase.error && (
                 <div className="grid gap-3">
-                  <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 grid grid-cols-2 gap-3">
+                  <div className="bg-card border border-border rounded-xl p-4 grid grid-cols-2 gap-3">
                     <div className="col-span-2">
-                      <p className="text-[11px] font-bold text-zinc-500 uppercase">Project</p>
-                      <p className="text-[13px] font-mono text-zinc-300 mt-1">{data.supabase.projectRef ?? '—'}</p>
+                      <p className="text-[11px] font-bold text-muted-foreground uppercase">Project</p>
+                      <p className="text-[13px] font-mono text-muted-foreground mt-1">{data.supabase.projectRef ?? '—'}</p>
                     </div>
                     <div>
-                      <p className="text-[11px] font-bold text-zinc-500 uppercase">Database disk</p>
-                      <p className="text-[13px] text-white mt-1 flex items-center gap-2">
+                      <p className="text-[11px] font-bold text-muted-foreground uppercase">Database disk</p>
+                      <p className="text-[13px] text-foreground mt-1 flex items-center gap-2">
                         {statusDot(
                           data.supabase.database?.pct != null
                             ? data.supabase.database.pct >= 80
@@ -362,7 +362,7 @@ export function MonitoringDashboard() {
                           {formatBytes(data.supabase.database?.usedBytes)} /{' '}
                           {formatBytes(data.supabase.database?.totalBytes)}
                           {data.supabase.database?.pct != null ? (
-                            <span className="text-zinc-500"> ({data.supabase.database.pct}%)</span>
+                            <span className="text-muted-foreground"> ({data.supabase.database.pct}%)</span>
                           ) : null}
                         </span>
                       </p>
@@ -371,8 +371,8 @@ export function MonitoringDashboard() {
                       )}
                     </div>
                     <div>
-                      <p className="text-[11px] font-bold text-zinc-500 uppercase">Auth users</p>
-                      <p className="text-xl font-black text-white mt-1">{data.supabase.authUsers ?? '—'}</p>
+                      <p className="text-[11px] font-bold text-muted-foreground uppercase">Auth users</p>
+                      <p className="text-xl font-black text-foreground mt-1">{data.supabase.authUsers ?? '—'}</p>
                       {data.supabase.authUsersError && (
                         <p className="text-[11px] text-amber-300 mt-1">{data.supabase.authUsersError}</p>
                       )}
@@ -380,28 +380,28 @@ export function MonitoringDashboard() {
                   </div>
 
                   {data.supabase.apiTotals && (
-                    <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 space-y-2">
-                      <p className="text-[11px] font-bold text-zinc-500 uppercase">Latest API bucket totals</p>
-                      <p className="text-[11px] text-zinc-500">{data.supabase.apiTotalsNote}</p>
+                    <div className="bg-card border border-border rounded-xl p-4 space-y-2">
+                      <p className="text-[11px] font-bold text-muted-foreground uppercase">Latest API bucket totals</p>
+                      <p className="text-[11px] text-muted-foreground">{data.supabase.apiTotalsNote}</p>
                       <div className="grid grid-cols-2 gap-2 text-[13px]">
                         <div>
-                          <span className="text-zinc-500">REST</span>{' '}
-                          <span className="font-mono text-white">{data.supabase.apiTotals.rest}</span>
+                          <span className="text-muted-foreground">REST</span>{' '}
+                          <span className="font-mono text-foreground">{data.supabase.apiTotals.rest}</span>
                         </div>
                         <div>
-                          <span className="text-zinc-500">Auth</span>{' '}
-                          <span className="font-mono text-white">{data.supabase.apiTotals.auth}</span>
+                          <span className="text-muted-foreground">Auth</span>{' '}
+                          <span className="font-mono text-foreground">{data.supabase.apiTotals.auth}</span>
                         </div>
                         <div>
-                          <span className="text-zinc-500">Storage</span>{' '}
-                          <span className="font-mono text-white">{data.supabase.apiTotals.storage}</span>
+                          <span className="text-muted-foreground">Storage</span>{' '}
+                          <span className="font-mono text-foreground">{data.supabase.apiTotals.storage}</span>
                         </div>
                         <div>
-                          <span className="text-zinc-500">Realtime</span>{' '}
-                          <span className="font-mono text-white">{data.supabase.apiTotals.realtime}</span>
+                          <span className="text-muted-foreground">Realtime</span>{' '}
+                          <span className="font-mono text-foreground">{data.supabase.apiTotals.realtime}</span>
                         </div>
                       </div>
-                      <p className="text-[11px] text-zinc-600">{data.supabase.realtimeNote}</p>
+                      <p className="text-[11px] text-muted-foreground">{data.supabase.realtimeNote}</p>
                     </div>
                   )}
 
@@ -419,19 +419,19 @@ export function MonitoringDashboard() {
                     />
                   )}
 
-                  <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
-                    <p className="text-[11px] font-bold text-zinc-500 uppercase mb-2">Storage buckets</p>
+                  <div className="bg-card border border-border rounded-xl p-4">
+                    <p className="text-[11px] font-bold text-muted-foreground uppercase mb-2">Storage buckets</p>
                     {data.supabase.bucketsError && (
                       <p className="text-[12px] text-amber-300">{data.supabase.bucketsError}</p>
                     )}
                     {!data.supabase.buckets?.length && !data.supabase.bucketsError ? (
-                      <p className="text-[13px] text-zinc-500">None listed</p>
+                      <p className="text-[13px] text-muted-foreground">None listed</p>
                     ) : (
-                      <ul className="space-y-1 text-[13px] text-zinc-300">
+                      <ul className="space-y-1 text-[13px] text-muted-foreground">
                         {data.supabase.buckets?.map((b) => (
                           <li key={b.id} className="flex justify-between gap-2">
                             <span className="font-mono truncate">{b.name}</span>
-                            <span className="text-zinc-500 shrink-0">{b.public ? 'public' : 'private'}</span>
+                            <span className="text-muted-foreground shrink-0">{b.public ? 'public' : 'private'}</span>
                           </li>
                         ))}
                       </ul>
@@ -444,18 +444,18 @@ export function MonitoringDashboard() {
             <section className="space-y-2 pt-2">
               <div className="flex items-center gap-2">
                 {statusDot(data.sightengine.configuredOnVercel ? 'ok' : 'warn')}
-                <h2 className="text-sm font-black text-white uppercase tracking-wide">Sightengine</h2>
+                <h2 className="text-sm font-black text-foreground uppercase tracking-wide">Sightengine</h2>
               </div>
-              <p className="text-[13px] text-zinc-400 bg-zinc-900 border border-zinc-800 rounded-xl p-4">{data.sightengine.note}</p>
+              <p className="text-[13px] text-muted-foreground bg-card border border-border rounded-xl p-4">{data.sightengine.note}</p>
             </section>
 
-            <p className="text-[11px] text-zinc-600 leading-relaxed pt-2">
-              Configure server env on Vercel: <span className="font-mono text-zinc-500">VERCEL_TOKEN</span>,{' '}
-              <span className="font-mono text-zinc-500">VERCEL_PROJECT_ID</span>, optional{' '}
-              <span className="font-mono text-zinc-500">VERCEL_TEAM_ID</span>, optional{' '}
-              <span className="font-mono text-zinc-500">VERCEL_LIMIT_*</span>;{' '}
-              <span className="font-mono text-zinc-500">SUPABASE_MANAGEMENT_ACCESS_TOKEN</span>, optional{' '}
-              <span className="font-mono text-zinc-500">SUPABASE_PROJECT_REF</span>.
+            <p className="text-[11px] text-muted-foreground leading-relaxed pt-2">
+              Configure server env on Vercel: <span className="font-mono text-muted-foreground">VERCEL_TOKEN</span>,{' '}
+              <span className="font-mono text-muted-foreground">VERCEL_PROJECT_ID</span>, optional{' '}
+              <span className="font-mono text-muted-foreground">VERCEL_TEAM_ID</span>, optional{' '}
+              <span className="font-mono text-muted-foreground">VERCEL_LIMIT_*</span>;{' '}
+              <span className="font-mono text-muted-foreground">SUPABASE_MANAGEMENT_ACCESS_TOKEN</span>, optional{' '}
+              <span className="font-mono text-muted-foreground">SUPABASE_PROJECT_REF</span>.
             </p>
           </>
         )}

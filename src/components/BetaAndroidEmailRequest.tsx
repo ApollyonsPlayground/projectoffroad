@@ -24,7 +24,7 @@ export function BetaAndroidEmailRequest() {
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
       <div>
-        <label htmlFor="beta-android-email" className="block text-sm font-semibold text-zinc-200 mb-1.5">
+        <label htmlFor="beta-android-email" className="block text-sm font-semibold text-foreground/90 mb-1.5">
           Google Play account email
         </label>
         <input
@@ -36,16 +36,16 @@ export function BetaAndroidEmailRequest() {
           inputMode="email"
           value={email}
           onChange={(ev) => setEmail(ev.target.value)}
-          className="w-full rounded-xl border border-zinc-700 bg-black/50 px-3 py-2.5 text-[15px] text-white placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50"
+          className="w-full rounded-xl border border-border bg-background/50 px-3 py-2.5 text-[15px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50"
           placeholder="you@gmail.com"
         />
-        <p className="text-[12px] text-zinc-500 mt-1.5">
+        <p className="text-[12px] text-muted-foreground mt-1.5">
           Use the same Google account you use on the Play Store — that is the email we add in Play Console.
         </p>
       </div>
       <button
         type="submit"
-        className="w-full sm:w-auto inline-flex items-center justify-center px-5 py-3 rounded-xl bg-primary text-black text-sm font-black hover:bg-primary/90 transition-colors"
+        className="w-full sm:w-auto inline-flex items-center justify-center px-5 py-3 rounded-xl bg-primary text-primary-foreground text-sm font-black hover:bg-primary/90 transition-colors"
       >
         Open email to send request
       </button>

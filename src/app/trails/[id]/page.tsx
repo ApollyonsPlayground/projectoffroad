@@ -262,9 +262,9 @@ export default function TrailDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-black flex flex-col items-center justify-center gap-4 px-4">
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4 px-4">
         <div className="w-9 h-9 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
-        <p className="text-zinc-500 text-[14px]">Loading trail…</p>
+        <p className="text-muted-foreground text-[14px]">Loading trail…</p>
         <BottomNav />
       </div>
     );
@@ -272,9 +272,9 @@ export default function TrailDetailPage() {
 
   if (loadError) {
     return (
-      <div className="min-h-screen bg-black flex flex-col items-center justify-center gap-4 px-4">
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4 px-4">
         <AlertTriangle size={36} className="text-red-500/80" />
-        <p className="text-zinc-400 text-[15px] text-center max-w-sm">{loadError}</p>
+        <p className="text-muted-foreground text-[15px] text-center max-w-sm">{loadError}</p>
         <Link href="/trails" className="text-[14px] text-primary hover:text-primary/90">
           Back to trails
         </Link>
@@ -285,9 +285,9 @@ export default function TrailDetailPage() {
 
   if (!trail) {
     return (
-      <div className="min-h-screen bg-black flex flex-col items-center justify-center gap-4 px-4">
-        <AlertTriangle size={36} className="text-zinc-700" />
-        <p className="text-zinc-500 text-[15px]">Trail not found</p>
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4 px-4">
+        <AlertTriangle size={36} className="text-muted-foreground" />
+        <p className="text-muted-foreground text-[15px]">Trail not found</p>
         <Link href="/trails" className="text-[14px] text-primary hover:text-primary/90">
           Back to trails
         </Link>
@@ -342,23 +342,23 @@ export default function TrailDetailPage() {
   };
 
   return (
-    <div className="min-h-screen bg-black">
+    <div className="min-h-screen bg-background">
       {/* Sticky header */}
-      <header className="sticky top-0 z-30 bg-black/90 backdrop-blur-xl border-b border-zinc-900">
+      <header className="sticky top-0 z-30 bg-background/90 backdrop-blur-xl border-b border-border">
         <div className="max-w-app-shell mx-auto flex items-center justify-between px-4 py-3">
           <button
             onClick={() => router.back()}
-            className="p-1.5 -ml-1.5 text-zinc-400 hover:text-white transition-colors"
+            className="p-1.5 -ml-1.5 text-muted-foreground hover:text-foreground transition-colors"
             aria-label="Go back"
           >
             <ArrowLeft size={22} />
           </button>
-          <h1 className="text-[15px] font-bold text-white truncate mx-3 flex-1 text-center">{trail.name}</h1>
+          <h1 className="text-[15px] font-bold text-foreground truncate mx-3 flex-1 text-center">{trail.name}</h1>
           <div className="flex items-center gap-1">
             <motion.button
               whileTap={{ scale: 0.88 }}
               onClick={handleSave}
-              className="p-2 text-zinc-400 hover:text-primary/90 transition-colors"
+              className="p-2 text-muted-foreground hover:text-primary/90 transition-colors"
               aria-label={isSaved ? 'Remove from saved' : 'Save trail'}
             >
               {isSaved ? <BookmarkCheck size={20} className="text-primary" /> : <BookmarkPlus size={20} />}
@@ -366,7 +366,7 @@ export default function TrailDetailPage() {
             <motion.button
               whileTap={{ scale: 0.88 }}
               onClick={handleShare}
-              className="p-2 text-zinc-400 hover:text-white transition-colors"
+              className="p-2 text-muted-foreground hover:text-foreground transition-colors"
               aria-label="Share trail"
             >
               <Share2 size={18} />
@@ -378,7 +378,7 @@ export default function TrailDetailPage() {
       <main className="max-w-app-shell mx-auto pb-28">
         {/* Hero image */}
         {trail.image && !imageError ? (
-          <div className="relative h-52 bg-zinc-900 overflow-hidden">
+          <div className="relative h-52 bg-card overflow-hidden">
             <img
               src={trail.image}
               alt={trail.name}
@@ -392,7 +392,7 @@ export default function TrailDetailPage() {
             </div>
           </div>
         ) : (
-          <div className="relative h-36 bg-zinc-950 border-b border-zinc-900 flex items-center justify-center">
+          <div className="relative h-36 bg-muted border-b border-border flex items-center justify-center">
             <MapPin size={28} className="text-zinc-800" />
             <div className="absolute top-3 left-3 right-3 flex flex-wrap items-start justify-end gap-2">
               {renderVerifiedChip()}
@@ -402,11 +402,11 @@ export default function TrailDetailPage() {
         )}
 
         {/* Title + difficulty */}
-        <div className="px-4 pt-4 pb-3 border-b border-zinc-900">
+        <div className="px-4 pt-4 pb-3 border-b border-border">
           <div className="flex items-start justify-between gap-3">
             <div className="flex-1 min-w-0">
-              <h2 className="text-[20px] font-bold text-white leading-tight text-balance">{trail.name}</h2>
-              <div className="flex items-center gap-1 mt-1 text-[13px] text-zinc-500">
+              <h2 className="text-[20px] font-bold text-foreground leading-tight text-balance">{trail.name}</h2>
+              <div className="flex items-center gap-1 mt-1 text-[13px] text-muted-foreground">
                 <MapPin size={13} />
                 <span>{trail.location}</span>
               </div>
@@ -426,7 +426,7 @@ export default function TrailDetailPage() {
         </div>
 
         {/* Stats grid */}
-        <div className="grid grid-cols-3 divide-x divide-zinc-900 border-b border-zinc-900">
+        <div className="grid grid-cols-3 divide-x divide-zinc-900 border-b border-border">
           {[
             { icon: Ruler, label: 'Distance', value: trail.distance },
             { icon: Clock, label: 'Est. Time', value: trail.time },
@@ -441,25 +441,25 @@ export default function TrailDetailPage() {
           ].map(({ icon: Icon, label, value }) => (
             <div key={label} className="flex flex-col items-center gap-1 py-3.5 px-2">
               <Icon size={17} className="text-primary" />
-              <span className="text-[13px] font-semibold text-white">{value}</span>
-              <span className="text-[10px] text-zinc-600 uppercase tracking-wider">{label}</span>
+              <span className="text-[13px] font-semibold text-foreground">{value}</span>
+              <span className="text-[10px] text-muted-foreground uppercase tracking-wider">{label}</span>
             </div>
           ))}
         </div>
 
         {/* Description */}
-        <div className="px-4 py-4 border-b border-zinc-900">
-          <h3 className="text-[12px] font-bold text-zinc-500 uppercase tracking-wider mb-2">About this Trail</h3>
-          <p className="text-[14px] text-zinc-300 leading-relaxed">{trail.description}</p>
+        <div className="px-4 py-4 border-b border-border">
+          <h3 className="text-[12px] font-bold text-muted-foreground uppercase tracking-wider mb-2">About this Trail</h3>
+          <p className="text-[14px] text-muted-foreground leading-relaxed">{trail.description}</p>
         </div>
 
         {playReviewUnlocked && PLAY_REVIEW_UI_ENABLED && isGiantRockTrail(trail) && (
-          <div className="px-4 py-4 border-b border-zinc-900">
-            <h3 className="text-[12px] font-bold text-zinc-500 uppercase tracking-wider mb-2">
+          <div className="px-4 py-4 border-b border-border">
+            <h3 className="text-[12px] font-bold text-muted-foreground uppercase tracking-wider mb-2">
               Google Play reviewer sign-in
             </h3>
-            <p className="text-[13px] text-zinc-400 leading-relaxed mb-4">
-              Sign in with the <strong className="text-zinc-300 font-semibold">email and password</strong> supplied
+            <p className="text-[13px] text-muted-foreground leading-relaxed mb-4">
+              Sign in with the <strong className="text-muted-foreground font-semibold">email and password</strong> supplied
               for Play Store review (check your credentials note).
             </p>
             <form action="/api/auth/play-review/" method="POST" className="space-y-3">
@@ -474,7 +474,7 @@ export default function TrailDetailPage() {
                   autoComplete="username"
                   required
                   placeholder="Email"
-                  className="w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-3 text-[14px] text-white placeholder:text-zinc-600 focus:border-primary/50 focus:outline-none focus:ring-1 focus:ring-primary/40"
+                  className="w-full rounded-xl border border-border bg-muted px-3 py-3 text-[14px] text-foreground placeholder:text-muted-foreground focus:border-primary/50 focus:outline-none focus:ring-1 focus:ring-primary/40"
                 />
               </div>
               <div>
@@ -488,12 +488,12 @@ export default function TrailDetailPage() {
                   autoComplete="current-password"
                   required
                   placeholder="Password"
-                  className="w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-3 text-[14px] text-white placeholder:text-zinc-600 focus:border-primary/50 focus:outline-none focus:ring-1 focus:ring-primary/40"
+                  className="w-full rounded-xl border border-border bg-muted px-3 py-3 text-[14px] text-foreground placeholder:text-muted-foreground focus:border-primary/50 focus:outline-none focus:ring-1 focus:ring-primary/40"
                 />
               </div>
               <button
                 type="submit"
-                className="w-full py-3.5 rounded-xl bg-primary hover:opacity-90 text-black text-[14px] font-bold transition-colors"
+                className="w-full py-3.5 rounded-xl bg-primary hover:opacity-90 text-primary-foreground text-[14px] font-bold transition-colors"
               >
                 Sign in
               </button>
@@ -503,23 +503,23 @@ export default function TrailDetailPage() {
 
         {/* Trip notes from completed runs */}
         {tripNotes.length > 0 && (
-          <div className="px-4 py-4 border-b border-zinc-900">
-            <h3 className="text-[12px] font-bold text-zinc-500 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+          <div className="px-4 py-4 border-b border-border">
+            <h3 className="text-[12px] font-bold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-1.5">
               <StickyNote size={14} className="text-primary" />
               Recent trip notes
             </h3>
-            <p className="text-[12px] text-zinc-600 mb-3 leading-relaxed">
+            <p className="text-[12px] text-muted-foreground mb-3 leading-relaxed">
               Pulled from completed group runs on this trail — riders sharing conditions and pacing, not ratings.
             </p>
             <ul className="space-y-3">
               {tripNotes.map((n) => (
                 <li
                   key={n.id}
-                  className="rounded-xl border border-zinc-800 bg-zinc-950/80 px-3 py-3"
+                  className="rounded-xl border border-border bg-muted/80 px-3 py-3"
                 >
-                  <p className="text-[11px] text-zinc-500 mb-1.5">
-                    <span className="text-zinc-300 font-semibold">{n.users?.name ?? 'Rider'}</span>
-                    <span className="text-zinc-600 mx-1">·</span>
+                  <p className="text-[11px] text-muted-foreground mb-1.5">
+                    <span className="text-muted-foreground font-semibold">{n.users?.name ?? 'Rider'}</span>
+                    <span className="text-muted-foreground mx-1">·</span>
                     {n.runs?.title ? (
                       <Link
                         href={`/runs/${n.run_id}`}
@@ -528,16 +528,16 @@ export default function TrailDetailPage() {
                         {n.runs.title}
                       </Link>
                     ) : (
-                      <span className="text-zinc-500">Past run</span>
+                      <span className="text-muted-foreground">Past run</span>
                     )}
-                    <span className="text-zinc-600 mx-1">·</span>
+                    <span className="text-muted-foreground mx-1">·</span>
                     {new Date(n.created_at).toLocaleDateString('en-US', {
                       month: 'short',
                       day: 'numeric',
                       year: 'numeric',
                     })}
                   </p>
-                  <p className="text-[14px] text-zinc-200 leading-relaxed whitespace-pre-wrap">{n.body}</p>
+                  <p className="text-[14px] text-foreground/90 leading-relaxed whitespace-pre-wrap">{n.body}</p>
                 </li>
               ))}
             </ul>
@@ -546,25 +546,25 @@ export default function TrailDetailPage() {
 
         {/* Rig Requirements */}
         {trail.rigRequirements && (
-          <div className="px-4 py-4 border-b border-zinc-900">
-            <h3 className="text-[12px] font-bold text-zinc-500 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
+          <div className="px-4 py-4 border-b border-border">
+            <h3 className="text-[12px] font-bold text-muted-foreground uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
               <Truck size={14} className="text-primary" /> Rig Requirements
             </h3>
-            <p className="text-[14px] text-zinc-300 leading-relaxed">{trail.rigRequirements}</p>
+            <p className="text-[14px] text-muted-foreground leading-relaxed">{trail.rigRequirements}</p>
           </div>
         )}
 
         {/* Tags */}
         {trail.tags && trail.tags.length > 0 && (
-          <div className="px-4 py-4 border-b border-zinc-900">
-            <h3 className="text-[12px] font-bold text-zinc-500 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
+          <div className="px-4 py-4 border-b border-border">
+            <h3 className="text-[12px] font-bold text-muted-foreground uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
               <Tag size={14} className="text-primary" /> Tags
             </h3>
             <div className="flex flex-wrap gap-2">
               {trail.tags.map((tag) => (
                 <span
                   key={tag}
-                  className="px-2.5 py-1 bg-zinc-900 border border-zinc-800 text-[12px] text-zinc-400 rounded-full"
+                  className="px-2.5 py-1 bg-card border border-border text-[12px] text-muted-foreground rounded-full"
                 >
                   {tag}
                 </span>
@@ -575,9 +575,9 @@ export default function TrailDetailPage() {
 
         {/* Coordinates */}
         {trail.coordinates && (
-          <div className="px-4 py-3 border-b border-zinc-900">
-            <p className="text-[11px] text-zinc-600 uppercase tracking-wider">Coordinates</p>
-            <p className="text-[13px] text-zinc-400 font-mono mt-0.5">{trail.coordinates}</p>
+          <div className="px-4 py-3 border-b border-border">
+            <p className="text-[11px] text-muted-foreground uppercase tracking-wider">Coordinates</p>
+            <p className="text-[13px] text-muted-foreground font-mono mt-0.5">{trail.coordinates}</p>
           </div>
         )}
 
@@ -588,7 +588,7 @@ export default function TrailDetailPage() {
               href={trail.onxUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 w-full py-3.5 bg-primary hover:opacity-90 text-black font-bold text-[15px] rounded-xl transition-colors"
+              className="flex items-center justify-center gap-2 w-full py-3.5 bg-primary hover:opacity-90 text-primary-foreground font-bold text-[15px] rounded-xl transition-colors"
               onClick={() => showToast('Opening onX', 'info')}
             >
               <ExternalLink size={16} /> Open in onX
@@ -597,7 +597,7 @@ export default function TrailDetailPage() {
           <motion.button
             whileTap={{ scale: 0.97 }}
             onClick={handleSave}
-            className="flex items-center justify-center gap-2 w-full py-3.5 bg-zinc-950 border border-zinc-800 hover:border-primary/30 text-zinc-300 font-semibold text-[14px] rounded-xl transition-colors"
+            className="flex items-center justify-center gap-2 w-full py-3.5 bg-muted border border-border hover:border-primary/30 text-muted-foreground font-semibold text-[14px] rounded-xl transition-colors"
           >
             {isSaved
               ? <><BookmarkCheck size={16} className="text-primary" /> Saved to your list</>
@@ -608,14 +608,14 @@ export default function TrailDetailPage() {
           {/* Find a run on this trail */}
           <Link
             href={`/runs?trail=${encodeURIComponent(trail.name)}`}
-            className="flex items-center justify-between w-full py-3.5 px-4 bg-zinc-900 border border-zinc-800 hover:border-zinc-700 rounded-xl transition-colors"
+            className="flex items-center justify-between w-full py-3.5 px-4 bg-card border border-border hover:border-border rounded-xl transition-colors"
             onClick={() => showToast('Finding runs on this trail', 'info')}
           >
-            <div className="flex items-center gap-2 text-zinc-300 text-[14px] font-semibold">
+            <div className="flex items-center gap-2 text-muted-foreground text-[14px] font-semibold">
               <Users size={16} className="text-primary" />
               Find a group run
             </div>
-            <ChevronRight size={16} className="text-zinc-600" />
+            <ChevronRight size={16} className="text-muted-foreground" />
           </Link>
         </div>
       </main>
