@@ -26,7 +26,7 @@ import { isLimitedMediaDevice, resizeImageFileToJpegBlob } from '@/lib/media/mob
 const MeetupMapPicker = dynamic(() => import('@/components/runs/MeetupMapPicker'), {
   ssr: false,
   loading: () => (
-    <div className="h-[220px] bg-zinc-900 animate-pulse rounded-xl border border-zinc-800" aria-hidden />
+    <div className="h-[220px] bg-card animate-pulse rounded-xl border border-border" aria-hidden />
   ),
 });
 
@@ -585,14 +585,14 @@ export function HostRunWizard({ variant = 'drawer', onSuccess, onCancel }: Props
       setForm((prev) => ({ ...prev, [key]: e.target.value }));
 
   const inputClass =
-    'w-full min-h-[44px] bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2.5 text-[15px] text-white placeholder-zinc-600 focus:outline-none focus:border-primary/60 transition-colors touch-manipulation';
-  const labelClass = 'block text-[12px] font-semibold text-zinc-400 uppercase tracking-wider mb-1.5';
+    'w-full min-h-[44px] bg-card border border-border rounded-xl px-3 py-2.5 text-[15px] text-foreground placeholder-zinc-600 focus:outline-none focus:border-primary/60 transition-colors touch-manipulation';
+  const labelClass = 'block text-[12px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5';
 
   const applyGeocodeHit = (r: { lat: number; lng: number }) => {
     setMapCenter([r.lat, r.lng]);
     setMeetupLat(r.lat);
     setMeetupLng(r.lng);
-    setMapZoom(15);
+    setMapZoom(17);
     setGeocodeResults([]);
     setPinTouched(true);
   };
@@ -674,7 +674,7 @@ export function HostRunWizard({ variant = 'drawer', onSuccess, onCancel }: Props
         date: new Date(form.date).toISOString(),
         meetup_latitude: meetupLat,
         meetup_longitude: meetupLng,
-        meetup_location: `Staging pin · ${meetupLat.toFixed(5)}, ${meetupLng.toFixed(5)}`,
+        meetup_location: `Staging pin · ${meetupLat.toFixed(6)}, ${meetupLng.toFixed(6)}`,
         max_participants: form.max_participants ? parseInt(form.max_participants, 10) : null,
         difficulty: DIFFICULTY_FOR_DB[form.difficulty as (typeof DIFFICULTIES)[number]] ?? form.difficulty,
         trail_id: form.trail_id || null,
@@ -819,13 +819,13 @@ export function HostRunWizard({ variant = 'drawer', onSuccess, onCancel }: Props
             }}
             className={`flex flex-col items-center justify-center gap-1.5 min-h-[88px] rounded-xl border-2 transition-colors touch-manipulation disabled:opacity-40 disabled:cursor-not-allowed ${
               mode === 'club_official'
-                ? 'border-primary bg-primary/10 text-white'
-                : 'border-zinc-800 bg-zinc-900 text-zinc-400 active:bg-zinc-800'
+                ? 'border-primary bg-primary/10 text-foreground'
+                : 'border-border bg-card text-muted-foreground active:bg-zinc-800'
             }`}
           >
             <Building2 size={22} className={mode === 'club_official' ? 'text-primary/90' : ''} />
             <span className="text-[13px] font-bold text-center leading-tight">Club Run</span>
-            <span className="text-[10px] text-zinc-500 text-center leading-tight px-1">
+            <span className="text-[10px] text-muted-foreground text-center leading-tight px-1">
               {staffFromDb
                 ? 'Staff verified · official listing'
                 : 'Verified club · listed as official'}
@@ -840,13 +840,13 @@ export function HostRunWizard({ variant = 'drawer', onSuccess, onCancel }: Props
             }}
             className={`flex flex-col items-center justify-center gap-1.5 min-h-[88px] rounded-xl border-2 transition-colors touch-manipulation ${
               mode === 'user_submitted'
-                ? 'border-amber-500 bg-amber-500/10 text-white'
-                : 'border-zinc-800 bg-zinc-900 text-zinc-400 active:bg-zinc-800'
+                ? 'border-amber-500 bg-amber-500/10 text-foreground'
+                : 'border-border bg-card text-muted-foreground active:bg-zinc-800'
             }`}
           >
             <Users size={22} className={mode === 'user_submitted' ? 'text-amber-400' : ''} />
             <span className="text-[13px] font-bold text-center leading-tight">Community Run</span>
-            <span className="text-[10px] text-zinc-500 text-center leading-tight px-1">
+            <span className="text-[10px] text-muted-foreground text-center leading-tight px-1">
               Not verified · extra notices apply
             </span>
           </button>
@@ -900,9 +900,9 @@ export function HostRunWizard({ variant = 'drawer', onSuccess, onCancel }: Props
               type="checkbox"
               checked={disclaimerAck}
               onChange={(e) => setDisclaimerAck(e.target.checked)}
-              className="mt-1 h-5 w-5 rounded border-zinc-600 text-primary focus:ring-primary"
+              className="mt-1 h-5 w-5 rounded border-border text-primary focus:ring-primary"
             />
-            <span className="text-[13px] text-zinc-200 leading-snug">
+            <span className="text-[13px] text-foreground/90 leading-snug">
               I understand this is a community listing, not a verified club run, and I accept responsibility
               as host.
             </span>
@@ -928,9 +928,9 @@ export function HostRunWizard({ variant = 'drawer', onSuccess, onCancel }: Props
 
       {/* Visibility: public vs members-only */}
       {mode === 'club_official' && !staffFromDb && (
-        <div className="rounded-xl border border-zinc-800 bg-zinc-950/40 px-3 py-3 space-y-2">
-          <p className="text-[11px] font-black uppercase tracking-wider text-zinc-500">Visibility</p>
-          <label className="flex items-start gap-3 text-[13px] text-zinc-300">
+        <div className="rounded-xl border border-border bg-muted/40 px-3 py-3 space-y-2">
+          <p className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Visibility</p>
+          <label className="flex items-start gap-3 text-[13px] text-muted-foreground">
             <input
               type="checkbox"
               className="mt-1"
@@ -938,8 +938,8 @@ export function HostRunWizard({ variant = 'drawer', onSuccess, onCancel }: Props
               onChange={(e) => setClubOnly(e.target.checked)}
             />
             <span>
-              <strong className="text-white">Club members only</strong>
-              <span className="block text-[12px] text-zinc-500 mt-0.5">
+              <strong className="text-foreground">Club members only</strong>
+              <span className="block text-[12px] text-muted-foreground mt-0.5">
                 Only approved members of the hosting club can see this run.
               </span>
             </span>
@@ -989,7 +989,7 @@ export function HostRunWizard({ variant = 'drawer', onSuccess, onCancel }: Props
             }}
           />
           {flyerPreviewUrl ? (
-            <div className="rounded-xl border border-zinc-800 bg-zinc-950 overflow-hidden">
+            <div className="rounded-xl border border-border bg-muted overflow-hidden">
               <img
                 src={flyerPreviewUrl}
                 alt="Flyer preview"
@@ -998,14 +998,14 @@ export function HostRunWizard({ variant = 'drawer', onSuccess, onCancel }: Props
               <button
                 type="button"
                 onClick={() => setFlyerFile(null)}
-                className="w-full flex items-center justify-center gap-2 py-2 text-[12px] font-bold text-zinc-300 hover:text-white border-t border-zinc-800 bg-zinc-950/40"
+                className="w-full flex items-center justify-center gap-2 py-2 text-[12px] font-bold text-muted-foreground hover:text-foreground border-t border-border bg-muted/40"
               >
                 <X size={14} />
                 Remove flyer
               </button>
             </div>
           ) : (
-            <p className="text-[12px] text-zinc-500">
+            <p className="text-[12px] text-muted-foreground">
               Adds a poster image to the run card and run detail page.
             </p>
           )}
@@ -1039,12 +1039,12 @@ export function HostRunWizard({ variant = 'drawer', onSuccess, onCancel }: Props
           disabled={loadingDropdowns}
           autoComplete="off"
         />
-        <div className="mt-2 max-h-52 overflow-y-auto rounded-xl border border-zinc-800 bg-zinc-950 overscroll-contain">
+        <div className="mt-2 max-h-52 overflow-y-auto rounded-xl border border-border bg-muted overscroll-contain">
           <button
             type="button"
             onClick={() => setForm((f) => ({ ...f, trail_id: '' }))}
-            className={`w-full text-left py-3.5 px-3 text-[14px] touch-manipulation border-b border-zinc-800/80 ${
-              !form.trail_id ? 'bg-primary/15 text-primary/80' : 'text-zinc-300 active:bg-zinc-900'
+            className={`w-full text-left py-3.5 px-3 text-[14px] touch-manipulation border-b border-border/80 ${
+              !form.trail_id ? 'bg-primary/15 text-primary/80' : 'text-muted-foreground active:bg-card'
             }`}
           >
             No trail selected — meetup only
@@ -1061,23 +1061,23 @@ export function HostRunWizard({ variant = 'drawer', onSuccess, onCancel }: Props
                   setMapCenter([c.lat, c.lng]);
                   setMeetupLat(c.lat);
                   setMeetupLng(c.lng);
-                  setMapZoom(12);
+                  setMapZoom(16);
                 }
               }}
-              className={`w-full text-left py-3.5 px-3 text-[14px] touch-manipulation border-b border-zinc-800/80 last:border-0 ${
+              className={`w-full text-left py-3.5 px-3 text-[14px] touch-manipulation border-b border-border/80 last:border-0 ${
                 form.trail_id === t.id
                   ? 'bg-primary/15 text-primary/80'
-                  : 'text-zinc-200 active:bg-zinc-900'
+                  : 'text-foreground/90 active:bg-card'
               }`}
             >
               <span className="font-semibold block">{t.name}</span>
-              <span className="text-[12px] text-zinc-500">
+              <span className="text-[12px] text-muted-foreground">
                 {[t.location, t.difficulty].filter(Boolean).join(' · ') || 'Trail'}
               </span>
             </button>
           ))}
           {filteredTrails.length === 0 && (
-            <p className="py-6 px-3 text-[13px] text-zinc-500 text-center">No trails match that search.</p>
+            <p className="py-6 px-3 text-[13px] text-muted-foreground text-center">No trails match that search.</p>
           )}
         </div>
       </div>
@@ -1094,14 +1094,14 @@ export function HostRunWizard({ variant = 'drawer', onSuccess, onCancel }: Props
                 onChange={set('difficulty')}
               >
                 {DIFFICULTIES.map((d) => (
-                  <option key={d} value={d} className="bg-zinc-900 capitalize">
+                  <option key={d} value={d} className="bg-card capitalize">
                     {d.charAt(0).toUpperCase() + d.slice(1)}
                   </option>
                 ))}
               </select>
               <ChevronDown
                 size={16}
-                className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500"
+                className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
               />
             </div>
           </div>
@@ -1119,7 +1119,7 @@ export function HostRunWizard({ variant = 'drawer', onSuccess, onCancel }: Props
           </div>
         </div>
         {form.trail_id ? (
-          <p className="text-[11px] text-zinc-500 leading-snug">
+          <p className="text-[11px] text-muted-foreground leading-snug">
             Pulled from the trail listing when you pick a trail — change if this run is easier or harder.
           </p>
         ) : null}
@@ -1128,7 +1128,7 @@ export function HostRunWizard({ variant = 'drawer', onSuccess, onCancel }: Props
       {/* Staging pin (exact coordinates — transparency / liability) */}
       <div>
         <label className={labelClass}>Staging / meetup pin *</label>
-        <p className="text-[12px] text-zinc-500 leading-relaxed mb-2">
+        <p className="text-[12px] text-muted-foreground leading-relaxed mb-2">
           Search an address or place to jump nearby, then drag the pin or tap the map for the exact staging spot.
           We store coordinates so hosts and riders share the same reference point.
         </p>
@@ -1150,20 +1150,20 @@ export function HostRunWizard({ variant = 'drawer', onSuccess, onCancel }: Props
             type="button"
             onClick={() => void runAddressSearch()}
             disabled={geocodeLoading}
-            className="flex-shrink-0 inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-xl bg-zinc-800 border border-zinc-700 text-[14px] font-semibold text-white hover:bg-zinc-700 disabled:opacity-50 touch-manipulation"
+            className="flex-shrink-0 inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-xl bg-zinc-800 border border-border text-[14px] font-semibold text-foreground hover:bg-zinc-700 disabled:opacity-50 touch-manipulation"
           >
             {geocodeLoading ? <Loader2 size={18} className="animate-spin" /> : <Search size={18} />}
             Search
           </button>
         </div>
         {geocodeResults.length > 0 && (
-          <ul className="mb-2 max-h-36 overflow-y-auto rounded-xl border border-zinc-800 bg-zinc-950 overscroll-contain divide-y divide-zinc-800/80">
+          <ul className="mb-2 max-h-36 overflow-y-auto rounded-xl border border-border bg-muted overscroll-contain divide-y divide-zinc-800/80">
             {geocodeResults.map((r, i) => (
               <li key={`${r.lat}-${r.lng}-${i}`}>
                 <button
                   type="button"
                   onClick={() => applyGeocodeHit(r)}
-                  className="w-full text-left py-2.5 px-3 text-[13px] text-zinc-200 hover:bg-zinc-900 active:bg-zinc-800 touch-manipulation leading-snug"
+                  className="w-full text-left py-2.5 px-3 text-[13px] text-foreground/90 hover:bg-card active:bg-zinc-800 touch-manipulation leading-snug"
                 >
                   {r.label}
                 </button>
@@ -1179,11 +1179,51 @@ export function HostRunWizard({ variant = 'drawer', onSuccess, onCancel }: Props
             setMeetupLng(lng);
             setPinTouched(true);
           }}
-          heightPx={240}
+          heightPx={360}
           zoom={mapZoom}
         />
-        <p className="mt-2 text-[11px] font-mono text-zinc-500">
-          {meetupLat.toFixed(5)}, {meetupLng.toFixed(5)}
+        <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <div>
+            <label className="block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+              Latitude (°)
+            </label>
+            <input
+              type="number"
+              step="any"
+              min={-90}
+              max={90}
+              className={`${inputClass} font-mono text-[13px]`}
+              value={meetupLat}
+              onChange={(e) => {
+                const v = parseFloat(e.target.value);
+                if (!Number.isFinite(v) || Math.abs(v) > 90) return;
+                setMeetupLat(v);
+                setPinTouched(true);
+              }}
+            />
+          </div>
+          <div>
+            <label className="block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+              Longitude (°)
+            </label>
+            <input
+              type="number"
+              step="any"
+              min={-180}
+              max={180}
+              className={`${inputClass} font-mono text-[13px]`}
+              value={meetupLng}
+              onChange={(e) => {
+                const v = parseFloat(e.target.value);
+                if (!Number.isFinite(v) || Math.abs(v) > 180) return;
+                setMeetupLng(v);
+                setPinTouched(true);
+              }}
+            />
+          </div>
+        </div>
+        <p className="mt-2 text-[11px] font-mono text-muted-foreground">
+          {meetupLat.toFixed(6)}, {meetupLng.toFixed(6)}
         </p>
       </div>
 
@@ -1212,7 +1252,7 @@ export function HostRunWizard({ variant = 'drawer', onSuccess, onCancel }: Props
           autoComplete="off"
           maxLength={300}
         />
-        <p className="mt-1.5 text-[11px] text-zinc-500 leading-snug">
+        <p className="mt-1.5 text-[11px] text-muted-foreground leading-snug">
           Shown on the run card so everyone tunes the same channel before rollout — not a rating or leaderboard.
         </p>
       </div>
@@ -1226,7 +1266,7 @@ export function HostRunWizard({ variant = 'drawer', onSuccess, onCancel }: Props
             <>Club affiliation (optional)</>
           )}
           {loadingDropdowns && (
-            <Loader2 size={11} className="inline ml-1.5 animate-spin text-zinc-500" />
+            <Loader2 size={11} className="inline ml-1.5 animate-spin text-muted-foreground" />
           )}
         </label>
         <div className="relative">
@@ -1245,7 +1285,7 @@ export function HostRunWizard({ variant = 'drawer', onSuccess, onCancel }: Props
                 <>
                   <option value={STAFF_VERIFIED_NO_CLUB}>Staff verified — official (no club)</option>
                   {staffOfficialClubOptions.map((c) => (
-                    <option key={c.id} value={c.id} className="bg-zinc-900">
+                    <option key={c.id} value={c.id} className="bg-card">
                       {c.name}
                       {c.verified ? ' · verified club' : ' · not verified'}
                     </option>
@@ -1255,7 +1295,7 @@ export function HostRunWizard({ variant = 'drawer', onSuccess, onCancel }: Props
                 <>
                   <option value="">Select verified club…</option>
                   {officialClubChoices.map((c) => (
-                    <option key={c.id} value={c.id} className="bg-zinc-900">
+                    <option key={c.id} value={c.id} className="bg-card">
                       {c.name}
                     </option>
                   ))}
@@ -1265,7 +1305,7 @@ export function HostRunWizard({ variant = 'drawer', onSuccess, onCancel }: Props
               <>
                 <option value="">No club — personal / friends meetup</option>
                 {clubs.map((c) => (
-                  <option key={c.id} value={c.id} className="bg-zinc-900">
+                  <option key={c.id} value={c.id} className="bg-card">
                     {c.name}
                     {!c.verified ? ' (not verified)' : ''}
                   </option>
@@ -1275,7 +1315,7 @@ export function HostRunWizard({ variant = 'drawer', onSuccess, onCancel }: Props
           </select>
           <ChevronDown
             size={16}
-            className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500"
+            className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
           />
         </div>
       </div>
@@ -1285,7 +1325,7 @@ export function HostRunWizard({ variant = 'drawer', onSuccess, onCancel }: Props
         <button
           type="submit"
           disabled={submitting}
-          className="w-full flex items-center justify-center gap-2 min-h-[48px] py-3 bg-primary hover:opacity-90 disabled:bg-zinc-700 text-black disabled:text-zinc-500 text-[15px] font-black rounded-xl transition-colors touch-manipulation"
+          className="w-full flex items-center justify-center gap-2 min-h-[48px] py-3 bg-primary hover:opacity-90 disabled:bg-zinc-700 text-primary-foreground disabled:text-muted-foreground text-[15px] font-black rounded-xl transition-colors touch-manipulation"
         >
           {submitting ? <Loader2 size={18} className="animate-spin" /> : <Flag size={18} />}
           {submitting ? 'Publishing…' : 'Publish run'}
@@ -1294,7 +1334,7 @@ export function HostRunWizard({ variant = 'drawer', onSuccess, onCancel }: Props
           <button
             type="button"
             onClick={onCancel}
-            className="w-full min-h-[44px] py-2.5 text-[14px] font-semibold text-zinc-400 hover:text-white touch-manipulation"
+            className="w-full min-h-[44px] py-2.5 text-[14px] font-semibold text-muted-foreground hover:text-foreground touch-manipulation"
           >
             Cancel
           </button>

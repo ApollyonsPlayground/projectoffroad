@@ -29,6 +29,7 @@ export default function SettingsPage() {
   const { showToast } = useToast();
 
   const [notifyRuns, setNotifyRuns] = useState(true);
+  const [notifyRunTimeReminders, setNotifyRunTimeReminders] = useState(true);
   const [notifyClubs, setNotifyClubs] = useState(true);
   const [notifyMessages, setNotifyMessages] = useState(false);
   const [dmAllow, setDmAllow] = useState<DmAllow>('everyone');
@@ -40,6 +41,9 @@ export default function SettingsPage() {
   useEffect(() => {
     if (!profile) return;
     setNotifyRuns(profile.notify_runs !== false);
+    setNotifyRunTimeReminders(
+      (profile as { notify_run_time_reminders?: boolean }).notify_run_time_reminders !== false
+    );
     setNotifyClubs(profile.notify_clubs !== false);
     setNotifyMessages(profile.notify_messages === true);
     const dm = String(profile.dm_allow_from ?? 'everyone');
@@ -110,6 +114,11 @@ export default function SettingsPage() {
     await persistPrefs({ notify_runs: v });
   };
 
+  const toggleRunTimeReminders = async (v: boolean) => {
+    setNotifyRunTimeReminders(v);
+    await persistPrefs({ notify_run_time_reminders: v });
+  };
+
   const toggleClubs = async (v: boolean) => {
     setNotifyClubs(v);
     await persistPrefs({ notify_clubs: v });
@@ -175,10 +184,10 @@ export default function SettingsPage() {
     <div className="min-h-screen bg-[#050705] pb-24">
       <div className="sticky top-0 z-50 bg-[#050705] border-b-2 border-neutral-800 px-4 py-3">
         <div className="flex items-center gap-4 max-w-xl mx-auto">
-          <Link href={user ? '/profile' : '/'} className="text-neutral-400 hover:text-white" aria-label="Back">
+          <Link href={user ? '/profile' : '/'} className="text-neutral-400 hover:text-foreground" aria-label="Back">
             <ArrowLeft size={24} />
           </Link>
-          <h1 className="text-lg font-bold text-white uppercase tracking-wide">Settings</h1>
+          <h1 className="text-lg font-bold text-foreground uppercase tracking-wide">Settings</h1>
         </div>
       </div>
 
@@ -187,7 +196,7 @@ export default function SettingsPage() {
         <div className="bg-neutral-900 border-2 border-neutral-800 rounded-lg p-4">
           <div className="flex items-center gap-3 mb-4">
             <User className="text-muted-gold" size={20} />
-            <h2 className="text-white font-bold uppercase tracking-wide">Account</h2>
+            <h2 className="text-foreground font-bold uppercase tracking-wide">Account</h2>
           </div>
           {!user ? (
             <p className="text-neutral-500 text-sm">Sign in to manage your account.</p>
@@ -210,7 +219,7 @@ export default function SettingsPage() {
               </Link>
               <Link
                 href="/guidelines"
-                className="flex items-center justify-between text-neutral-400 hover:text-white py-2"
+                className="flex items-center justify-between text-neutral-400 hover:text-foreground py-2"
               >
                 <span>Community guidelines</span>
                 <span className="text-neutral-600">→</span>
@@ -230,10 +239,12 @@ export default function SettingsPage() {
         <div className="bg-neutral-900 border-2 border-neutral-800 rounded-lg p-4">
           <div className="flex items-center gap-3 mb-4">
             <Bell className="text-muted-gold" size={20} />
-            <h2 className="text-white font-bold uppercase tracking-wide">Notifications</h2>
+            <h2 className="text-foreground font-bold uppercase tracking-wide">Notifications</h2>
           </div>
           <p className="text-neutral-600 text-[11px] uppercase tracking-wider mb-3">
-            Saved to your account · push delivery coming later
+            Preferences are saved to your account. On the native app, run joiners can get local reminders at
+            about 72h, 48h, and 24h before start when enabled below. Server-side delivery logs for push (FCM /
+            web) are wired to the hourly cron job.
           </p>
           <div className="space-y-3">
             <label className="flex items-center justify-between cursor-pointer">
@@ -242,6 +253,15 @@ export default function SettingsPage() {
                 type="checkbox"
                 checked={notifyRuns}
                 onChange={(e) => void toggleRuns(e.target.checked)}
+                className="w-5 h-5 accent-muted-gold"
+              />
+            </label>
+            <label className="flex items-center justify-between cursor-pointer">
+              <span className="text-neutral-400">Run time reminders (72h / 48h / 24h)</span>
+              <input
+                type="checkbox"
+                checked={notifyRunTimeReminders}
+                onChange={(e) => void toggleRunTimeReminders(e.target.checked)}
                 className="w-5 h-5 accent-muted-gold"
               />
             </label>
@@ -270,7 +290,7 @@ export default function SettingsPage() {
         <div className="bg-neutral-900 border-2 border-neutral-800 rounded-lg p-4">
           <div className="flex items-center gap-3 mb-4">
             <User className="text-muted-gold" size={20} />
-            <h2 className="text-white font-bold uppercase tracking-wide">Profile & identity</h2>
+            <h2 className="text-foreground font-bold uppercase tracking-wide">Profile & identity</h2>
           </div>
           {!user ? (
             <p className="text-neutral-500 text-sm">Sign in to manage how others see your name.</p>
@@ -319,7 +339,7 @@ export default function SettingsPage() {
         <div className="bg-neutral-900 border-2 border-neutral-800 rounded-lg p-4">
           <div className="flex items-center gap-3 mb-4">
             <MessageSquare className="text-muted-gold" size={20} />
-            <h2 className="text-white font-bold uppercase tracking-wide">Messages</h2>
+            <h2 className="text-foreground font-bold uppercase tracking-wide">Messages</h2>
           </div>
           <p className="text-neutral-500 text-sm mb-3">Who can start a DM with you?</p>
           <select
@@ -337,7 +357,7 @@ export default function SettingsPage() {
         <div className="bg-neutral-900 border-2 border-neutral-800 rounded-lg p-4">
           <div className="flex items-center gap-3 mb-4">
             <Ban className="text-muted-gold" size={20} />
-            <h2 className="text-white font-bold uppercase tracking-wide">Blocked accounts</h2>
+            <h2 className="text-foreground font-bold uppercase tracking-wide">Blocked accounts</h2>
           </div>
           {!user ? (
             <p className="text-neutral-500 text-sm">Sign in to manage blocked accounts.</p>
@@ -354,7 +374,7 @@ export default function SettingsPage() {
                   key={row.blocked_id}
                   className="flex items-center justify-between gap-2 py-2 border-b border-neutral-800 last:border-0"
                 >
-                  <Link href={`/profile/${row.blocked_id}`} className="text-neutral-300 text-sm truncate hover:text-white">
+                  <Link href={`/profile/${row.blocked_id}`} className="text-neutral-300 text-sm truncate hover:text-foreground">
                     {row.label}
                   </Link>
                   <button
@@ -374,20 +394,20 @@ export default function SettingsPage() {
         <div className="bg-neutral-900 border-2 border-neutral-800 rounded-lg p-4">
           <div className="flex items-center gap-3 mb-4">
             <Shield className="text-muted-gold" size={20} />
-            <h2 className="text-white font-bold uppercase tracking-wide">Privacy</h2>
+            <h2 className="text-foreground font-bold uppercase tracking-wide">Privacy</h2>
           </div>
           <div className="space-y-3">
-            <Link href="/privacy/" className="flex items-center justify-between text-neutral-400 hover:text-white py-2">
+            <Link href="/privacy/" className="flex items-center justify-between text-neutral-400 hover:text-foreground py-2">
               <span>Privacy Policy</span>
               <span className="text-neutral-600">→</span>
             </Link>
-            <Link href="/terms/" className="flex items-center justify-between text-neutral-400 hover:text-white py-2">
+            <Link href="/terms/" className="flex items-center justify-between text-neutral-400 hover:text-foreground py-2">
               <span>Terms of Service</span>
               <span className="text-neutral-600">→</span>
             </Link>
             <Link
               href="/child-safety/"
-              className="flex items-center justify-between text-neutral-400 hover:text-white py-2"
+              className="flex items-center justify-between text-neutral-400 hover:text-foreground py-2"
             >
               <span>Child safety standards (CSAE)</span>
               <span className="text-neutral-600">→</span>
@@ -399,16 +419,16 @@ export default function SettingsPage() {
         <div className="bg-neutral-900 border-2 border-neutral-800 rounded-lg p-4">
           <div className="flex items-center gap-3 mb-4">
             <HelpCircle className="text-muted-gold" size={20} />
-            <h2 className="text-white font-bold uppercase tracking-wide">Support</h2>
+            <h2 className="text-foreground font-bold uppercase tracking-wide">Support</h2>
           </div>
           <div className="space-y-3">
-            <Link href="/guides" className="flex items-center justify-between text-neutral-400 hover:text-white py-2">
+            <Link href="/guides" className="flex items-center justify-between text-neutral-400 hover:text-foreground py-2">
               <span>Beginner&apos;s Guide</span>
               <span className="text-neutral-600">→</span>
             </Link>
             <a
               href={`mailto:${SITE_SUPPORT_EMAIL}`}
-              className="flex items-center justify-between text-neutral-400 hover:text-white py-2"
+              className="flex items-center justify-between text-neutral-400 hover:text-foreground py-2"
             >
               <span>Contact Us</span>
               <span className="text-neutral-600">→</span>
@@ -420,7 +440,7 @@ export default function SettingsPage() {
         <div className="bg-neutral-900 border-2 border-neutral-800 rounded-lg p-4">
           <div className="flex items-center gap-3 mb-4">
             <Info className="text-muted-gold" size={20} />
-            <h2 className="text-white font-bold uppercase tracking-wide">About</h2>
+            <h2 className="text-foreground font-bold uppercase tracking-wide">About</h2>
           </div>
           <div className="text-neutral-500 text-sm">
             <p>SoCalOffroaders</p>
