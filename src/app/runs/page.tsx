@@ -25,12 +25,15 @@ import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/Toast';
 import { HostRunWizard } from '@/components/runs/HostRunWizard';
 import { mapDbTrailRow } from '@/lib/trails/mapDbTrail';
-import { ensureStoragePublicObjectUrl } from '@/lib/supabase/storagePublicUrl';
+import { resolveRunCardImage } from '@/lib/runs/runCardImage';
+import {
+  runHostFallbackName,
+  runHostListLabel,
+  runHostSelfBadge,
+  runHostSelfToast,
+} from '@/lib/runs/runHostLabel';
 
 /** When a run has no trail photo yet */
-const RUN_CARD_FALLBACK_IMG =
-  'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=800&q=80';
-
 interface Run {
   id: string;
   title: string;
@@ -159,23 +162,12 @@ function RunCard({
   const spotsLeft = run.max_participants != null ? run.max_participants - participantCount : null;
   const isAlmostFull = spotsLeft != null && spotsLeft <= 3 && spotsLeft > 0;
 
-  const clubBannerRaw =
-    run.run_source === 'club_official' &&
-    run.club?.banner_image &&
-    String(run.club.banner_image).trim()
-      ? String(run.club.banner_image).trim()
-      : '';
-  const clubBanner = clubBannerRaw
-    ? ensureStoragePublicObjectUrl(clubBannerRaw) || clubBannerRaw
-    : '';
-  const flyerRaw =
-    run.flyer_image != null && String(run.flyer_image).trim() ? String(run.flyer_image).trim() : '';
-  const flyerUrl = flyerRaw ? ensureStoragePublicObjectUrl(flyerRaw) || flyerRaw : '';
-  const trailPhoto =
-    flyerUrl ||
-    clubBanner ||
-    (run.trail?.photo_url && String(run.trail.photo_url).trim()) ||
-    RUN_CARD_FALLBACK_IMG;
+  const trailPhoto = resolveRunCardImage({
+    flyerImage: run.flyer_image,
+    runSource: run.run_source,
+    clubBannerImage: run.club?.banner_image,
+    trailPhotoUrl: run.trail?.photo_url,
+  });
 
   return (
     <motion.article
@@ -248,7 +240,7 @@ function RunCard({
                 href={`/profile/${run.host_id}`}
                 className="text-[12px] text-muted-foreground hover:text-primary/90 mt-0.5 inline-block font-medium"
               >
-                Organizer: {run.host_display_name ?? 'View profile'}
+                {runHostListLabel(run.run_source)}: {run.host_display_name ?? 'View profile'}
               </Link>
             )}
           </div>
@@ -300,7 +292,7 @@ function RunCard({
           {isHost ? (
             <div className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-[13px] font-semibold rounded-lg border border-primary/35 bg-primary/10 text-primary/80">
               <Shield size={14} className="text-primary/90 flex-shrink-0" />
-              {"You're hosting"}
+              {runHostSelfBadge(run.run_source)}
             </div>
           ) : (
             <button
@@ -410,7 +402,7 @@ export default function RunsPage() {
         const { data: hostRows } = await supabaseClient.from('users').select('id, name').in('id', hostIds);
         if (hostRows) {
           for (const row of hostRows as { id: string; name: string | null }[]) {
-            hostNameById[row.id] = String(row.name ?? '').trim() || 'Organizer';
+            hostNameById[row.id] = String(row.name ?? '').trim();
           }
         }
       }
@@ -474,14 +466,19 @@ export default function RunsPage() {
                 }
               : null;
 
+        const resolvedRunSource =
+          cid && Boolean(fromClubDb?.verified ?? embeddedClub?.verified) ? 'club_official' : (r.run_source ?? null);
+
         return {
           ...r,
           // If a club is verified now, its runs should display as official even if they were created
           // before verification. (Admin verification also backfills DB, but this keeps UI correct regardless.)
-          run_source: cid && Boolean(fromClubDb?.verified ?? embeddedClub?.verified) ? 'club_official' : (r.run_source ?? null),
+          run_source: resolvedRunSource,
           trail: mergedTrail,
           club: mergedClub,
-          host_display_name: r.host_id ? hostNameById[r.host_id] ?? null : null,
+          host_display_name: r.host_id
+            ? hostNameById[r.host_id]?.trim() || runHostFallbackName(resolvedRunSource)
+            : null,
         };
       });
       setRuns(enriched);
@@ -528,7 +525,7 @@ export default function RunsPage() {
     }
     if (!supabaseClient) return;
     if (run.host_id === user.id) {
-      showToast('You\'re hosting this run — no need to join', 'info');
+      showToast(runHostSelfToast(run.run_source), 'info');
       return;
     }
     setJoiningId(run.id);

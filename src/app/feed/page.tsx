@@ -47,6 +47,7 @@ import {
   snapshotPublicIdentity,
 } from '@/lib/profileDisplay';
 import { ensureStoragePublicObjectUrl } from '@/lib/supabase/storagePublicUrl';
+import { resolveRunCardImage } from '@/lib/runs/runCardImage';
 import {
   captureVideoFrameScaledDataUrl,
   isLimitedMediaDevice,
@@ -862,7 +863,7 @@ interface LiveRun {
   id: string;
   title: string;
   trail_name: string | null;
-  trail_photo: string | null;
+  cover_photo: string;
   /** Only true when `status === 'active'` — pulsing ring + LIVE chip match real on-trail runs. */
   isLive: boolean;
 }
@@ -896,40 +897,58 @@ function StoriesBar({ embedded = false }: { embedded?: boolean } = {}) {
     if (!supabaseClient) return;
     let cancelled = false;
     void (async () => {
-      type Row = { id: string; title?: string; trail_id?: string | null; status?: string };
+      type Row = {
+        id: string;
+        title?: string;
+        trail_id?: string | null;
+        status?: string;
+        club_id?: string | null;
+        run_source?: string | null;
+        flyer_image?: string | null;
+      };
+
+      const runSelectAttempts = [
+        'id, title, trail_id, status, club_id, run_source, flyer_image',
+        'id, title, trail_id, status, club_id, flyer_image',
+        'id, title, trail_id, status',
+      ];
+
+      const fetchRunsWithSelect = async (select: string, status: string) =>
+        supabaseClient
+          .from('runs')
+          .select(select)
+          .eq('status', status)
+          .order('date', { ascending: true })
+          .limit(status === 'active' ? 10 : 12);
 
       const loadRuns = async (): Promise<Row[]> => {
-        const [activeRes, upcomingRes] = await Promise.all([
-          supabaseClient
+        for (const sel of runSelectAttempts) {
+          const [activeRes, upcomingRes] = await Promise.all([
+            fetchRunsWithSelect(sel, 'active'),
+            fetchRunsWithSelect(sel, 'upcoming'),
+          ]);
+          if (activeRes.error && upcomingRes.error) continue;
+
+          const active = (!activeRes.error && activeRes.data ? activeRes.data : []) as Row[];
+          const upcoming = (!upcomingRes.error && upcomingRes.data ? upcomingRes.data : []) as Row[];
+          const seen = new Set(active.map((x) => x.id));
+          const merged: Row[] = [
+            ...active,
+            ...upcoming.filter((u) => !seen.has(u.id)),
+          ].slice(0, 14);
+
+          if (merged.length) return merged;
+
+          const fallback = await supabaseClient
             .from('runs')
-            .select('id, title, trail_id, status')
-            .eq('status', 'active')
+            .select(sel)
             .order('date', { ascending: true })
-            .limit(10),
-          supabaseClient
-            .from('runs')
-            .select('id, title, trail_id, status')
-            .eq('status', 'upcoming')
-            .order('date', { ascending: true })
-            .limit(12),
-        ]);
-
-        const active = (!activeRes.error && activeRes.data ? activeRes.data : []) as Row[];
-        const upcoming = (!upcomingRes.error && upcomingRes.data ? upcomingRes.data : []) as Row[];
-        const seen = new Set(active.map((x) => x.id));
-        const merged: Row[] = [
-          ...active,
-          ...upcoming.filter((u) => !seen.has(u.id)),
-        ].slice(0, 14);
-
-        if (merged.length) return merged;
-
-        const fallback = await supabaseClient
-          .from('runs')
-          .select('id, title, trail_id, status')
-          .order('date', { ascending: true })
-          .limit(8);
-        return (!fallback.error && fallback.data ? fallback.data : []) as Row[];
+            .limit(8);
+          if (!fallback.error && fallback.data?.length) {
+            return fallback.data as Row[];
+          }
+        }
+        return [];
       };
 
       const rows = await loadRuns();
@@ -950,14 +969,37 @@ function StoriesBar({ embedded = false }: { embedded?: boolean } = {}) {
         }
       }
 
+      const clubIds = [...new Set(rows.map((x) => String(x.club_id ?? '').trim()).filter(Boolean))];
+      const clubBannerById: Record<string, string | null> = {};
+      if (clubIds.length) {
+        const cr = await supabaseClient.from('clubs').select('id, banner_image').in('id', clubIds);
+        if (!cr.error && cr.data) {
+          for (const row of cr.data as { id: string; banner_image?: string | null }[]) {
+            clubBannerById[String(row.id)] =
+              row.banner_image != null && String(row.banner_image).trim()
+                ? String(row.banner_image).trim()
+                : null;
+          }
+        }
+      }
+
       setLiveRuns(
-        rows.map((r: Row) => ({
-          id: r.id,
-          title: r.title ?? 'Run',
-          trail_name: r.trail_id ? nameById[String(r.trail_id)] ?? null : null,
-          trail_photo: r.trail_id ? photoById[String(r.trail_id)] ?? null : null,
-          isLive: String(r.status ?? '').toLowerCase() === 'active',
-        }))
+        rows.map((r: Row) => {
+          const trailId = r.trail_id ? String(r.trail_id) : '';
+          const clubId = r.club_id ? String(r.club_id) : '';
+          return {
+            id: r.id,
+            title: r.title ?? 'Run',
+            trail_name: trailId ? nameById[trailId] ?? null : null,
+            cover_photo: resolveRunCardImage({
+              flyerImage: r.flyer_image,
+              runSource: r.run_source,
+              clubBannerImage: clubId ? clubBannerById[clubId] : null,
+              trailPhotoUrl: trailId ? photoById[trailId] : null,
+            }),
+            isLive: String(r.status ?? '').toLowerCase() === 'active',
+          };
+        })
       );
     })();
     return () => {
@@ -987,7 +1029,7 @@ function StoriesBar({ embedded = false }: { embedded?: boolean } = {}) {
           liveRuns.map((run) => (
             <StoryAvatar
               key={run.id}
-              src={run.trail_photo ?? 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=120&q=80'}
+              src={run.cover_photo}
               alt={
                 run.trail_name
                   ? `${run.title} · ${run.trail_name}`

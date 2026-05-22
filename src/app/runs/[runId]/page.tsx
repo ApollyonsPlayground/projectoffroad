@@ -46,6 +46,15 @@ import { mapDbTrailRow, coordsFromRow } from '@/lib/trails/mapDbTrail';
 import { resizeImageFileToJpegBlob, isLimitedMediaDevice } from '@/lib/media/mobileSafeCapture';
 import { ensureStoragePublicObjectUrl } from '@/lib/supabase/storagePublicUrl';
 import { isRunDetailsEditLocked } from '@/lib/runs/runEditLock';
+import {
+  runAccountabilityHeading,
+  runHostFallbackName,
+  runHostProfileHeading,
+  runHostProfileLinkText,
+  runHostSelfDetailBadge,
+  runHostSelfToast,
+  runHostControlsHeading,
+} from '@/lib/runs/runHostLabel';
 import { cancelRunTimeLocalReminders, scheduleRunTimeLocalReminders } from '@/lib/runs/runReminderLocal';
 
 const RunLiveMap = dynamic(() => import('@/components/RunLiveMap'), {
@@ -533,7 +542,7 @@ export default function RunDetailPage() {
     if (!user) { showToast('Sign in to join a run', 'info'); return; }
     if (!supabaseClient || !run) return;
     if (user.id === run.host_id) {
-      showToast('You\'re hosting this run — no need to join', 'info');
+      showToast(runHostSelfToast(run.run_source), 'info');
       return;
     }
     setJoining(true);
@@ -1156,7 +1165,7 @@ export default function RunDetailPage() {
     if (run.host_id && !participants.some((p) => p.user_id === run.host_id)) {
       base.push({
         user_id: run.host_id,
-        users: { name: hostProfile?.name ?? 'Organizer' },
+        users: { name: hostProfile?.name ?? runHostFallbackName(run?.run_source) },
       });
     }
     return base;
@@ -1682,7 +1691,7 @@ export default function RunDetailPage() {
 
             {/* Host / club transparency */}
             <div className="rounded-xl border border-border bg-muted/40 px-3 py-3 space-y-2">
-              <p className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">Hosting & accountability</p>
+              <p className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">{runAccountabilityHeading(run.run_source)}</p>
               {run.club_id && run.club ? (
                 <Link
                   href={`/clubs/${run.club_id}`}
@@ -1725,9 +1734,9 @@ export default function RunDetailPage() {
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-[11px] text-muted-foreground uppercase font-bold">Organizer profile</p>
+                    <p className="text-[11px] text-muted-foreground uppercase font-bold">{runHostProfileHeading(run.run_source)}</p>
                     <p className="text-[14px] font-bold text-foreground truncate group-hover:text-primary/90 transition-colors">
-                      {hostProfile.name ?? 'Host'}
+                      {hostProfile.name ?? runHostFallbackName(run.run_source)}
                     </p>
                   </div>
                   <ChevronRight size={18} className="text-muted-foreground group-hover:text-primary/90 flex-shrink-0" />
@@ -1737,7 +1746,7 @@ export default function RunDetailPage() {
                   href={`/profile/${run.host_id}`}
                   className="text-[13px] text-primary font-semibold hover:text-primary/90 inline-flex items-center gap-1 pt-1 border-t border-border/80"
                 >
-                  View organizer profile <ExternalLink size={14} />
+                  {runHostProfileLinkText(run.run_source)} <ExternalLink size={14} />
                 </Link>
               ) : null}
             </div>
@@ -1863,7 +1872,7 @@ export default function RunDetailPage() {
               {isHost ? (
                 <div className="flex items-center justify-center gap-2 py-3 text-[14px] font-bold rounded-xl border border-primary/35 bg-primary/10 text-primary/80">
                   <Shield size={16} className="text-primary/90 flex-shrink-0" />
-                  {"You're the host"}
+                  {runHostSelfDetailBadge(run.run_source)}
                 </div>
               ) : (
                 <button
@@ -2163,7 +2172,7 @@ export default function RunDetailPage() {
             >
               <div className="flex items-center gap-2">
                 <BadgeCheck size={15} className="text-primary" />
-                <p className="text-[13px] font-bold text-muted-foreground">Host controls</p>
+                <p className="text-[13px] font-bold text-muted-foreground">{runHostControlsHeading(run.run_source)}</p>
               </div>
 
               {run.status === 'completed' && (
