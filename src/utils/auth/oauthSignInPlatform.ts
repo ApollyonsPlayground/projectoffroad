@@ -4,11 +4,11 @@ export type OAuthSignInPlatform = 'ios' | 'android' | 'web';
 
 export type OAuthSignInVisibility = {
   platform: OAuthSignInPlatform;
-  /** Active Google button (Android app + web). */
+  /** Active Google button (all platforms on web + native apps). */
   showGoogle: boolean;
-  /** Active Apple button (iPhone/iPad app only). */
+  /** Active Apple button (iOS + Android native apps). */
   showApple: boolean;
-  /** Grayed Apple teaser on web → /beta/ for TestFlight. */
+  /** Grayed Apple teaser on web only (most web riders use Google). */
   showAppleBetaTeaser: boolean;
 };
 
@@ -22,10 +22,11 @@ export function getOAuthSignInPlatform(): OAuthSignInPlatform {
 
 export function getOAuthSignInVisibility(): OAuthSignInVisibility {
   const platform = getOAuthSignInPlatform();
+  const native = platform === 'ios' || platform === 'android';
   return {
     platform,
-    showGoogle: platform === 'android' || platform === 'web',
-    showApple: platform === 'ios',
+    showGoogle: true,
+    showApple: native,
     showAppleBetaTeaser: platform === 'web',
   };
 }
@@ -33,17 +34,12 @@ export function getOAuthSignInVisibility(): OAuthSignInVisibility {
 export function oauthSignInSubtitle(mode: 'login' | 'register', visibility: OAuthSignInVisibility): string {
   const oneAccount =
     'One profile per person — same verified email links automatically; use Settings to connect Google and Apple.';
-  if (mode === 'register') {
-    if (visibility.platform === 'ios') {
-      return `Create your account with Apple. Already joined? Sign in — we will not create a duplicate if the email matches. ${oneAccount}`;
-    }
-    return `Create your account with Google. Already joined? Sign in instead. ${oneAccount}`;
+  const verb = mode === 'login' ? 'Sign in' : 'Create an account';
+  if (visibility.platform === 'web') {
+    return `${verb} with Google on the web. Apple sign-in is in the iPhone and Android apps. ${oneAccount}`;
   }
   if (visibility.platform === 'ios') {
-    return `Sign in with Apple. ${oneAccount}`;
+    return `${verb} with Apple or Google. ${oneAccount}`;
   }
-  if (visibility.platform === 'android') {
-    return `Sign in with Google. ${oneAccount}`;
-  }
-  return `Sign in with Google. ${oneAccount}`;
+  return `${verb} with Google or Apple. ${oneAccount}`;
 }

@@ -63,25 +63,49 @@ export function OAuthSignInButtons({ mode }: OAuthSignInButtonsProps) {
       </p>
 
       <div className="w-full flex flex-col items-center gap-3">
-        {visibility.showGoogle ? (
-          <GoogleSignInButton
-            loading={googleLoading}
-            disabled={busy && !googleLoading}
-            label={googleLabel}
-            loadingLabel="Redirecting…"
-            onClick={handleGoogle}
-          />
-        ) : null}
-
-        {visibility.showApple ? (
-          <AppleSignInButton
-            loading={appleLoading}
-            disabled={busy && !appleLoading}
-            label={appleLabel}
-            loadingLabel="Signing in…"
-            onClick={handleApple}
-          />
-        ) : null}
+        {visibility.platform === 'android' ? (
+          <>
+            {visibility.showGoogle ? (
+              <GoogleSignInButton
+                loading={googleLoading}
+                disabled={busy && !googleLoading}
+                label={googleLabel}
+                loadingLabel="Redirecting…"
+                onClick={handleGoogle}
+              />
+            ) : null}
+            {visibility.showApple ? (
+              <AppleSignInButton
+                loading={appleLoading}
+                disabled={busy && !appleLoading}
+                label={appleLabel}
+                loadingLabel="Signing in…"
+                onClick={handleApple}
+              />
+            ) : null}
+          </>
+        ) : (
+          <>
+            {visibility.showApple ? (
+              <AppleSignInButton
+                loading={appleLoading}
+                disabled={busy && !appleLoading}
+                label={appleLabel}
+                loadingLabel="Signing in…"
+                onClick={handleApple}
+              />
+            ) : null}
+            {visibility.showGoogle ? (
+              <GoogleSignInButton
+                loading={googleLoading}
+                disabled={busy && !googleLoading}
+                label={googleLabel}
+                loadingLabel="Redirecting…"
+                onClick={handleGoogle}
+              />
+            ) : null}
+          </>
+        )}
 
         {visibility.showAppleBetaTeaser ? <AppleSignInBetaTeaser /> : null}
 

@@ -2,13 +2,13 @@
 
 import Link from 'next/link';
 
-/** Web-only: Apple sign-in is TestFlight-only; directs users to the beta page. */
+/** Web-only: active Apple sign-in lives in the native apps; web keeps Google. */
 export function AppleSignInBetaTeaser() {
   return (
     <div
       className="w-full flex flex-col items-center justify-center gap-1 py-4 rounded-2xl border-2 border-border bg-muted/50 text-muted-foreground opacity-70 select-none"
       role="status"
-      aria-label="Sign in with Apple — join the beta on iPhone"
+      aria-label="Sign in with Apple — available in the mobile app"
     >
       <span className="flex items-center gap-2.5 font-bold text-[15px] text-muted-foreground">
         <svg width="18" height="22" viewBox="0 0 814 1000" fill="currentColor" aria-hidden="true" focusable="false">
@@ -20,7 +20,7 @@ export function AppleSignInBetaTeaser() {
         href="/beta/"
         className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground hover:text-primary/90 transition-colors underline-offset-2 hover:underline"
       >
-        Join the beta to sign in with Apple
+        Use the iPhone or Android app for Apple sign-in
       </Link>
     </div>
   );
