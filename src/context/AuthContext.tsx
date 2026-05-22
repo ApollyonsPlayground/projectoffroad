@@ -7,6 +7,7 @@ import { ensureStoragePublicObjectUrl } from '@/lib/supabase/storagePublicUrl'
 import { isCapacitorNative } from '@/utils/capacitator/isNative'
 import { isIosNative } from '@/utils/capacitator/isIosNative'
 import { signInWithAppleNative } from '@/utils/auth/appleNativeSignIn'
+import { isAppleSignInNativeAvailable } from '@/utils/auth/appleSignInNativeAvailable'
 import { App as CapacitorApp } from '@capacitor/app'
 import { Browser } from '@capacitor/browser'
 
@@ -336,15 +337,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   async function signInWithApple() {
     if (!supabase) return { error: 'Supabase is not configured.' }
 
+    const appleOAuthFallback = () =>
+      signInWithOAuthProvider(
+        'apple',
+        'Apple sign-in is disabled or incomplete in Supabase. Dashboard → Authentication → Providers → Apple: enable and add Client IDs (com.socaloffroaders.app for iOS; Services ID + secret for web) — see instruction.md.',
+        'Could not start Apple sign-in (empty auth URL). Use Safari or Chrome (not an in-app browser), or disable strict tracking/ad blockers for this site.'
+      )
+
     if (isIosNative()) {
-      return signInWithAppleNative(supabase)
+      if (isAppleSignInNativeAvailable()) {
+        return signInWithAppleNative(supabase)
+      }
+      // TestFlight builds created before @capacitor-community/apple-sign-in was synced lack the native plugin.
+      return appleOAuthFallback()
     }
 
-    return signInWithOAuthProvider(
-      'apple',
-      'Apple sign-in is disabled or incomplete in Supabase. Dashboard → Authentication → Providers → Apple: enable and add Client IDs (com.socaloffroaders.app for iOS; Services ID + secret for web) — see instruction.md.',
-      'Could not start Apple sign-in (empty auth URL). Use Safari or Chrome (not an in-app browser), or disable strict tracking/ad blockers for this site.'
-    )
+    return appleOAuthFallback()
   }
 
   return (

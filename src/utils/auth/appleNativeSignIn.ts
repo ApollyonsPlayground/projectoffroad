@@ -22,6 +22,15 @@ async function sha256Hex(value: string): Promise<string> {
     .join('');
 }
 
+function isPluginMissingOnIos(message: string): boolean {
+  const lower = message.toLowerCase();
+  return lower.includes('not implemented on ios') || lower.includes('unimplemented');
+}
+
+function pluginMissingHelp(): string {
+  return 'This app build does not include native Apple sign-in yet. On your Mac: git pull, npm ci, npx cap sync ios, then Product → Archive → upload to TestFlight. Install the new build, then try again.';
+}
+
 function isUserCancel(message: string): boolean {
   const lower = message.toLowerCase();
   return (
@@ -84,6 +93,7 @@ export async function signInWithAppleNative(
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     if (isUserCancel(msg)) return { error: null };
+    if (isPluginMissingOnIos(msg)) return { error: pluginMissingHelp() };
     return { error: msg || 'Apple sign-in failed.' };
   }
 }
