@@ -433,9 +433,9 @@ export default function UserProfilePage() {
       });
 
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="min-h-screen bg-background pb-safe-nav">
       {/* Sticky header */}
-      <div className="sticky top-0 z-40 bg-background/90 backdrop-blur-md border-b border-border px-4 py-3 flex items-center gap-3">
+      <div className="sticky top-0 z-40 bg-background/90 backdrop-blur-md border-b border-border safe-top px-4 py-3 flex items-center gap-3">
         <Link href="/feed/" className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-card transition-colors">
           <ArrowLeft size={19} className="text-foreground" />
         </Link>

@@ -31,7 +31,7 @@ export default function CreateRunPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="min-h-screen bg-background pb-safe-nav">
       <header className="sticky top-0 z-20 bg-background/90 backdrop-blur-xl border-b border-border safe-top">
         <div className="max-w-app-shell mx-auto px-4 py-3 flex items-center gap-3">
           <Link

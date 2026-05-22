@@ -603,7 +603,7 @@ export default function RunsPage() {
       </div>
 
       {/* Run list */}
-      <main className="max-w-app-shell mx-auto px-4 pt-4 pb-28">
+      <main className="max-w-app-shell mx-auto px-4 pt-4 pb-safe-nav">
         <AnimatePresence mode="wait">
           {isLoading ? (
             <motion.div key="skeleton" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>

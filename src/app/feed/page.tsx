@@ -1076,7 +1076,7 @@ function HomeStoriesRunsPager({
   }, []);
 
   return (
-    <div className="sticky top-[52px] z-40 bg-background border-b border-border">
+    <div className="sticky sticky-below-app-header z-40 bg-background border-b border-border">
       <div className="flex border-b border-border">
         <button
           type="button"
@@ -2752,7 +2752,7 @@ export default function HomePage() {
     <div className="min-h-screen bg-background">
 
       {/* ── Sticky Top Header ─────────────────────── */}
-      <header className="sticky top-0 z-50 bg-background/90 backdrop-blur-xl border-b border-border">
+      <header className="sticky top-0 z-50 bg-background/90 backdrop-blur-xl border-b border-border safe-top">
         <div className="flex items-center justify-between px-4 py-3 max-w-app-shell mx-auto">
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center flex-shrink-0">
@@ -2767,7 +2767,7 @@ export default function HomePage() {
       </header>
 
       {/* ── Main ──────────────────────────────────── */}
-      <main className="max-w-app-shell mx-auto min-h-screen bg-background pb-24">
+      <main className="max-w-app-shell mx-auto min-h-screen bg-background pb-safe-nav">
         <HomeStoriesRunsPager supabaseClient={supabaseClient} user={user} />
 
         {/* Feed — avoid Framer opacity-from-0 here (can stick invisible on some mobile Chrome builds). */}
@@ -2792,7 +2792,7 @@ export default function HomePage() {
         whileTap={{ scale: 0.92 }}
         onClick={() => user ? setDrawerOpen(true) : router.push('/login')}
         aria-label="Create post"
-        className="fixed bottom-[88px] right-4 z-40 w-[52px] h-[52px] bg-primary hover:opacity-90 rounded-full flex items-center justify-center shadow-lg shadow-primary/30"
+        className="fixed fab-above-bottom-nav right-4 z-40 w-[52px] h-[52px] bg-primary hover:opacity-90 rounded-full flex items-center justify-center shadow-lg shadow-primary/30"
       >
         <Plus size={22} className="text-primary-foreground" strokeWidth={2.5} />
       </motion.button>

@@ -181,7 +181,7 @@ export default function SettingsPage() {
     googleLinked && appleLinked ? 'Google · Apple' : googleLinked ? 'Google' : appleLinked ? 'Apple' : 'Connected';
 
   return (
-    <div className="min-h-screen bg-[#050705] pb-24">
+    <div className="min-h-screen bg-[#050705] pb-safe-nav">
       <div className="sticky top-0 z-50 bg-[#050705] border-b-2 border-neutral-800 px-4 py-3">
         <div className="flex items-center gap-4 max-w-xl mx-auto">
           <Link href={user ? '/profile' : '/'} className="text-neutral-400 hover:text-foreground" aria-label="Back">

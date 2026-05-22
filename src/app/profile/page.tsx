@@ -620,7 +620,7 @@ export default function ProfilePage() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="sticky top-0 z-30 bg-background/90 backdrop-blur-xl border-b border-border">
+      <header className="sticky top-0 z-30 bg-background/90 backdrop-blur-xl border-b border-border safe-top">
         <div className="max-w-app-shell mx-auto flex items-center justify-between px-4 py-3">
           <h1 className="text-[17px] font-bold text-foreground">Rig Portfolio</h1>
           <div className="flex items-center gap-0.5">
@@ -662,7 +662,7 @@ export default function ProfilePage() {
         </div>
       ) : null}
 
-      <main className="max-w-app-shell mx-auto pb-24">
+      <main className="max-w-app-shell mx-auto pb-safe-nav">
         {/* Avatar + Bio ──────────────────────────── */}
         <section className="px-4 pt-5 pb-4 border-b border-border">
           <div className="flex items-start gap-4">

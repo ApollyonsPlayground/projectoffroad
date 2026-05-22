@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import { ThemeSync } from "@/components/ThemeSync";
+import { NativeSafeAreaSync } from "@/components/NativeSafeAreaSync";
 import { ViewTransitions } from "@/components/ViewTransitions";
 import { ToastProvider } from "@/components/Toast";
 import { AdminLauncher } from "@/components/admin/AdminLauncher";
@@ -49,8 +50,9 @@ export default function RootLayout({
       data-ui-preset="midnight-orange"
       className={`bg-background ${inter.variable}`}
     >
-      <body className="antialiased bg-background text-foreground min-h-screen font-sans">
+      <body className="antialiased bg-background text-foreground min-h-[100dvh] font-sans">
         <AuthProvider>
+          <NativeSafeAreaSync />
           <ThemeSync />
           <ToastProvider>
             <ViewTransitions>

@@ -44,7 +44,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       {children}
       {/* Portal-like toast stack above bottom nav */}
       <div
-        className="fixed bottom-[88px] left-1/2 -translate-x-1/2 z-[9998] flex flex-col items-center gap-2 pointer-events-none"
+        className="fixed toast-above-bottom-nav left-1/2 -translate-x-1/2 z-[9998] flex flex-col items-center gap-2 pointer-events-none md:bottom-8"
         aria-live="polite"
         aria-atomic="false"
       >

@@ -101,10 +101,10 @@ export default function BottomNav() {
 
   return (
     <nav
-      className="md:hidden fixed bottom-0 left-0 w-full z-[100] bg-background/90 backdrop-blur-md border-t border-border touch-manipulation"
-      style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+      className="md:hidden fixed bottom-0 left-0 right-0 z-[100] bg-background/95 backdrop-blur-md border-t border-border touch-manipulation pb-[var(--safe-bottom)]"
+      aria-label="Main navigation"
     >
-      <div className="flex flex-row justify-around items-center pt-2.5 px-0.5 pb-2 overflow-x-auto scrollbar-hide gap-0.5">
+      <div className="flex flex-row justify-around items-center pt-2 px-0.5 pb-2 overflow-x-auto scrollbar-hide gap-0.5 min-h-[var(--bottom-nav-height)]">
         {NAV_ITEMS.map(({ href, label, icon: Icon, requiresAuth }) => {
           const pathNorm = (pathname.replace(/\/$/, '') || '/') as string;
           const hrefNorm = (href.replace(/\/$/, '') || '/') as string;

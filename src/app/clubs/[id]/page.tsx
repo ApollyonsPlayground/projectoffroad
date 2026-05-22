@@ -438,7 +438,7 @@ export default function ClubDetailPage() {
   const web = websiteHref(club.website);
 
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="min-h-screen bg-background pb-safe-nav">
       {club.banner_image ? (
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
           <img

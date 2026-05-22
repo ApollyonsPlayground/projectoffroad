@@ -234,7 +234,7 @@ export default function ClubChatPage() {
 
   if (!allowed) {
     return (
-      <div className="min-h-screen bg-background pb-24">
+      <div className="min-h-screen bg-background pb-safe-nav">
         <header className="sticky top-0 z-40 bg-background/90 backdrop-blur-xl border-b border-border safe-top">
           <div className="max-w-app-shell mx-auto px-4 py-3 flex items-center gap-3">
             <button
@@ -306,7 +306,7 @@ export default function ClubChatPage() {
         <div ref={endRef} />
       </main>
 
-      <div className="fixed bottom-[72px] left-0 right-0">
+      <div className="fixed composer-above-bottom-nav left-0 right-0 z-30">
         <div className="max-w-app-shell mx-auto px-4">
           {previewUrl ? (
             <div className="mb-2 rounded-xl border border-border bg-muted overflow-hidden">

@@ -499,7 +499,7 @@ export default function ClubsPage() {
       </header>
 
       {/* Club List */}
-      <main className="max-w-app-shell mx-auto px-4 pt-4 pb-24">
+      <main className="max-w-app-shell mx-auto px-4 pt-4 pb-safe-nav">
         <div className="mb-5 rounded-xl border border-border bg-card p-4">
           <div className="flex items-start gap-3">
             <div className="w-10 h-10 rounded-lg bg-primary/15 flex items-center justify-center shrink-0">

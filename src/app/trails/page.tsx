@@ -609,8 +609,8 @@ export default function TrailsPage() {
       <main
         className={
           view === 'map'
-            ? 'px-3 md:px-6 lg:px-10 pt-3 pb-24'
-            : 'max-w-7xl mx-auto w-full px-4 md:px-8 lg:px-10 pt-4 pb-24'
+            ? 'px-3 md:px-6 lg:px-10 pt-3 pb-safe-nav'
+            : 'max-w-7xl mx-auto w-full px-4 md:px-8 lg:px-10 pt-4 pb-safe-nav'
         }
       >
         <AnimatePresence mode="wait">

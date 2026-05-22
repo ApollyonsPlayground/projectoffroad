@@ -56,7 +56,7 @@ export function AdminLauncher() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="fixed bottom-[calc(7.25rem+env(safe-area-inset-bottom))] md:bottom-8 left-4 z-[9980] flex items-center gap-2 pl-4 pr-3.5 py-3 rounded-full bg-card/95 border border-primary/45 text-primary/90 text-[11px] font-black uppercase tracking-wide shadow-lg shadow-black/60 backdrop-blur-sm touch-manipulation min-h-[48px]"
+        className="fixed bottom-[calc(var(--bottom-nav-height)+var(--safe-bottom)+4.5rem)] md:bottom-8 left-4 z-[9980] flex items-center gap-2 pl-4 pr-3.5 py-3 rounded-full bg-card/95 border border-primary/45 text-primary/90 text-[11px] font-black uppercase tracking-wide shadow-lg shadow-black/60 backdrop-blur-sm touch-manipulation min-h-[48px]"
         aria-label="Open admin tools"
       >
         <Shield size={18} strokeWidth={2.2} />
