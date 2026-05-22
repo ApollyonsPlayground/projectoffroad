@@ -20,7 +20,8 @@
     "android:open": "npx cap open android",
     "android:sync": "npx cap sync android",
     "ios:open": "npx cap open ios",
-    "ios:sync": "npx cap sync ios"
+    "ios:sync": "npx cap sync ios",
+    "ios:entitlements": "bash scripts/ios-enable-apple-sign-in.sh"
   },
   "dependencies": {
     "@capacitor/android": "^8.3.1",
