@@ -85,6 +85,9 @@ export function OAuthSignInButtons({ mode }: OAuthSignInButtonsProps) {
 
         {visibility.showAppleBetaTeaser ? <AppleSignInBetaTeaser /> : null}
 
+        <p className="text-[11px] text-muted-foreground text-center max-w-[280px] leading-relaxed">
+          One account per person. Same verified email merges automatically; connect Google and Apple in Settings if needed.
+        </p>
         <p className="text-[11px] text-muted-foreground text-center max-w-[240px] leading-relaxed">
           By continuing you agree to our community guidelines.
         </p>

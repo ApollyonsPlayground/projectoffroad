@@ -1,10 +1,19 @@
 'use client'
 
+import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { OAuthSignInButtons } from '@/components/auth/OAuthSignInButtons'
+import { useAuth } from '@/context/AuthContext'
 
 export default function RegisterPage() {
   const router = useRouter()
+  const { user, loading } = useAuth()
+
+  useEffect(() => {
+    if (!loading && user) {
+      router.replace('/feed/')
+    }
+  }, [loading, user, router])
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center px-5">

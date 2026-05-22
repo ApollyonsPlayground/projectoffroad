@@ -77,6 +77,17 @@ The app calls **`signInWithOAuth({ provider: 'apple' })`** with the same **`/aut
 
 **Apple relay email:** Users may hide their email; Supabase still gets a stable `user.id`. On **web OAuth**, Apple often does **not** send full name in later responses (first authorization only in native flows). The app still seeds `users.name` from metadata when present; otherwise use **Edit profile** or onboarding if you need a display name.
 
+### One account per person (Google + Apple linking)
+
+The app uses **Supabase Identity Linking** so riders do not end up with duplicate profiles:
+
+1. **Automatic linking:** When someone signs in with Google or Apple and the **verified email matches** an existing user, Supabase attaches the new provider to that same `user.id` (no second account).
+2. **Manual linking (required in production):** **Supabase Dashboard** → **Authentication** → **Providers** (or **Auth settings**) → enable **Manual linking**. Local `supabase/config.toml` sets `enable_manual_linking = true` for CLI; hosted projects must toggle this in the dashboard.
+3. **In the app:** Signed-in users open **Settings → Connected accounts** and tap **Connect Google** or **Connect Apple** to merge providers when emails differ (e.g. Apple private relay vs Gmail).
+4. **Register vs login:** `/register` and `/login` use the same OAuth flow; if already signed in, both redirect to `/feed/`. Copy on the buttons explains one profile per person.
+
+If a user still sees “email already exists”, they should sign in with their **original** provider, then connect the other under Settings — not create a new account.
+
 ### Google sign-in (`401` / `deleted_client`)
 
 Google returns **`deleted_client`** when the **Client ID** in Supabase no longer matches a valid **OAuth 2.0 Client ID** in Google Cloud (the credential was deleted, the GCP project was removed, or Supabase still has an old ID after you recreated credentials).

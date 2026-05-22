@@ -425,53 +425,59 @@ export default function TrailsPage() {
           </div>
 
           {/* Search */}
-          <div className="relative z-[60]">
-            <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-            <input
-              type="search"
-              autoComplete="off"
-              enterKeyHint="search"
-              placeholder="Search name, area, terrain — use several words…"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onFocus={() => setSearchFocused(true)}
-              onBlur={() => window.setTimeout(() => setSearchFocused(false), 160)}
-              className="w-full pl-10 pr-10 py-2.5 bg-zinc-800 border border-border rounded-lg text-foreground placeholder-zinc-500 focus:outline-none focus:border-primary transition-colors"
-            />
-            {searchQuery.trim().length > 0 && (
-              <button
-                type="button"
-                aria-label="Clear search"
-                className="absolute right-2 top-1/2 -translate-y-1/2 px-2 py-1 text-[11px] font-bold uppercase tracking-wide text-muted-foreground hover:text-foreground"
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={() => setSearchQuery('')}
-              >
-                Clear
-              </button>
-            )}
-            {showSuggest ? (
-              <ul
-                className="absolute left-0 right-0 top-full mt-1 max-h-56 overflow-y-auto rounded-lg border border-border bg-card shadow-xl shadow-black/40 py-1"
-                role="listbox"
-              >
-                {nameSuggestions.map((t) => (
-                  <li key={t.id} role="option" aria-selected={false}>
-                    <button
-                      type="button"
-                      className="w-full text-left px-3 py-2.5 text-[13px] text-foreground/90 hover:bg-zinc-800"
-                      onMouseDown={(e) => {
-                        e.preventDefault();
-                        setSearchQuery(t.name);
-                        setSearchFocused(false);
-                      }}
-                    >
-                      <span className="font-semibold text-foreground">{t.name}</span>
-                      <span className="block text-[11px] text-muted-foreground truncate mt-0.5">{t.location}</span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            ) : null}
+          <div className="z-[60]">
+            <div className="relative">
+              <Search
+                size={18}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
+                aria-hidden
+              />
+              <input
+                type="search"
+                autoComplete="off"
+                enterKeyHint="search"
+                placeholder="Search name, area, terrain — use several words…"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onFocus={() => setSearchFocused(true)}
+                onBlur={() => window.setTimeout(() => setSearchFocused(false), 160)}
+                className="w-full pl-10 pr-10 py-2.5 bg-zinc-800 border border-border rounded-lg text-foreground placeholder-zinc-500 focus:outline-none focus:border-primary transition-colors"
+              />
+              {searchQuery.trim().length > 0 && (
+                <button
+                  type="button"
+                  aria-label="Clear search"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 px-2 py-1 text-[11px] font-bold uppercase tracking-wide text-muted-foreground hover:text-foreground"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => setSearchQuery('')}
+                >
+                  Clear
+                </button>
+              )}
+              {showSuggest ? (
+                <ul
+                  className="absolute left-0 right-0 top-full mt-1 max-h-56 overflow-y-auto rounded-lg border border-border bg-card shadow-xl shadow-black/40 py-1"
+                  role="listbox"
+                >
+                  {nameSuggestions.map((t) => (
+                    <li key={t.id} role="option" aria-selected={false}>
+                      <button
+                        type="button"
+                        className="w-full text-left px-3 py-2.5 text-[13px] text-foreground/90 hover:bg-zinc-800"
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          setSearchQuery(t.name);
+                          setSearchFocused(false);
+                        }}
+                      >
+                        <span className="font-semibold text-foreground">{t.name}</span>
+                        <span className="block text-[11px] text-muted-foreground truncate mt-0.5">{t.location}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+            </div>
             <p className="text-[11px] text-muted-foreground mt-1.5 leading-snug">
               Matches when <strong className="text-muted-foreground font-semibold">every</strong> word appears somewhere (name,
               location, description, tags, terrain…). Use the rig chips for ATV vs truck — those words are not auto-matched in search.

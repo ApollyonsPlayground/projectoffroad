@@ -6,8 +6,10 @@ import { createBrowserSupabaseClient } from '@/utils/supabase/client'
 import { ensureStoragePublicObjectUrl } from '@/lib/supabase/storagePublicUrl'
 import { isCapacitorNative } from '@/utils/capacitator/isNative'
 import { isIosNative } from '@/utils/capacitator/isIosNative'
-import { signInWithAppleNative } from '@/utils/auth/appleNativeSignIn'
+import { appleNativeAuth } from '@/utils/auth/appleNativeSignIn'
 import { isAppleSignInNativeAvailable } from '@/utils/auth/appleSignInNativeAvailable'
+import { formatOAuthAuthError } from '@/utils/auth/oauthIdentityErrors'
+import { buildOAuthRedirect, readOAuthNextParam } from '@/utils/auth/oauthRedirect'
 import { App as CapacitorApp } from '@capacitor/app'
 import { Browser } from '@capacitor/browser'
 
@@ -60,6 +62,8 @@ interface AuthContextType {
   signOut: () => Promise<void>
   signInWithGoogle: () => Promise<{ error: string | null }>
   signInWithApple: () => Promise<{ error: string | null }>
+  linkGoogle: () => Promise<{ error: string | null }>
+  linkApple: () => Promise<{ error: string | null }>
   refreshProfile: () => Promise<void>
 }
 
@@ -246,6 +250,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!error && data) setProfile(data)
   }
 
+  async function openOAuthUrl(url: string) {
+    if (typeof window === 'undefined') return
+    if (isCapacitorNative()) {
+      await Browser.open({
+        url,
+        presentationStyle: 'popover',
+      })
+    } else {
+      window.location.assign(url)
+    }
+  }
+
   async function signInWithOAuthProvider(
     provider: 'google' | 'apple',
     disabledHelp: string,
@@ -253,29 +269,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   ): Promise<{ error: string | null }> {
     if (!supabase) return { error: 'Supabase is not configured.' }
 
-    // Always use the current browser origin — avoids broken flows when
-    // NEXT_PUBLIC_SITE_URL points at prod while testing on localhost.
-    const origin = typeof window !== 'undefined' ? window.location.origin : ''
-    const callbackPath = '/auth/callback/'
-    let nextAfterLogin = '/feed/'
-    if (typeof window !== 'undefined') {
-      const raw = new URLSearchParams(window.location.search).get('next')
-      if (raw && raw.startsWith('/') && !raw.startsWith('//') && !raw.includes('://')) {
-        nextAfterLogin = raw.length > 2048 ? '/feed/' : raw
-      }
-    }
-    const qs = `next=${encodeURIComponent(nextAfterLogin)}`
-    const native = isCapacitorNative()
-    // Native apps: route the provider back to the WEBSITE callback with `native=1`,
-    // then the website immediately bounces into the app deep link. This is more reliable
-    // than asking the provider to deep-link directly (some flows ignore redirectTo).
-    const redirectTo = native
-      ? origin
-        ? `${origin}${callbackPath}?native=1&${qs}`
-        : `${callbackPath}?native=1&${qs}`
-      : origin
-        ? `${origin}${callbackPath}?${qs}`
-        : `${callbackPath}?${qs}`
+    const redirectTo = buildOAuthRedirect(readOAuthNextParam())
 
     let oauth: Awaited<ReturnType<typeof supabase.auth.signInWithOAuth>>
     try {
@@ -283,8 +277,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         provider,
         options: {
           redirectTo,
-          // Full top-level navigation avoids some mobile browsers blocking the
-          // library’s default redirect when it runs right after an async gap.
           skipBrowserRedirect: true,
         },
       })
@@ -308,18 +300,74 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { error: disabledHelp }
       }
 
-      return { error: raw || null }
+      return {
+        error: formatOAuthAuthError(raw, {
+          code: (error as { code?: string }).code,
+          provider,
+        }),
+      }
     }
 
-    if (data?.url && typeof window !== 'undefined') {
-      if (native) {
-        await Browser.open({
-          url: data.url,
-          presentationStyle: 'popover',
-        })
-      } else {
-        window.location.assign(data.url)
+    if (data?.url) {
+      await openOAuthUrl(data.url)
+      return { error: null }
+    }
+
+    return { error: emptyUrlHelp }
+  }
+
+  async function linkWithOAuthProvider(
+    provider: 'google' | 'apple',
+    disabledHelp: string,
+    emptyUrlHelp: string
+  ): Promise<{ error: string | null }> {
+    if (!supabase) return { error: 'Supabase is not configured.' }
+
+    const session = (await supabase.auth.getSession()).data.session
+    if (!session?.user) {
+      return { error: 'Sign in first, then connect accounts in Settings.' }
+    }
+
+    const redirectTo = buildOAuthRedirect('/settings/')
+
+    let oauth: Awaited<ReturnType<typeof supabase.auth.linkIdentity>>
+    try {
+      oauth = await supabase.auth.linkIdentity({
+        provider,
+        options: {
+          redirectTo,
+          skipBrowserRedirect: true,
+        },
+      })
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e)
+      return { error: msg || 'Could not start account linking.' }
+    }
+
+    const { data, error } = oauth
+
+    if (error) {
+      const raw = error.message ?? ''
+      const providerDisabled =
+        raw.toLowerCase().includes('provider is not enabled') ||
+        raw.toLowerCase().includes('unsupported provider') ||
+        (error as { code?: string }).code === 'validation_failed'
+
+      if (providerDisabled) {
+        return { error: disabledHelp }
       }
+
+      return {
+        error: formatOAuthAuthError(raw, {
+          code: (error as { code?: string }).code,
+          provider,
+          linking: true,
+        }),
+      }
+    }
+
+    if (data?.url) {
+      await openOAuthUrl(data.url)
       return { error: null }
     }
 
@@ -346,13 +394,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     if (isIosNative()) {
       if (isAppleSignInNativeAvailable()) {
-        return signInWithAppleNative(supabase)
+        return appleNativeAuth(supabase, 'signIn')
       }
       // TestFlight builds created before @capacitor-community/apple-sign-in was synced lack the native plugin.
       return appleOAuthFallback()
     }
 
     return appleOAuthFallback()
+  }
+
+  async function linkGoogle() {
+    return linkWithOAuthProvider(
+      'google',
+      'Google sign-in is disabled in Supabase. Enable Google under Authentication → Providers to connect it.',
+      'Could not open Google to connect your account.'
+    )
+  }
+
+  async function linkApple() {
+    if (!supabase) return { error: 'Supabase is not configured.' }
+
+    const session = (await supabase.auth.getSession()).data.session
+    if (!session?.user) {
+      return { error: 'Sign in first, then connect accounts in Settings.' }
+    }
+
+    if (isIosNative() && isAppleSignInNativeAvailable()) {
+      return appleNativeAuth(supabase, 'link')
+    }
+
+    return linkWithOAuthProvider(
+      'apple',
+      'Apple sign-in is disabled in Supabase. Enable Apple under Authentication → Providers to connect it.',
+      'Could not open Apple to connect your account.'
+    )
   }
 
   return (
@@ -366,6 +441,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signOut,
         signInWithGoogle,
         signInWithApple,
+        linkGoogle,
+        linkApple,
         refreshProfile,
       }}
     >

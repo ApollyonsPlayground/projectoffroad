@@ -1,11 +1,21 @@
 'use client'
 
 import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { useToast } from '@/components/Toast'
 import { OAuthSignInButtons } from '@/components/auth/OAuthSignInButtons'
+import { useAuth } from '@/context/AuthContext'
 
 export default function LoginPage() {
+  const router = useRouter()
+  const { user, loading } = useAuth()
   const { showToast } = useToast()
+
+  useEffect(() => {
+    if (!loading && user) {
+      router.replace('/feed/')
+    }
+  }, [loading, user, router])
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)

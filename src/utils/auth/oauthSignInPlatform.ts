@@ -31,12 +31,19 @@ export function getOAuthSignInVisibility(): OAuthSignInVisibility {
 }
 
 export function oauthSignInSubtitle(mode: 'login' | 'register', visibility: OAuthSignInVisibility): string {
-  const verb = mode === 'login' ? 'Sign in' : 'Create an account';
+  const oneAccount =
+    'One profile per person — same verified email links automatically; use Settings to connect Google and Apple.';
+  if (mode === 'register') {
+    if (visibility.platform === 'ios') {
+      return `Create your account with Apple. Already joined? Sign in — we will not create a duplicate if the email matches. ${oneAccount}`;
+    }
+    return `Create your account with Google. Already joined? Sign in instead. ${oneAccount}`;
+  }
   if (visibility.platform === 'ios') {
-    return `${verb} with Apple to access trails and community features.`;
+    return `Sign in with Apple. ${oneAccount}`;
   }
   if (visibility.platform === 'android') {
-    return `${verb} with Google to access trails and community features.`;
+    return `Sign in with Google. ${oneAccount}`;
   }
-  return `${verb} with Google to access trails and community features.`;
+  return `Sign in with Google. ${oneAccount}`;
 }

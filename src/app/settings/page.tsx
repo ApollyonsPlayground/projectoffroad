@@ -16,6 +16,8 @@ import {
   Loader2,
 } from 'lucide-react';
 import BottomNav from '@/components/BottomNav';
+import { ConnectedAccounts } from '@/components/settings/ConnectedAccounts';
+import { userLinkedProviderLabels } from '@/utils/auth/linkedProviders';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/Toast';
 import { SITE_SUPPORT_EMAIL } from '@/lib/siteContact';
@@ -175,10 +177,7 @@ export default function SettingsPage() {
     router.push('/');
   };
 
-  const googleLinked = Boolean(user?.identities?.some((i) => i.provider === 'google'));
-  const appleLinked = Boolean(user?.identities?.some((i) => i.provider === 'apple'));
-  const signInLabel =
-    googleLinked && appleLinked ? 'Google · Apple' : googleLinked ? 'Google' : appleLinked ? 'Apple' : 'Connected';
+  const signInLabel = userLinkedProviderLabels(user);
 
   return (
     <div className="min-h-screen bg-[#050705] pb-safe-nav">
@@ -192,6 +191,8 @@ export default function SettingsPage() {
       </div>
 
       <div className="max-w-xl mx-auto px-4 py-6 space-y-6">
+        {user ? <ConnectedAccounts /> : null}
+
         {/* Account */}
         <div className="bg-neutral-900 border-2 border-neutral-800 rounded-lg p-4">
           <div className="flex items-center gap-3 mb-4">
