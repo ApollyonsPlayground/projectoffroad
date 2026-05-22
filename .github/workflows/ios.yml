@@ -89,6 +89,9 @@ jobs:
       - name: Capacitor sync (iOS)
         run: npx cap sync ios
 
+      - name: Sign in with Apple entitlement
+        run: bash scripts/ios-enable-apple-sign-in.sh
+
       - name: Xcode project / schemes
         working-directory: ios/App
         run: xcodebuild -project App.xcodeproj -list

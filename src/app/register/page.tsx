@@ -1,17 +1,26 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { Loader2 } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { useToast } from '@/components/Toast'
+import { AppleSignInButton } from '@/components/auth/AppleSignInButton'
+import { showAppleSignIn } from '@/utils/auth/showAppleSignIn'
+import { isIosNative } from '@/utils/capacitator/isIosNative'
 
 export default function RegisterPage() {
   const [googleLoading, setGoogleLoading] = useState(false)
-  const { signInWithGoogle } = useAuth()
+  const [appleLoading, setAppleLoading] = useState(false)
+  const [appleVisible, setAppleVisible] = useState(false)
+  const { signInWithGoogle, signInWithApple } = useAuth()
   const { showToast } = useToast()
   const router = useRouter()
+
+  useEffect(() => {
+    setAppleVisible(showAppleSignIn())
+  }, [])
 
   async function handleGoogle() {
     setGoogleLoading(true)
@@ -19,6 +28,19 @@ export default function RegisterPage() {
     if (err) {
       showToast(err, 'error')
       setGoogleLoading(false)
+    }
+  }
+
+  async function handleApple() {
+    setAppleLoading(true)
+    const { error: err } = await signInWithApple()
+    if (err) {
+      showToast(err, 'error')
+      setAppleLoading(false)
+      return
+    }
+    if (isIosNative()) {
+      window.location.assign('/feed/')
     }
   }
 
@@ -35,8 +57,10 @@ export default function RegisterPage() {
             <span className="font-black text-foreground text-[28px] tracking-tight leading-none">
               SoCal<span className="text-primary">Offroaders</span>
             </span>
-            <p className="text-muted-foreground text-[13px] text-center leading-snug max-w-[220px]">
-              Create an account with Google. Apple sign-in is coming soon.
+            <p className="text-muted-foreground text-[13px] text-center leading-snug max-w-[240px]">
+              {appleVisible
+                ? 'Create an account with Google or Apple.'
+                : 'Create an account with Google.'}
             </p>
           </div>
         </div>
@@ -47,7 +71,7 @@ export default function RegisterPage() {
             whileTap={{ scale: 0.97 }}
             whileHover={{ scale: 1.015 }}
             onClick={handleGoogle}
-            disabled={googleLoading}
+            disabled={googleLoading || appleLoading}
             className="w-full flex items-center justify-center gap-3.5 py-5 rounded-2xl border-2 border-[#FF8C00] bg-card text-foreground font-bold text-[17px] hover:bg-[#FF8C00]/8 transition-colors shadow-lg shadow-[#FF8C00]/20 disabled:opacity-50 disabled:cursor-not-allowed"
             aria-label="Sign up with Google"
           >
@@ -64,23 +88,20 @@ export default function RegisterPage() {
             {googleLoading ? 'Redirecting…' : 'Continue with Google'}
           </motion.button>
 
-          <div
-            className="w-full flex flex-col items-center justify-center gap-1 py-4 rounded-2xl border-2 border-border bg-muted/60 text-muted-foreground"
-            role="status"
-            aria-label="Sign up with Apple — coming soon"
-          >
-            <span className="flex items-center gap-2.5 font-bold text-[15px] text-muted-foreground">
-              <svg width="18" height="22" viewBox="0 0 814 1000" fill="currentColor" aria-hidden="true" focusable="false">
-                <path d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 138.3 204.5-1.5 3.2-21.6 73.7-71.3 145.4-44.2 63.5-90.1 126.9-162.1 127.8-71.1 1-94.1-42.1-175.3-42.1-81.2 0-106.6 41-173.9 43.5-69.5 2.6-122.5-69.5-166.7-133-90.8-131.8-160.5-372.3-67.1-534.2 45.7-79.2 127.4-129.4 216.3-130.8 67.4-1.3 131 45.3 171.3 45.3 40.2 0 115.9-56.9 195.5-48.4 33.3 1.4 126.6 13.4 186.5 100.4-4.8 3-111.3 65.1-111.3 194.2 0 153.8 120.1 207.6 126.3 210.9zM468.7 132.7c35.9-43.1 60.1-102.8 53.4-162.6-51.6 2.1-114.1 34.4-151.2 77.4-33.2 38.1-62.4 99.1-54.6 157.6 57.5 4.5 116.2-29.2 152.4-72.4z" />
-              </svg>
-              Apple — coming soon
-            </span>
-            <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wide">Finishing setup</span>
-          </div>
+          {appleVisible ? (
+            <AppleSignInButton
+              loading={appleLoading}
+              disabled={googleLoading}
+              label="Continue with Apple"
+              loadingLabel="Signing in…"
+              onClick={handleApple}
+            />
+          ) : null}
 
           <p className="text-[11px] text-muted-foreground text-center max-w-[240px] leading-relaxed">
-            By continuing with Google you agree to our community guidelines.
-          </p>        </div>
+            By continuing you agree to our community guidelines.
+          </p>
+        </div>
 
         <button
           onClick={() => router.push('/login')}
