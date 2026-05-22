@@ -1,7 +1,7 @@
 import { isCapacitorNative } from '@/utils/capacitator/isNative';
 
 /** OAuth / link-identity return URL for the current browser or native shell. */
-export function buildOAuthRedirectTo(nextAfterLogin = '/feed/'): string {
+export function buildOAuthRedirect(nextAfterLogin = '/feed/'): string {
   const origin = typeof window !== 'undefined' ? window.location.origin : '';
   const callbackPath = '/auth/callback/';
   const qs = `next=${encodeURIComponent(nextAfterLogin)}`;
