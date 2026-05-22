@@ -4,5 +4,5 @@ import { Capacitor } from '@capacitor/core';
 export function isAppleSignInNativeAvailable(): boolean {
   if (typeof window === 'undefined') return false;
   if (Capacitor.getPlatform() !== 'ios') return false;
-  return Capacitor.isPluginAvailable('SignInWithApple');
+  return Capacitor.isPluginAvailable('AppleSignIn');
 }

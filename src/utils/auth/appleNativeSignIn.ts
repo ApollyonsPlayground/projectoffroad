@@ -1,8 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { SignInWithApple } from '@capacitor-community/apple-sign-in';
-
-const IOS_BUNDLE_ID = 'com.socaloffroaders.app';
-const SITE_CALLBACK = 'https://socaloffroaders.com/auth/callback/';
+import { AppleSignIn, ErrorCode, SignInScope } from '@capawesome/capacitor-apple-sign-in';
 
 function randomNonce(length = 32): string {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -28,10 +25,11 @@ function isPluginMissingOnIos(message: string): boolean {
 }
 
 function pluginMissingHelp(): string {
-  return 'This app build does not include native Apple sign-in yet. On your Mac: git pull, npm ci, npx cap sync ios, then Product → Archive → upload to TestFlight. Install the new build, then try again.';
+  return 'This app build does not include native Apple sign-in yet. On your Mac: git pull, npm ci, rm -rf ios, npx cap add ios, npx cap sync ios, then Archive to TestFlight.';
 }
 
-function isUserCancel(message: string): boolean {
+function isUserCancel(message: string, code?: string): boolean {
+  if (code === ErrorCode.SignInCanceled) return true;
   const lower = message.toLowerCase();
   return (
     lower.includes('cancel') ||
@@ -48,22 +46,18 @@ export async function signInWithAppleNative(
     const rawNonce = randomNonce();
     const hashedNonce = await sha256Hex(rawNonce);
 
-    const result = await SignInWithApple.authorize({
-      clientId: IOS_BUNDLE_ID,
-      redirectURI: SITE_CALLBACK,
-      scopes: 'email name',
-      state: rawNonce,
+    const result = await AppleSignIn.signIn({
       nonce: hashedNonce,
+      scopes: [SignInScope.Email, SignInScope.FullName],
     });
 
-    const { identityToken, givenName, familyName } = result.response;
-    if (!identityToken) {
+    if (!result.idToken) {
       return { error: 'Apple sign-in did not return an identity token.' };
     }
 
     const { error } = await supabase.auth.signInWithIdToken({
       provider: 'apple',
-      token: identityToken,
+      token: result.idToken,
       nonce: rawNonce,
     });
 
@@ -78,21 +72,22 @@ export async function signInWithAppleNative(
       return { error: raw || 'Apple sign-in failed.' };
     }
 
-    const fullName = [givenName, familyName].filter(Boolean).join(' ').trim();
+    const fullName = [result.givenName, result.familyName].filter(Boolean).join(' ').trim();
     if (fullName) {
       await supabase.auth.updateUser({
         data: {
           full_name: fullName,
-          given_name: givenName ?? undefined,
-          family_name: familyName ?? undefined,
+          given_name: result.givenName ?? undefined,
+          family_name: result.familyName ?? undefined,
         },
       });
     }
 
     return { error: null };
   } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
-    if (isUserCancel(msg)) return { error: null };
+    const err = e as { message?: string; code?: string };
+    const msg = err?.message ?? String(e);
+    if (isUserCancel(msg, err?.code)) return { error: null };
     if (isPluginMissingOnIos(msg)) return { error: pluginMissingHelp() };
     return { error: msg || 'Apple sign-in failed.' };
   }

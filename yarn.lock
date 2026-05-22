@@ -807,14 +807,6 @@
   resolved "https://registry.npmjs.org/@bytecodealliance/preview2-shim/-/preview2-shim-0.17.6.tgz"
   integrity sha512-n3cM88gTen5980UOBAD6xDcNNL3ocTK8keab21bpx1ONdA+ARj7uD1qoFxOWCyKlkpSi195FH+GeAut7Oc6zZw==
 
-"@capacitor-community/apple-sign-in@^7.1.0":
-  version "7.1.0"
-  resolved "https://registry.npmjs.org/@capacitor-community/apple-sign-in/-/apple-sign-in-7.1.0.tgz"
-  integrity sha512-df7cA7vfvvvilTtpJKeVvxO31W+py5t3HK9233GBD5MvgAgtGvCqeQ3pI0noNkVsKPF9B1g/po8Mph6s4bVSmw==
-  dependencies:
-    "@types/scriptjs" "0.0.2"
-    scriptjs "^2.5.9"
-
 "@capacitor/android@^8.3.1":
   version "8.3.1"
   resolved "https://registry.npmjs.org/@capacitor/android/-/android-8.3.1.tgz"
@@ -853,7 +845,7 @@
     tslib "^2.8.1"
     xml2js "^0.6.2"
 
-"@capacitor/core@^8.3.0", "@capacitor/core@^8.3.1", "@capacitor/core@>=7.0.0", "@capacitor/core@>=8.0.0":
+"@capacitor/core@^8.3.0", "@capacitor/core@^8.3.1", "@capacitor/core@>=8.0.0":
   version "8.3.1"
   resolved "https://registry.npmjs.org/@capacitor/core/-/core-8.3.1.tgz"
   integrity sha512-UF8ItlHguU1Z6GXfPTeT2gakf+ctNI8pAS1kwSBQlsJMlfD4OPoto/SmKnOxKCQvnF4WRcdWeg6C0zREUNaAQg==
@@ -879,6 +871,11 @@
   version "8.0.1"
   resolved "https://registry.npmjs.org/@capacitor/preferences/-/preferences-8.0.1.tgz"
   integrity sha512-T6no3ebi79XJCk91U3Jp/liJUwgBdvHR+s6vhvPkPxSuch7z3zx5Rv1bdWM6sWruNx+pViuEGqZvbfCdyBvcHQ==
+
+"@capawesome/capacitor-apple-sign-in@^0.1.0":
+  version "0.1.0"
+  resolved "https://registry.npmjs.org/@capawesome/capacitor-apple-sign-in/-/capacitor-apple-sign-in-0.1.0.tgz"
+  integrity sha512-/iSFHj2ZEJa1TYfEkgtAhwLIqMB/sr1ntr/HfXNz3fdssmh/j00mWgDK7sFXUSIj5G8ArpVBzaK2hJKFBWoDUQ==
 
 "@edge-runtime/format@2.2.1":
   version "2.2.1"
@@ -1519,11 +1516,6 @@
   integrity sha512-yy7HuzQhj0dhGpD8RLXSZWEkLsV9ibvxvi6EiJ3bkqLAO1RGo0WbkWQiwpRlSFymTJRz0d3k5LM3kkx8ArDbLw==
   dependencies:
     "@types/node" "*"
-
-"@types/scriptjs@0.0.2":
-  version "0.0.2"
-  resolved "https://registry.npmjs.org/@types/scriptjs/-/scriptjs-0.0.2.tgz"
-  integrity sha512-GFrUgzGYfNX3VWZwMyzr0JrBwzLv5Kes4BQBvo6hXdRy14/GBbpCiVwwB7v1o2xIEvFf+9GyznmYhuesQQjSag==
 
 "@types/slice-ansi@^4.0.0":
   version "4.0.0"
@@ -5983,11 +5975,6 @@ schema-utils@^4.3.3:
     ajv "^8.9.0"
     ajv-formats "^2.1.1"
     ajv-keywords "^5.1.0"
-
-scriptjs@^2.5.9:
-  version "2.5.9"
-  resolved "https://registry.npmjs.org/scriptjs/-/scriptjs-2.5.9.tgz"
-  integrity sha512-qGVDoreyYiP1pkQnbnFAUIS5AjenNwwQBdl7zeos9etl+hYKWahjRTfzAZZYBv5xNHx7vNKCmaLDQZ6Fr2AEXg==
 
 semver@^6.0.0:
   version "6.3.1"
