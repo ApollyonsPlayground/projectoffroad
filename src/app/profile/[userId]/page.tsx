@@ -2,7 +2,21 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Grid3X3, Bookmark, Heart, Repeat2, BadgeCheck, Loader2, MessageCircle, Ban, UserPlus, UserMinus, type LucideIcon } from 'lucide-react';
+import {
+  ArrowLeft,
+  Grid3X3,
+  Bookmark,
+  Heart,
+  Repeat2,
+  BadgeCheck,
+  Loader2,
+  MessageCircle,
+  Ban,
+  UserPlus,
+  UserMinus,
+  Truck,
+  type LucideIcon,
+} from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import BottomNav from '@/components/BottomNav';
@@ -37,6 +51,17 @@ interface PostRow {
   body?: string;
   created_at: string;
   repost_of_id?: string | null;
+}
+
+interface VehicleRow {
+  id: string;
+  year: number;
+  make: string;
+  model: string;
+  trim?: string | null;
+  modifications?: string | null;
+  photo_url?: string | null;
+  is_primary: boolean;
 }
 
 function normalizePostRow(p: Record<string, unknown>): PostRow {
@@ -103,6 +128,9 @@ export default function UserProfilePage() {
   const [followBusy, setFollowBusy] = useState(false);
   const [blockBusy, setBlockBusy] = useState(false);
 
+  const [vehicles, setVehicles] = useState<VehicleRow[]>([]);
+  const [vehiclesLoading, setVehiclesLoading] = useState(true);
+
   // Fetch profile
   useEffect(() => {
     if (!userId) { setError('Invalid user ID'); setIsLoading(false); return; }
@@ -143,6 +171,39 @@ export default function UserProfilePage() {
           setFollowersCount(0);
           setFollowingCount(0);
         }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [supabaseClient, userId, isLoading, error]);
+
+  useEffect(() => {
+    if (!supabaseClient || !userId || isLoading || error) {
+      setVehicles([]);
+      setVehiclesLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setVehiclesLoading(true);
+    void (async () => {
+      try {
+        const { data, error: vehErr } = await supabaseClient
+          .from('vehicles')
+          .select('id, year, make, model, trim, modifications, photo_url, is_primary, created_at')
+          .eq('user_id', userId)
+          .order('is_primary', { ascending: false })
+          .order('created_at', { ascending: false });
+        if (cancelled) return;
+        if (vehErr) {
+          setVehicles([]);
+          return;
+        }
+        setVehicles((data ?? []) as VehicleRow[]);
+      } catch {
+        if (!cancelled) setVehicles([]);
+      } finally {
+        if (!cancelled) setVehiclesLoading(false);
       }
     })();
     return () => {
@@ -533,6 +594,73 @@ export default function UserProfilePage() {
           </div>
         )}
       </div>
+
+      {/* Garage (read-only) */}
+      <section className="max-w-app-shell mx-auto px-4 py-4 border-b border-border">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-[14px] font-bold text-foreground flex items-center gap-2">
+            <Truck size={16} className="text-primary" />
+            {viewerSelf ? 'Your Garage' : 'Garage'}
+            {vehicles.some((v) => v.is_primary) && (
+              <span className="text-[10px] font-bold text-primary/90 bg-primary/10 border border-primary/25 px-1.5 py-0.5 rounded-full ml-1">
+                Primary rig
+              </span>
+            )}
+          </h2>
+          {viewerSelf && (
+            <Link
+              href="/profile"
+              className="text-[13px] font-semibold text-primary hover:text-primary/90 transition-colors"
+            >
+              Manage
+            </Link>
+          )}
+        </div>
+
+        {vehiclesLoading ? (
+          <div className="flex justify-center py-8">
+            <Loader2 size={20} className="animate-spin text-muted-foreground" />
+          </div>
+        ) : vehicles.length > 0 ? (
+          <div className="space-y-2.5">
+            {vehicles.map((v) => (
+              <div key={v.id} className="bg-card border border-border rounded-xl p-3.5">
+                <div className="flex gap-3">
+                  {v.photo_url ? (
+                    <div className="w-16 h-16 rounded-lg overflow-hidden bg-zinc-800 flex-shrink-0">
+                      <img
+                        src={ensureStoragePublicObjectUrl(v.photo_url) || v.photo_url}
+                        alt=""
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  ) : null}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-[14px] font-semibold text-foreground">
+                        {v.year} {v.make} {v.model}
+                        {v.trim ? ` ${v.trim}` : ''}
+                      </span>
+                      {v.is_primary && (
+                        <span className="px-1.5 py-0.5 bg-primary/15 text-primary/90 text-[10px] font-bold uppercase rounded">
+                          Primary
+                        </span>
+                      )}
+                    </div>
+                    {v.modifications && (
+                      <p className="text-[12px] text-muted-foreground mt-1 leading-relaxed">{v.modifications}</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-center text-[13px] text-muted-foreground py-6 border border-dashed border-border rounded-xl">
+            {viewerSelf ? 'No rigs in your garage yet.' : 'No rigs in garage yet.'}
+          </p>
+        )}
+      </section>
 
       {/* Tabs */}
       <div className="max-w-app-shell mx-auto border-b border-border">

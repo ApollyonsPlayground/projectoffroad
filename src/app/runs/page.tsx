@@ -32,6 +32,7 @@ import {
   runHostSelfBadge,
   runHostSelfToast,
 } from '@/lib/runs/runHostLabel';
+import { runJoinActionLabel } from '@/lib/runs/runParticipation';
 
 /** When a run has no trail photo yet */
 interface Run {
@@ -158,6 +159,7 @@ function RunCard({
   currentUserId: string | null;
 }) {
   const isHost = Boolean(currentUserId && run.host_id === currentUserId);
+  const isLive = String(run.status).toLowerCase() === 'active';
   const isFull = run.max_participants != null && participantCount >= run.max_participants;
   const spotsLeft = run.max_participants != null ? run.max_participants - participantCount : null;
   const isAlmostFull = spotsLeft != null && spotsLeft <= 3 && spotsLeft > 0;
@@ -221,6 +223,11 @@ function RunCard({
               {run.run_source === 'club_official' && (
                 <span className="px-2 py-0.5 text-[10px] font-black uppercase rounded-md bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
                   Club
+                </span>
+              )}
+              {isLive && (
+                <span className="px-2 py-0.5 text-[10px] font-black uppercase rounded-md bg-red-500/20 text-red-300 border border-red-500/40 animate-pulse">
+                  Live
                 </span>
               )}
             </div>
@@ -294,6 +301,10 @@ function RunCard({
               <Shield size={14} className="text-primary/90 flex-shrink-0" />
               {runHostSelfBadge(run.run_source)}
             </div>
+          ) : run.status === 'completed' || run.status === 'cancelled' ? (
+            <div className="flex-1 flex items-center justify-center py-2.5 text-[13px] font-semibold rounded-lg bg-zinc-800 text-muted-foreground capitalize">
+              {run.status}
+            </div>
           ) : (
             <button
               onClick={() => onRsvp(run)}
@@ -311,7 +322,7 @@ function RunCard({
               ) : joined ? (
                 <><CheckCircle2 size={14} /> Joined</>
               ) : (
-                <><Zap size={14} /> Join Run</>
+                <><Zap size={14} /> {runJoinActionLabel(run.status, false)}</>
               )}
             </button>
           )}
@@ -553,7 +564,12 @@ export default function RunsPage() {
         }
         setJoinedRunIds((prev) => new Set([...prev, run.id]));
         setParticipantCounts((prev) => ({ ...prev, [run.id]: (prev[run.id] ?? 0) + 1 }));
-        showToast(`You're in for "${run.title}"!`, 'success');
+        showToast(
+          run.status === 'active'
+            ? `You're in on "${run.title}" — open Details for live chat and map.`
+            : `You're in for "${run.title}"!`,
+          'success'
+        );
       }
     } finally {
       setJoiningId(null);

@@ -56,6 +56,8 @@ import {
   runHostControlsHeading,
 } from '@/lib/runs/runHostLabel';
 import { cancelRunTimeLocalReminders, scheduleRunTimeLocalReminders } from '@/lib/runs/runReminderLocal';
+import { isPlatformStaffRole } from '@/lib/admin/platformStaff';
+import { runJoinActionLabel } from '@/lib/runs/runParticipation';
 
 const RunLiveMap = dynamic(() => import('@/components/RunLiveMap'), {
   ssr: false,
@@ -287,12 +289,11 @@ export default function RunDetailPage() {
 
   const isHost = Boolean(user && run && user.id === run.host_id);
   const isStaff = Boolean(
-    user &&
-      profile &&
-      typeof (profile as { role?: unknown }).role === 'string' &&
-      ['owner', 'admin'].includes(String((profile as { role: string }).role).trim().toLowerCase())
+    user && profile && isPlatformStaffRole(String((profile as { role?: unknown }).role ?? ''))
   );
-  const canEditRun = Boolean(user && run && (isHost || isStaff));
+  const canManageRun = Boolean(user && run && (isHost || isStaff));
+  const canEditRun = canManageRun;
+  const runIsLive = run?.status === 'active';
   const runTimeEditLocked = Boolean(run && isRunDetailsEditLocked(run));
   const editFieldsLocked = Boolean(editOpen && runTimeEditLocked);
 
@@ -581,7 +582,12 @@ export default function RunDetailPage() {
             },
           },
         ]);
-        showToast(`You're in for "${run.title}"!`, 'success');
+        showToast(
+          run.status === 'active'
+            ? `You're in on this live run — open chat and the map below.`
+            : `You're in for "${run.title}"!`,
+          'success'
+        );
         const remindOk = (profile?.notify_run_time_reminders as boolean | undefined) !== false;
         if (remindOk) {
           void scheduleRunTimeLocalReminders({
@@ -596,9 +602,15 @@ export default function RunDetailPage() {
     }
   };
 
-  // ── Activate run (host only) ─────────────────────────────────────────────
+  // ── Activate run (host or platform staff) ─────────────────────────────────
   const handleActivate = async () => {
     if (!supabaseClient || !run) return;
+    if (isStaff && !isHost) {
+      const ok = window.confirm(
+        'Start this run now on behalf of the host? Riders will see it as live and can join in progress.'
+      );
+      if (!ok) return;
+    }
     setActivating(true);
     try {
       const { error } = await supabaseClient
@@ -1867,7 +1879,17 @@ export default function RunDetailPage() {
             </div>
           )}
 
-          {run.status !== 'completed' && (
+          {runIsLive && !isHost && !joined && user && (
+            <div className="flex items-start gap-2.5 px-3.5 py-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30">
+              <Zap size={16} className="text-emerald-400 flex-shrink-0 mt-0.5" />
+              <p className="text-[13px] text-emerald-100/95 leading-snug">
+                This run is <span className="font-bold text-emerald-300">live</span> — join to access group chat,
+                the live map, and SOS while you are on trail.
+              </p>
+            </div>
+          )}
+
+          {run.status !== 'completed' && run.status !== 'cancelled' && (
             <div className="grid grid-cols-1 gap-3">
               {isHost ? (
                 <div className="flex items-center justify-center gap-2 py-3 text-[14px] font-bold rounded-xl border border-primary/35 bg-primary/10 text-primary/80">
@@ -1891,7 +1913,7 @@ export default function RunDetailPage() {
                   ) : joined ? (
                     <><CheckCircle2 size={16} /> Joined</>
                   ) : (
-                    <><Zap size={16} /> Join Run</>
+                    <><Zap size={16} /> {runJoinActionLabel(run.status, false)}</>
                   )}
                 </button>
               )}
@@ -2161,9 +2183,9 @@ export default function RunDetailPage() {
           )}
         </AnimatePresence>
 
-        {/* ── Manage Run (host only) ────────────────────────────────────── */}
+        {/* ── Manage Run (host or platform staff) ───────────────────────── */}
         <AnimatePresence>
-          {isHost && run.status !== 'cancelled' && (
+          {canManageRun && run.status !== 'cancelled' && (
             <motion.div
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
@@ -2172,8 +2194,18 @@ export default function RunDetailPage() {
             >
               <div className="flex items-center gap-2">
                 <BadgeCheck size={15} className="text-primary" />
-                <p className="text-[13px] font-bold text-muted-foreground">{runHostControlsHeading(run.run_source)}</p>
+                <p className="text-[13px] font-bold text-muted-foreground">
+                  {isHost
+                    ? runHostControlsHeading(run.run_source)
+                    : 'Staff controls'}
+                </p>
               </div>
+
+              {isStaff && !isHost && (
+                <p className="text-[13px] text-muted-foreground">
+                  Platform staff can start or wrap up this run on behalf of the host when they are unavailable.
+                </p>
+              )}
 
               {run.status === 'completed' && (
                 <p className="text-[13px] text-muted-foreground">
@@ -2184,7 +2216,9 @@ export default function RunDetailPage() {
               {run.status === 'upcoming' && (
                 <>
                   <p className="text-[13px] text-muted-foreground">
-                    Activate when you are ready to depart. Riders can use SOS only while the run is active.
+                    {isHost
+                      ? 'Activate when you are ready to depart. Riders can use SOS only while the run is active.'
+                      : 'Start this run when the group is rolling. Others can still join after it is live.'}
                   </p>
                   <button
                     onClick={handleActivate}
@@ -2196,7 +2230,7 @@ export default function RunDetailPage() {
                     ) : (
                       <Play size={15} />
                     )}
-                    {activating ? 'Activating…' : 'Activate run'}
+                    {activating ? 'Activating…' : isHost ? 'Activate run' : 'Start run (staff)'}
                   </button>
                 </>
               )}
@@ -2237,19 +2271,21 @@ export default function RunDetailPage() {
                 </button>
               )}
 
-              <button
-                type="button"
-                onClick={handleDeleteRun}
-                disabled={!!hostBusy}
-                className="w-full flex items-center justify-center gap-2 py-2.5 bg-red-950/40 border border-red-600/40 hover:bg-red-950/70 text-red-300 text-[13px] font-black rounded-xl transition-colors disabled:opacity-50"
-              >
-                {hostBusy === 'delete' ? (
-                  <Loader2 size={15} className="animate-spin" />
-                ) : (
-                  <Trash2 size={15} />
-                )}
-                Delete run permanently
-              </button>
+              {isHost && (
+                <button
+                  type="button"
+                  onClick={handleDeleteRun}
+                  disabled={!!hostBusy}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 bg-red-950/40 border border-red-600/40 hover:bg-red-950/70 text-red-300 text-[13px] font-black rounded-xl transition-colors disabled:opacity-50"
+                >
+                  {hostBusy === 'delete' ? (
+                    <Loader2 size={15} className="animate-spin" />
+                  ) : (
+                    <Trash2 size={15} />
+                  )}
+                  Delete run permanently
+                </button>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
