@@ -2465,26 +2465,17 @@ export default function HomePage() {
         }
       );
 
-      // Repost rows are not global: the reposter sees their RT, and each account they follow sees it
-      // on their feed (broadcast-to-following only). Others keep seeing only the original post thread.
-      const reposterIds = [
-        ...new Set(
-          rawPosts
-            .filter((p: Record<string, unknown>) => p.repost_of_id)
-            .map((p: Record<string, unknown>) => String(p.user_id))
-        ),
-      ];
-      const followingByReposter = new Map<string, Set<string>>();
-      if (reposterIds.length > 0) {
+      // Repost rows are follower-scoped: you see your own reposts and reposts
+      // from accounts you follow, not every repost in the global feed.
+      const followedUserIds = new Set<string>();
+      if (viewerId && rawPosts.some((p: Record<string, unknown>) => p.repost_of_id)) {
         const { data: followEdges } = await supabaseClient
           .from('follows')
-          .select('follower_id,following_id')
-          .in('follower_id', reposterIds);
+          .select('following_id')
+          .eq('follower_id', viewerId);
         for (const row of followEdges ?? []) {
-          const rid = String((row as { follower_id: string }).follower_id);
-          const fid = String((row as { following_id: string }).following_id);
-          if (!followingByReposter.has(rid)) followingByReposter.set(rid, new Set());
-          followingByReposter.get(rid)!.add(fid);
+          const fid = String((row as { following_id?: string | null }).following_id ?? '');
+          if (fid) followedUserIds.add(fid);
         }
       }
 
@@ -2494,7 +2485,7 @@ export default function HomePage() {
         if (!viewerId) return false;
         const rid = String(p.user_id);
         if (rid === String(viewerId)) return true;
-        return followingByReposter.get(rid)?.has(String(viewerId)) ?? false;
+        return followedUserIds.has(rid);
       });
 
       const postById = new Map<string, Record<string, unknown>>(

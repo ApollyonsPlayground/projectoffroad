@@ -296,6 +296,7 @@ export default function RunDetailPage() {
   const runIsLive = run?.status === 'active';
   const runTimeEditLocked = Boolean(run && isRunDetailsEditLocked(run));
   const editFieldsLocked = Boolean(editOpen && runTimeEditLocked);
+  const runStartsInFuture = Boolean(run && new Date(run.date).getTime() > Date.now());
 
   const [chatMessages, setChatMessages] = useState<RunChatMessage[]>([]);
   const [chatInput, setChatInput] = useState('');
@@ -2217,8 +2218,8 @@ export default function RunDetailPage() {
                 <>
                   <p className="text-[13px] text-muted-foreground">
                     {isHost
-                      ? 'Activate when you are ready to depart. Riders can use SOS only while the run is active.'
-                      : 'Start this run when the group is rolling. Others can still join after it is live.'}
+                      ? 'Runs start automatically at the scheduled time. Start early if the group is ready to roll now.'
+                      : 'Runs start automatically at the scheduled time. Staff can start it early when the group is rolling.'}
                   </p>
                   <button
                     onClick={handleActivate}
@@ -2230,7 +2231,11 @@ export default function RunDetailPage() {
                     ) : (
                       <Play size={15} />
                     )}
-                    {activating ? 'Activating…' : isHost ? 'Activate run' : 'Start run (staff)'}
+                    {activating
+                      ? 'Activating…'
+                      : isHost
+                        ? runStartsInFuture ? 'Start run early' : 'Start run'
+                        : runStartsInFuture ? 'Start run early (staff)' : 'Start run (staff)'}
                   </button>
                 </>
               )}

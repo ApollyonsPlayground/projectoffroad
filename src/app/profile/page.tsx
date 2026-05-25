@@ -29,6 +29,7 @@ import {
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import BottomNav from '@/components/BottomNav';
+import { FollowListDrawer, type FollowListMode } from '@/components/FollowListDrawer';
 import { ProfileThemeSwatches } from '@/components/ProfileThemeSwatches';
 import { ProfileSkeleton } from '@/components/SkeletonLoader';
 import { useAuth } from '@/context/AuthContext';
@@ -299,6 +300,7 @@ export default function ProfilePage() {
   const [followingCount, setFollowingCount] = useState(0);
   const [clubsCount, setClubsCount] = useState(0);
   const [runsJoinedCount, setRunsJoinedCount] = useState(0);
+  const [followListMode, setFollowListMode] = useState<FollowListMode | null>(null);
 
   // Cast profile (Record<string,unknown>) to a typed shape for safe rendering
   type DisplayProfile = typeof PLACEHOLDER_PROFILE & {
@@ -761,15 +763,31 @@ export default function ProfilePage() {
           {/* Stats row — aligned with typical social profiles */}
           <div className="flex justify-around mt-4 pt-4 border-t border-border">
             {[
-              { label: 'Posts', value: postsCount },
-              { label: 'Followers', value: followersCount },
-              { label: 'Following', value: followingCount },
-            ].map(({ label, value }) => (
-              <div key={label} className="text-center min-w-[72px]">
-                <p className="text-[18px] font-bold text-foreground">{value}</p>
-                <p className="text-[11px] text-muted-foreground uppercase tracking-wider">{label}</p>
-              </div>
-            ))}
+              { label: 'Posts', value: postsCount, mode: null },
+              { label: 'Followers', value: followersCount, mode: 'followers' as const },
+              { label: 'Following', value: followingCount, mode: 'following' as const },
+            ].map(({ label, value, mode }) => {
+              const content = (
+                <>
+                  <p className="text-[18px] font-bold text-foreground">{value}</p>
+                  <p className="text-[11px] text-muted-foreground uppercase tracking-wider">{label}</p>
+                </>
+              );
+              return mode ? (
+                <button
+                  key={label}
+                  type="button"
+                  onClick={() => setFollowListMode(mode)}
+                  className="text-center min-w-[72px] rounded-xl py-1 hover:bg-card focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                >
+                  {content}
+                </button>
+              ) : (
+                <div key={label} className="text-center min-w-[72px] py-1">
+                  {content}
+                </div>
+              );
+            })}
           </div>
           <p className="text-center text-[11px] text-muted-foreground mt-3">
             {vehicles.length} rig{vehicles.length !== 1 ? 's' : ''} in garage · {clubsCount} club{clubsCount !== 1 ? 's' : ''} · {runsJoinedCount} run{runsJoinedCount !== 1 ? 's' : ''} joined
@@ -1059,6 +1077,14 @@ export default function ProfilePage() {
           />
         )}
       </AnimatePresence>
+
+      <FollowListDrawer
+        open={followListMode !== null}
+        mode={followListMode ?? 'followers'}
+        userId={user.id}
+        supabaseClient={supabaseClient}
+        onClose={() => setFollowListMode(null)}
+      />
 
       <BottomNav />
     </div>

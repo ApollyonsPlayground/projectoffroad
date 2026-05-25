@@ -20,6 +20,7 @@ import {
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import BottomNav from '@/components/BottomNav';
+import { FollowListDrawer, type FollowListMode } from '@/components/FollowListDrawer';
 import { useToast } from '@/components/Toast';
 import { resolveOwnProfileDisplayName, resolvePublicDisplayName } from '@/lib/profileDisplay';
 import {
@@ -127,6 +128,7 @@ export default function UserProfilePage() {
   const [blockRelation, setBlockRelation] = useState<'none' | 'i_blocked' | 'they_blocked'>('none');
   const [followBusy, setFollowBusy] = useState(false);
   const [blockBusy, setBlockBusy] = useState(false);
+  const [followListMode, setFollowListMode] = useState<FollowListMode | null>(null);
 
   const [vehicles, setVehicles] = useState<VehicleRow[]>([]);
   const [vehiclesLoading, setVehiclesLoading] = useState(true);
@@ -533,15 +535,31 @@ export default function UserProfilePage() {
 
         <div className="flex justify-around w-full max-w-xs mx-auto mt-4 pt-4 border-t border-border">
           {[
-            { label: 'Posts', value: postsCount },
-            { label: 'Followers', value: followersCount },
-            { label: 'Following', value: followingCount },
-          ].map(({ label, value }) => (
-            <div key={label} className="text-center min-w-[72px]">
-              <p className="text-[17px] font-black text-foreground">{value}</p>
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{label}</p>
-            </div>
-          ))}
+            { label: 'Posts', value: postsCount, mode: null },
+            { label: 'Followers', value: followersCount, mode: 'followers' as const },
+            { label: 'Following', value: followingCount, mode: 'following' as const },
+          ].map(({ label, value, mode }) => {
+            const content = (
+              <>
+                <p className="text-[17px] font-black text-foreground">{value}</p>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{label}</p>
+              </>
+            );
+            return mode ? (
+              <button
+                key={label}
+                type="button"
+                onClick={() => setFollowListMode(mode)}
+                className="text-center min-w-[72px] rounded-xl py-1 hover:bg-card focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              >
+                {content}
+              </button>
+            ) : (
+              <div key={label} className="text-center min-w-[72px] py-1">
+                {content}
+              </div>
+            );
+          })}
         </div>
 
         {/* Actions — other user's profile */}
@@ -696,6 +714,14 @@ export default function UserProfilePage() {
           <PostGrid posts={currentData} />
         )}
       </div>
+
+      <FollowListDrawer
+        open={followListMode !== null}
+        mode={followListMode ?? 'followers'}
+        userId={userId}
+        supabaseClient={supabaseClient}
+        onClose={() => setFollowListMode(null)}
+      />
 
       <BottomNav />
     </div>
