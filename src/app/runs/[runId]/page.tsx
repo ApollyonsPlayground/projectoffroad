@@ -37,6 +37,7 @@ import {
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import BottomNav from '@/components/BottomNav';
+import { TrailReportFormDrawer } from '@/components/trails/TrailReportFormDrawer';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/Toast';
 import { snapshotPublicIdentity } from '@/lib/profileDisplay';
@@ -313,6 +314,7 @@ export default function RunDetailPage() {
   const [runReflections, setRunReflections] = useState<RunReflectionRow[]>([]);
   const [reflectionBody, setReflectionBody] = useState('');
   const [reflectionSaving, setReflectionSaving] = useState(false);
+  const [trailReportOpen, setTrailReportOpen] = useState(false);
   const reflectionTouchedRef = useRef(false);
 
   const fetchDetail = useCallback(async () => {
@@ -639,6 +641,7 @@ export default function RunDetailPage() {
       if (error) throw error;
       setRun((prev) => (prev ? { ...prev, status: 'completed' } : prev));
       showToast('Run marked complete. Thanks for leading!', 'success');
+      if (run.trail_id) setTrailReportOpen(true);
     } catch {
       showToast('Could not complete run', 'error');
     } finally {
@@ -1211,6 +1214,13 @@ export default function RunDetailPage() {
   const trailDirectionsUrl = runTrailDirectionsUrl(run);
   const stagingDirectionsUrl = runStagingDirectionsUrl(run);
   const hasDirections = !!(trailDirectionsUrl || stagingDirectionsUrl);
+  const canAddTrailReport = Boolean(
+    user &&
+      run.trail_id &&
+      run.status === 'completed' &&
+      (joined || user.id === run.host_id)
+  );
+  const trailReportTrailName = run.trail?.name ?? run.title;
 
   const liveMapReference =
     (() => {
@@ -2184,6 +2194,31 @@ export default function RunDetailPage() {
           )}
         </AnimatePresence>
 
+        {canAddTrailReport && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-primary/10 border border-primary/30 rounded-2xl p-4"
+          >
+            <div className="flex items-start gap-3">
+              <StickyNote size={18} className="text-primary flex-shrink-0 mt-0.5" />
+              <div className="min-w-0 flex-1">
+                <p className="text-[15px] font-black text-foreground">Add a trail report while it’s fresh</p>
+                <p className="text-[13px] text-muted-foreground leading-relaxed mt-1">
+                  Share current trail status, hazards, weather, and photos. It will help the next group and post to the feed.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setTrailReportOpen(true)}
+                  className="mt-3 w-full rounded-xl bg-primary px-4 py-3 text-[14px] font-black text-primary-foreground hover:opacity-90 transition-colors"
+                >
+                  Add trail report
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
         {/* ── Manage Run (host or platform staff) ───────────────────────── */}
         <AnimatePresence>
           {canManageRun && run.status !== 'cancelled' && (
@@ -2451,6 +2486,17 @@ export default function RunDetailPage() {
         </div>
 
       </main>
+
+      {run.trail_id ? (
+        <TrailReportFormDrawer
+          open={trailReportOpen}
+          trailId={run.trail_id}
+          trailName={trailReportTrailName}
+          runId={run.id}
+          runTitle={run.title}
+          onClose={() => setTrailReportOpen(false)}
+        />
+      ) : null}
 
       <BottomNav />
     </div>

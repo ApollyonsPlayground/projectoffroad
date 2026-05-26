@@ -22,8 +22,10 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import BottomNav from '@/components/BottomNav';
+import { TrailReportFormDrawer } from '@/components/trails/TrailReportFormDrawer';
 import { useToast } from '@/components/Toast';
 import { useAuth } from '@/context/AuthContext';
+import { resolvePublicDisplayName } from '@/lib/profileDisplay';
 import {
   mapDbTrailRow,
   trailVehicleScopeShortLabel,
@@ -32,6 +34,12 @@ import {
   type DifficultyTier,
 } from '@/lib/trails/mapDbTrail';
 import { applyCatalogTrailLinks } from '@/lib/trails/staticTrailLinks';
+import {
+  normalizeTrailReportPhotoUrls,
+  trailReportConditionLabel,
+  trailReportDifficultyLabel,
+  type TrailReportRow,
+} from '@/lib/trails/trailReports';
 import { useSavedTrailIds } from '@/lib/hooks/useSavedTrailIds';
 
 type Trail = ExplorerTrail;
@@ -98,6 +106,8 @@ export default function TrailDetailPage() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [tripNotes, setTripNotes] = useState<TrailTripNoteRow[]>([]);
+  const [trailReports, setTrailReports] = useState<TrailReportRow[]>([]);
+  const [reportOpen, setReportOpen] = useState(false);
   const playReviewTapResetRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const playReviewTapCountRef = useRef(0);
   const playReviewUnlockToastShownRef = useRef(false);
@@ -167,6 +177,42 @@ export default function TrailDetailPage() {
   }, [id, supabaseClient, isConfigured]);
 
   const trailId = typeof id === 'string' ? id : '';
+
+  const fetchTrailReports = useCallback(async () => {
+    if (!trailId || !supabaseClient || !isConfigured) {
+      setTrailReports([]);
+      return;
+    }
+    const attempts = [
+      'id, trail_id, run_id, user_id, condition_status, difficulty_today, surface_conditions, hazards, hazards_note, weather, body, photo_urls, feed_post_id, created_at, updated_at, users(name, username, hide_display_name, avatar_url, is_verified), runs(title, date)',
+      'id, trail_id, run_id, user_id, condition_status, difficulty_today, surface_conditions, hazards, hazards_note, weather, body, photo_urls, feed_post_id, created_at, updated_at, users(name, username, hide_display_name, avatar_url, is_verified)',
+      'id, trail_id, run_id, user_id, condition_status, difficulty_today, surface_conditions, hazards, hazards_note, weather, body, photo_urls, feed_post_id, created_at, updated_at',
+    ];
+    for (const sel of attempts) {
+      const { data, error } = await supabaseClient
+        .from('trail_reports')
+        .select(sel)
+        .eq('trail_id', trailId)
+        .order('created_at', { ascending: false })
+        .limit(40);
+      if (!error && data != null) {
+        setTrailReports(data as unknown as TrailReportRow[]);
+        return;
+      }
+    }
+    setTrailReports([]);
+  }, [trailId, supabaseClient, isConfigured]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      await fetchTrailReports();
+      if (cancelled) return;
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [fetchTrailReports]);
 
   useEffect(() => {
     if (!trailId || !supabaseClient || !isConfigured) {
@@ -453,6 +499,28 @@ export default function TrailDetailPage() {
           <p className="text-[14px] text-muted-foreground leading-relaxed">{trail.description}</p>
         </div>
 
+        <div className="px-4 py-4 border-b border-border">
+          <div className="rounded-2xl border border-primary/25 bg-primary/8 px-4 py-4">
+            <h3 className="text-[15px] font-black text-foreground">Report trail conditions</h3>
+            <p className="text-[13px] text-muted-foreground leading-relaxed mt-1.5">
+              Share status, hazards, surface conditions, weather, and photos for the next group.
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                if (!user) {
+                  showToast('Sign in to report trail conditions', 'info');
+                  return;
+                }
+                setReportOpen(true);
+              }}
+              className="mt-3 w-full rounded-xl bg-primary px-4 py-3 text-[14px] font-black text-primary-foreground hover:opacity-90 transition-colors"
+            >
+              {user ? 'Report trail conditions' : 'Sign in to report conditions'}
+            </button>
+          </div>
+        </div>
+
         {playReviewUnlocked && PLAY_REVIEW_UI_ENABLED && isGiantRockTrail(trail) && (
           <div className="px-4 py-4 border-b border-border">
             <h3 className="text-[12px] font-bold text-muted-foreground uppercase tracking-wider mb-2">
@@ -501,15 +569,123 @@ export default function TrailDetailPage() {
           </div>
         )}
 
-        {/* Trip notes from completed runs */}
-        {tripNotes.length > 0 && (
+        {/* Structured trail reports */}
+        {trailReports.length > 0 ? (
+          <div className="px-4 py-4 border-b border-border">
+            <h3 className="text-[12px] font-bold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-1.5">
+              <StickyNote size={14} className="text-primary" />
+              Recent trail reports
+            </h3>
+            <p className="text-[12px] text-muted-foreground mb-3 leading-relaxed">
+              Fresh condition reports from the community and completed group runs.
+            </p>
+            <ul className="space-y-3">
+              {trailReports.map((report) => {
+                const photos = normalizeTrailReportPhotoUrls(report.photo_urls);
+                const author = resolvePublicDisplayName({
+                  id: report.user_id,
+                  name: report.users?.name,
+                  username: report.users?.username,
+                  hide_display_name: report.users?.hide_display_name,
+                });
+                return (
+                  <li
+                    key={report.id}
+                    className="rounded-2xl border border-border bg-muted/80 px-3 py-3"
+                  >
+                    <div className="flex items-start justify-between gap-3 mb-2">
+                      <div className="min-w-0">
+                        <p className="text-[12px] font-bold text-foreground truncate">
+                          {author}
+                          {report.users?.is_verified ? (
+                            <BadgeCheck size={12} className="inline ml-1 text-primary" />
+                          ) : null}
+                        </p>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">
+                          {report.run_id ? (
+                            report.runs?.title ? (
+                              <Link href={`/runs/${report.run_id}`} className="text-primary/90 hover:text-primary font-medium">
+                                from {report.runs.title}
+                              </Link>
+                            ) : (
+                              <Link href={`/runs/${report.run_id}`} className="text-primary/90 hover:text-primary font-medium">
+                                from a group run
+                              </Link>
+                            )
+                          ) : (
+                            'community report'
+                          )}
+                          <span className="mx-1">·</span>
+                          {new Date(report.created_at).toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric',
+                          })}
+                        </p>
+                      </div>
+                      {report.feed_post_id ? (
+                        <Link
+                          href={`/posts/${report.feed_post_id}`}
+                          className="text-[11px] font-bold text-primary hover:text-primary/80 flex-shrink-0"
+                        >
+                          Feed post
+                        </Link>
+                      ) : null}
+                    </div>
+
+                    <div className="flex flex-wrap gap-1.5 mb-2">
+                      <span className="px-2 py-1 rounded-full bg-card border border-border text-[11px] font-bold text-foreground">
+                        {trailReportConditionLabel(report.condition_status)}
+                      </span>
+                      <span className="px-2 py-1 rounded-full bg-card border border-border text-[11px] font-bold text-foreground">
+                        {trailReportDifficultyLabel(report.difficulty_today)}
+                      </span>
+                      {report.weather ? (
+                        <span className="px-2 py-1 rounded-full bg-card border border-border text-[11px] font-bold text-muted-foreground">
+                          {report.weather}
+                        </span>
+                      ) : null}
+                    </div>
+
+                    {report.surface_conditions.length > 0 ? (
+                      <p className="text-[12px] text-muted-foreground mb-1.5">
+                        <span className="font-bold text-foreground/80">Conditions:</span> {report.surface_conditions.join(', ')}
+                      </p>
+                    ) : null}
+                    {report.hazards.length > 0 || report.hazards_note ? (
+                      <p className="text-[12px] text-muted-foreground mb-1.5">
+                        <span className="font-bold text-foreground/80">Hazards:</span>{' '}
+                        {[...report.hazards, report.hazards_note].filter(Boolean).join(', ')}
+                      </p>
+                    ) : null}
+                    <p className="text-[14px] text-foreground/90 leading-relaxed whitespace-pre-wrap">{report.body}</p>
+
+                    {photos.length > 0 ? (
+                      <div className="mt-3 grid grid-cols-2 gap-2">
+                        {photos.slice(0, 4).map((photo) => (
+                          <img
+                            key={photo}
+                            src={photo}
+                            alt=""
+                            loading="lazy"
+                            className="aspect-video w-full rounded-xl object-cover border border-border bg-card"
+                          />
+                        ))}
+                      </div>
+                    ) : null}
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ) : tripNotes.length > 0 ? (
           <div className="px-4 py-4 border-b border-border">
             <h3 className="text-[12px] font-bold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-1.5">
               <StickyNote size={14} className="text-primary" />
               Recent trip notes
             </h3>
             <p className="text-[12px] text-muted-foreground mb-3 leading-relaxed">
-              Pulled from completed group runs on this trail — riders sharing conditions and pacing, not ratings.
+              Pulled from completed group runs on this trail while structured trail reports roll out.
             </p>
             <ul className="space-y-3">
               {tripNotes.map((n) => (
@@ -542,7 +718,7 @@ export default function TrailDetailPage() {
               ))}
             </ul>
           </div>
-        )}
+        ) : null}
 
         {/* Rig Requirements */}
         {trail.rigRequirements && (
@@ -619,6 +795,14 @@ export default function TrailDetailPage() {
           </Link>
         </div>
       </main>
+
+      <TrailReportFormDrawer
+        open={reportOpen}
+        trailId={trail.id}
+        trailName={trail.name}
+        onClose={() => setReportOpen(false)}
+        onSubmitted={() => void fetchTrailReports()}
+      />
 
       <BottomNav />
     </div>

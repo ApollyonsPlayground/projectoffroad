@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { ShieldAlert, AlertTriangle } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
 
 const STORAGE_KEY = 'project_offroad_disclaimer_v1';
 
@@ -12,6 +13,7 @@ const STORAGE_KEY = 'project_offroad_disclaimer_v1';
  * leaving an invisible fullscreen layer that blocks all taps.
  */
 export default function DisclaimerModal() {
+  const { user, loading } = useAuth();
   const [mounted, setMounted] = useState(false);
   const [resolved, setResolved] = useState(false);
   const [show, setShow] = useState(false);
@@ -22,13 +24,19 @@ export default function DisclaimerModal() {
 
   useEffect(() => {
     if (!mounted) return;
+    if (loading) return;
     try {
-      setShow(!localStorage.getItem(STORAGE_KEY));
+      if (user) {
+        localStorage.setItem(STORAGE_KEY, 'true');
+        setShow(false);
+      } else {
+        setShow(!localStorage.getItem(STORAGE_KEY));
+      }
     } catch {
-      setShow(true);
+      setShow(!user);
     }
     setResolved(true);
-  }, [mounted]);
+  }, [mounted, loading, user]);
 
   useEffect(() => {
     if (!show) {
