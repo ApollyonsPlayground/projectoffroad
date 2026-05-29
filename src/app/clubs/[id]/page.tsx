@@ -11,6 +11,7 @@ import ClubGarage from '@/components/clubs/ClubGarage';
 import { useToast } from '@/components/Toast';
 import { ensureStoragePublicObjectUrl } from '@/lib/supabase/storagePublicUrl';
 import { resolvePublicDisplayName } from '@/lib/profileDisplay';
+import { instagramHref, websiteHref } from '@/lib/safeExternalUrl';
 
 interface Club {
   id: string;
@@ -78,20 +79,6 @@ function normalizeInstagram(input: string): string {
   const fromUrl = t.match(/instagram\.com\/([^/?#]+)/i);
   if (fromUrl) return fromUrl[1];
   return t;
-}
-
-function instagramHref(raw: string | null): string | null {
-  if (!raw?.trim()) return null;
-  const t = raw.trim();
-  if (t.startsWith('http')) return t;
-  return `https://instagram.com/${t.replace(/^@/, '')}`;
-}
-
-function websiteHref(raw: string | null): string | null {
-  if (!raw?.trim()) return null;
-  const t = raw.trim();
-  if (t.startsWith('http')) return t;
-  return `https://${t}`;
 }
 
 export default function ClubDetailPage() {

@@ -82,12 +82,12 @@ export default function SearchPage() {
     const [{ data: byName }, { data: byUsername }] = await Promise.all([
       supabaseClient
         .from('users')
-        .select('id, name, username, hide_display_name, email, location')
+        .select('id, name, username, hide_display_name, location')
         .ilike('name', like)
         .limit(5),
       supabaseClient
         .from('users')
-        .select('id, name, username, hide_display_name, email, location')
+        .select('id, name, username, hide_display_name, location')
         .ilike('username', like)
         .limit(5),
     ])

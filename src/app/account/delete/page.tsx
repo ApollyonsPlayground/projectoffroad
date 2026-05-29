@@ -22,7 +22,10 @@ export default function DeleteAccountPage() {
     try {
       const res = await fetch('/api/account/delete/', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Requested-With': 'SoCalOffroaders',
+        },
         credentials: 'same-origin',
         body: JSON.stringify({ confirm: true }),
       });

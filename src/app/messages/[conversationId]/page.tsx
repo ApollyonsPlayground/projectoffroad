@@ -112,7 +112,7 @@ export default function ConversationPage() {
     if (otherUserId) {
       const { data: userData } = await supabaseClient
         .from('users')
-        .select('id, name, avatar_url, username, hide_display_name, email')
+        .select('id, name, avatar_url, username, hide_display_name')
         .eq('id', otherUserId)
         .single();
       setOtherUser(userData as OtherUser ?? null);
@@ -331,10 +331,7 @@ export default function ConversationPage() {
   const otherDisplayName = otherUser
     ? resolvePublicDisplayName({
         id: otherUser.id,
-        name: otherUser.name,
         username: otherUser.username ?? null,
-        hide_display_name: otherUser.hide_display_name ?? null,
-        email: otherUser.email ?? null,
       })
     : 'Rider';
 

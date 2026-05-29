@@ -106,7 +106,7 @@ export default function MessagesPage() {
       if (otherUserIds.length > 0) {
         const { data: userRows } = await supabaseClient
           .from('users')
-          .select('id, name, avatar_url, username, hide_display_name, email')
+          .select('id, name, avatar_url, username, hide_display_name')
           .in('id', otherUserIds);
         ((userRows ?? []) as MessagesUserRow[]).forEach((u) => {
           otherUserMap[u.id] = u;
@@ -133,7 +133,6 @@ export default function MessagesPage() {
               name: otherUser?.name ?? null,
               username: otherUser?.username ?? null,
               hide_display_name: otherUser?.hide_display_name ?? null,
-              email: otherUser?.email ?? null,
             }),
             avatar_url: otherUser?.avatar_url ?? null,
           },

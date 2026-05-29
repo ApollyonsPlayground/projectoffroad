@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/admin/verifyRequest';
+import { escapePostgrestFilterValue } from '@/lib/api/security';
 
 export const runtime = 'nodejs';
 
@@ -18,7 +19,8 @@ export async function GET(request: NextRequest) {
     .limit(limit);
 
   if (q) {
-    query = query.or(`email.ilike.%${q}%,name.ilike.%${q}%`);
+    const safe = escapePostgrestFilterValue(q);
+    query = query.or(`email.ilike.%${safe}%,name.ilike.%${safe}%`);
   }
 
   const { data, error } = await query;

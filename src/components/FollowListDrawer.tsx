@@ -104,7 +104,7 @@ export function FollowListDrawer({
 
         const { data: profiles, error: profileErr } = await supabaseClient
           .from('users')
-          .select('id, name, username, email, hide_display_name, avatar_url, is_verified')
+          .select('id, name, username, hide_display_name, avatar_url, is_verified')
           .in('id', ids);
 
         if (profileErr) throw profileErr;

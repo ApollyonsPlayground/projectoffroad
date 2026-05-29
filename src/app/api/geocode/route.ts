@@ -1,13 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server'
+import {
+  checkGeocodeRateLimit,
+  geocodeRateLimitKey,
+  genericApiError,
+} from '@/lib/api/security'
 
 const NOMINATIM = 'https://nominatim.openstreetmap.org/search'
 
 /** Proxy OSM Nominatim with a proper User-Agent (required by usage policy). */
 export async function GET(request: NextRequest) {
   try {
+    const key = geocodeRateLimitKey(request)
+    if (!checkGeocodeRateLimit(key)) {
+      return NextResponse.json({ error: 'Too many geocode requests — try again shortly' }, { status: 429 })
+    }
+
     const q = request.nextUrl.searchParams.get('q')?.trim()
-    if (!q || q.length < 3) {
-      return NextResponse.json({ error: 'Query must be at least 3 characters' }, { status: 400 })
+    if (!q || q.length < 3 || q.length > 120) {
+      return NextResponse.json({ error: 'Query must be 3–120 characters' }, { status: 400 })
     }
 
     const url = new URL(NOMINATIM)
@@ -44,7 +54,6 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ results })
   } catch (e) {
-    console.error('Geocode error:', e)
-    return NextResponse.json({ error: 'Geocode failed' }, { status: 500 })
+    return genericApiError('Geocode error:', e, 'Geocode failed')
   }
 }

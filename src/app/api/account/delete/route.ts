@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { createServerSupabaseClient } from '@/utils/supabase/server';
 import { getSupabaseUrl } from '@/utils/supabase/env';
+import { assertTrustedBrowserRequest } from '@/lib/api/security';
 
 export const runtime = 'nodejs';
 
@@ -10,6 +11,10 @@ export const runtime = 'nodejs';
  * Intended for Play Console “delete account” URL + GDPR/CCPA self-service.
  */
 export async function POST(request: Request) {
+  if (!assertTrustedBrowserRequest(request)) {
+    return NextResponse.json({ error: 'Invalid request origin.' }, { status: 403 });
+  }
+
   let body: unknown = {};
   try {
     body = await request.json();
@@ -56,11 +61,7 @@ export async function POST(request: Request) {
   if (delAuthErr) {
     console.error('[account/delete] auth.admin.deleteUser', delAuthErr);
     return NextResponse.json(
-      {
-        error:
-          delAuthErr.message ||
-          'Could not delete account. Email support if this persists.',
-      },
+      { error: 'Could not delete account. Email support if this persists.' },
       { status: 400 }
     );
   }

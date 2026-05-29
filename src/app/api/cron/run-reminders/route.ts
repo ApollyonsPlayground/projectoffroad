@@ -2,18 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getSupabaseUrl } from '@/utils/supabase/env';
 
+import { authorizeCronRequest } from '@/lib/api/security';
+
 export const runtime = 'nodejs';
 
 const BUCKETS = ['72h', '48h', '24h'] as const;
-
-function authorizeCron(request: NextRequest): boolean {
-  const ua = request.headers.get('user-agent') ?? '';
-  if (ua.includes('vercel-cron')) return true;
-  const secret = process.env.CRON_SECRET?.trim();
-  if (!secret) return false;
-  const auth = request.headers.get('authorization')?.trim() ?? '';
-  return auth === `Bearer ${secret}`;
-}
 
 /** Hours until start must fall in these bands so each reminder fires once as time advances. */
 function reminderBucketEligible(hoursUntil: number, bucket: (typeof BUCKETS)[number]): boolean {
@@ -24,7 +17,7 @@ function reminderBucketEligible(hoursUntil: number, bucket: (typeof BUCKETS)[num
 }
 
 export async function GET(request: NextRequest) {
-  if (!authorizeCron(request)) {
+  if (!authorizeCronRequest(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

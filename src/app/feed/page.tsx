@@ -1407,7 +1407,7 @@ function RigPostCard({ post, index }: {
       if (distinctUserIds.length > 0) {
         const { data: userRows } = await supabaseClient
           .from('users')
-          .select('id, role, name, username, hide_display_name, email, avatar_url')
+          .select('id, role, name, username, hide_display_name, avatar_url')
           .in('id', distinctUserIds);
         (userRows ?? []).forEach((u: Record<string, unknown>) => {
           const id = String(u.id ?? '');

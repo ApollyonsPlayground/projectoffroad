@@ -87,7 +87,7 @@ export function FollowingStoriesStrip({
 
       const { data: profiles } = await supabaseClient
         .from('users')
-        .select('id, name, avatar_url, username, hide_display_name, email')
+        .select('id, name, avatar_url, username, hide_display_name')
         .in('id', userIdsWithStories);
 
       const profileMap = new Map<string, ProfileLite>();

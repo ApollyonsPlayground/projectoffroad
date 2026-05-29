@@ -2,21 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getSupabaseUrl } from '@/utils/supabase/env';
 
+import { authorizeCronRequest } from '@/lib/api/security';
+
 export const runtime = 'nodejs';
 
 const RUN_EXPIRY_MS = 24 * 60 * 60 * 1000;
 
-function authorizeCron(request: NextRequest): boolean {
-  const ua = request.headers.get('user-agent') ?? '';
-  if (ua.includes('vercel-cron')) return true;
-  const secret = process.env.CRON_SECRET?.trim();
-  if (!secret) return false;
-  const auth = request.headers.get('authorization')?.trim() ?? '';
-  return auth === `Bearer ${secret}`;
-}
-
 export async function GET(request: NextRequest) {
-  if (!authorizeCron(request)) {
+  if (!authorizeCronRequest(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

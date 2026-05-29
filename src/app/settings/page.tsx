@@ -67,7 +67,7 @@ export default function SettingsPage() {
       const ids = [...new Set(rows.map((r) => r.blocked_id))];
       const { data: profiles } = await supabaseClient
         .from('users')
-        .select('id, name, username, hide_display_name, email')
+        .select('id, name, username, hide_display_name')
         .in('id', ids);
       const labelById = new Map(
         (profiles ?? []).map((u: Record<string, unknown>) => [
@@ -77,7 +77,6 @@ export default function SettingsPage() {
             name: u.name as string | null,
             username: u.username as string | null,
             hide_display_name: u.hide_display_name as boolean | null,
-            email: u.email as string | null,
           }),
         ])
       );

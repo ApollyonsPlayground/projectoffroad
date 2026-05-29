@@ -21,6 +21,7 @@ import BottomNav from '@/components/BottomNav';
 import { ClubListSkeleton } from '@/components/SkeletonLoader';
 import { supabase, isSupabaseConfigured } from '@/lib/db/supabase';
 import { ensureStoragePublicObjectUrl } from '@/lib/supabase/storagePublicUrl';
+import { instagramHref, safeExternalUrl } from '@/lib/safeExternalUrl';
 import { useAuth } from '@/context/AuthContext';
 
 function storageAwareClubImageUrl(raw: unknown): string | undefined {
@@ -78,11 +79,8 @@ interface Club {
 
 function normalizeClubFromDb(row: Record<string, unknown>): Club {
   const inst = row.instagram_url ?? row.instagram;
-  let instagram_url: string | undefined;
-  if (typeof inst === 'string' && inst.trim().length > 0) {
-    const t = inst.trim();
-    instagram_url = t.startsWith('http') ? t : `https://instagram.com/${t.replace(/^@/, '')}`;
-  }
+  const instagram_url =
+    typeof inst === 'string' && inst.trim() ? instagramHref(inst) ?? undefined : undefined;
   const web = row.website_url ?? row.website;
   const member_count = typeof row.member_count === 'number' ? row.member_count : undefined;
 
@@ -98,7 +96,7 @@ function normalizeClubFromDb(row: Record<string, unknown>): Club {
     verified: Boolean(row.verified),
     premium: Boolean(row.premium),
     member_count,
-    website_url: typeof web === 'string' && web.trim() ? web.trim() : undefined,
+    website_url: typeof web === 'string' && web.trim() ? safeExternalUrl(web) ?? undefined : undefined,
     instagram_url,
     facebook_url: row.facebook_url as string | undefined,
     lat: typeof row.lat === 'number' ? row.lat : undefined,
