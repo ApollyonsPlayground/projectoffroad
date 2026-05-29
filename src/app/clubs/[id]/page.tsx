@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Trash2, Pencil, Loader2, MessageCircle } from 'lucide-react';
+import { Trash2, Pencil, Loader2, MessageCircle, Camera } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/db/supabase';
 import BottomNav from '@/components/BottomNav';
@@ -277,6 +277,7 @@ export default function ClubDetailPage() {
       const { error: dbErr } = await sb.from('clubs').update({ logo: url }).eq('id', club.id);
       if (dbErr) throw dbErr;
       setEditForm((f) => ({ ...f, logo: url }));
+      setClub((c) => (c ? { ...c, logo: url } : c));
       await fetchClub();
       showToast('Club photo saved', 'success');
     } catch (e) {
@@ -293,7 +294,7 @@ export default function ClubDetailPage() {
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
-      showToast('Flyer must be under 5 MB', 'info');
+      showToast('Cover photo must be under 5 MB', 'info');
       return;
     }
     setBannerUploading(true);
@@ -312,8 +313,9 @@ export default function ClubDetailPage() {
       const { error: dbErr } = await sb.from('clubs').update({ banner_image: url }).eq('id', club.id);
       if (dbErr) throw dbErr;
       setEditForm((f) => ({ ...f, banner_image: url }));
+      setClub((c) => (c ? { ...c, banner_image: url } : c));
       await fetchClub();
-      showToast('Club flyer saved — it will show on official club runs.', 'success');
+      showToast('Cover photo saved', 'success');
     } catch (e) {
       showToast(e instanceof Error ? e.message : 'Upload failed', 'error');
     } finally {
@@ -477,16 +479,97 @@ export default function ClubDetailPage() {
 
   return (
     <div className="min-h-screen bg-background pb-safe-nav">
-      {club.banner_image ? (
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
-          <img
-            src={club.banner_image}
-            alt=""
-            className="w-full max-h-52 object-cover rounded-xl border border-border bg-muted"
-          />
+      <div className="max-w-4xl mx-auto">
+        {/* Cover / background photo */}
+        <div className="relative h-44 sm:h-52 md:h-56 overflow-hidden border-b border-border bg-muted">
+          {club.banner_image ? (
+            <img
+              src={club.banner_image}
+              alt=""
+              className="absolute inset-0 w-full h-full object-cover"
+            />
+          ) : (
+            <div
+              className="absolute inset-0 bg-gradient-to-br from-zinc-800 via-zinc-900 to-zinc-950"
+              aria-hidden
+            />
+          )}
+          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/25 to-transparent" />
+          {isClubOwner && (
+            <label className="absolute bottom-3 right-3 sm:right-6 inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-background/85 backdrop-blur-sm border border-border text-xs font-semibold text-foreground cursor-pointer hover:bg-background transition disabled:opacity-50">
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="sr-only"
+                disabled={bannerUploading}
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) void uploadClubBannerFile(f);
+                  e.target.value = '';
+                }}
+              />
+              {bannerUploading ? (
+                <Loader2 size={14} className="animate-spin shrink-0" />
+              ) : (
+                <Camera size={14} className="shrink-0" />
+              )}
+              {club.banner_image ? 'Change cover photo' : 'Add cover photo'}
+            </label>
+          )}
         </div>
-      ) : null}
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+        {/* Logo overlapping cover */}
+        <div className="px-4 sm:px-6 lg:px-8 flex items-end gap-4 -mt-10 relative z-10 pb-4">
+          <div className="relative shrink-0">
+            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl bg-card border-4 border-background shadow-lg overflow-hidden flex items-center justify-center text-3xl">
+              {club.logo ? (
+                <img src={club.logo} alt={club.name} className="w-full h-full object-cover" />
+              ) : (
+                <span aria-hidden>🏢</span>
+              )}
+              {logoUploading && (
+                <div className="absolute inset-0 bg-background/70 flex items-center justify-center">
+                  <Loader2 size={22} className="animate-spin text-primary" />
+                </div>
+              )}
+            </div>
+            {isClubOwner && (
+              <label className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-primary flex items-center justify-center cursor-pointer border-2 border-background shadow-md hover:bg-primary/90 transition disabled:opacity-50">
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="sr-only"
+                  disabled={logoUploading}
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) void uploadClubLogoFile(f);
+                    e.target.value = '';
+                  }}
+                />
+                <Camera size={14} className="text-primary-foreground" />
+              </label>
+            )}
+          </div>
+          <div className="flex-1 min-w-0 pb-0.5">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-xl sm:text-2xl font-bold text-foreground">{club.name}</h1>
+              {club.verified && (
+                <span className="px-2 py-0.5 bg-blue-500/20 text-blue-600 dark:text-blue-400 text-xs sm:text-sm rounded">
+                  ✓ Verified
+                </span>
+              )}
+              {club.premium && (
+                <span className="px-2 py-0.5 bg-amber-500/20 text-amber-600 dark:text-amber-400 text-xs sm:text-sm rounded">
+                  ⭐ Premium
+                </span>
+              )}
+            </div>
+            <p className="text-muted-foreground text-sm mt-0.5">{club.location}</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
         <Link href="/clubs/" className="inline-block text-sm text-primary hover:underline mb-4">
           ← Back to clubs
         </Link>
@@ -496,43 +579,17 @@ export default function ClubDetailPage() {
         </p>
 
         <div className="rounded-xl border border-border bg-card p-6 mb-6">
-          <div className="flex items-start space-x-4">
-            <div className="w-20 h-20 bg-muted rounded-xl flex items-center justify-center text-4xl border border-border">
-              {club.logo ? (
-                <img src={club.logo} alt={club.name} className="w-full h-full object-cover rounded-xl" />
-              ) : (
-                '🏢'
-              )}
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-2xl font-bold text-foreground">{club.name}</h1>
-                {club.verified && (
-                  <span className="px-2 py-0.5 bg-blue-500/20 text-blue-600 dark:text-blue-400 text-sm rounded">
-                    ✓ Verified
-                  </span>
-                )}
-                {club.premium && (
-                  <span className="px-2 py-0.5 bg-amber-500/20 text-amber-600 dark:text-amber-400 text-sm rounded">
-                    ⭐ Premium
-                  </span>
-                )}
-              </div>
-              <p className="text-muted-foreground mt-1">{club.location}</p>
-
-              <div className="flex flex-wrap gap-4 mt-4">
-                {web && (
-                  <a href={web} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline text-sm font-semibold">
-                    🌐 Website
-                  </a>
-                )}
-                {ig && (
-                  <a href={ig} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline text-sm font-semibold">
-                    📸 Instagram
-                  </a>
-                )}
-              </div>
-            </div>
+          <div className="flex flex-wrap gap-4">
+            {web && (
+              <a href={web} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline text-sm font-semibold">
+                🌐 Website
+              </a>
+            )}
+            {ig && (
+              <a href={ig} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline text-sm font-semibold">
+                📸 Instagram
+              </a>
+            )}
           </div>
 
           {club.description && (
@@ -630,8 +687,19 @@ export default function ClubDetailPage() {
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-muted-foreground mb-1">
-                      Club flyer / poster (official club runs)
+                      Cover photo / background
                     </label>
+                    {editForm.banner_image ? (
+                      <img
+                        src={editForm.banner_image}
+                        alt="Cover preview"
+                        className="w-full max-h-32 rounded-xl object-cover border border-border mb-2"
+                      />
+                    ) : (
+                      <p className="text-[11px] text-muted-foreground mb-2">
+                        No cover yet — use &quot;Add cover photo&quot; at the top of this page, or upload below.
+                      </p>
+                    )}
                     <input
                       type="file"
                       accept="image/jpeg,image/png,image/webp"
@@ -650,7 +718,7 @@ export default function ClubDetailPage() {
                       className="w-full px-3 py-2 mt-2 bg-background border border-border rounded-lg text-foreground text-sm"
                     />
                     <p className="text-[11px] text-muted-foreground mt-1">
-                      Upload saves immediately. URL-only changes apply when you tap Save changes.
+                      Shown behind your club logo and on club cards in the directory. Upload saves immediately.
                     </p>
                   </div>
                   <button
