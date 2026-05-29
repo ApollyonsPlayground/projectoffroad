@@ -1,4 +1,4 @@
-export const DEV_UPDATES_VERSION = '2026-05-30';
+export const DEV_UPDATES_VERSION = '2026-05-29';
 
 export type DevUpdateTag = 'new' | 'improved' | 'fix';
 
@@ -18,7 +18,7 @@ export type DevUpdateRelease = {
 export const DEV_UPDATES: DevUpdateRelease[] = [
   {
     version: DEV_UPDATES_VERSION,
-    date: 'May 30, 2026',
+    date: 'May 29, 2026',
     title: 'Club branding, trail names & smoother entry',
     items: [
       {
