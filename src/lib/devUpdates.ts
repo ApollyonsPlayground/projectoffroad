@@ -1,4 +1,4 @@
-export const DEV_UPDATES_VERSION = '2026-05-29';
+export const DEV_UPDATES_VERSION = '2026-05-30';
 
 export type DevUpdateTag = 'new' | 'improved' | 'fix';
 
@@ -18,20 +18,32 @@ export type DevUpdateRelease = {
 export const DEV_UPDATES: DevUpdateRelease[] = [
   {
     version: DEV_UPDATES_VERSION,
-    date: 'May 29, 2026',
-    title: 'Trail identity, club photos & community tools',
+    date: 'May 30, 2026',
+    title: 'Club branding, trail names & smoother entry',
     items: [
       {
         tag: 'new',
-        title: 'Club photo upload',
+        title: 'Club cover photo',
         summary:
-          'Club owners can upload a logo or profile photo from their phone on the club edit screen — no URL required.',
+          'Club owners can set a full-width background cover on the club page (and on directory cards). Tap Add cover photo on your club page or upload from Edit club info.',
       },
       {
         tag: 'new',
-        title: 'Auto trail names (@username)',
+        title: 'Club logo upload',
         summary:
-          'Every rider gets a unique @handle on sign-in. The feed, runs, clubs, and messages show nicknames only — real names stay private.',
+          'Club owners can upload a logo from their phone — use the camera button on the club page or the file picker under Edit club info.',
+      },
+      {
+        tag: 'new',
+        title: 'Auto nicknames (@username)',
+        summary:
+          'Every rider gets a unique @handle on sign-in. The feed, runs, clubs, and messages show nicknames only — real names stay private on public surfaces.',
+      },
+      {
+        tag: 'new',
+        title: "What's new",
+        summary:
+          'Open Menu → What\'s new anytime for release notes. A one-time popup highlights the latest changes after you update.',
       },
       {
         tag: 'new',
@@ -49,6 +61,12 @@ export const DEV_UPDATES: DevUpdateRelease[] = [
         title: 'Signed-in app entry',
         summary:
           'Returning users skip the marketing homepage and off-road advisory gate — you land in the feed automatically.',
+      },
+      {
+        tag: 'improved',
+        title: 'Nickname welcome',
+        summary:
+          'After your @handle is assigned, a short toast explains your trail name and points you to Edit profile if you want to change it.',
       },
       {
         tag: 'improved',
