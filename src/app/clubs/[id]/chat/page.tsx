@@ -8,6 +8,7 @@ import BottomNav from '@/components/BottomNav';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/Toast';
 import { isLimitedMediaDevice, resizeImageFileToJpegBlob } from '@/lib/media/mobileSafeCapture';
+import { resolvePublicDisplayName } from '@/lib/profileDisplay';
 
 type ClubMessageRow = {
   id: string;
@@ -20,7 +21,7 @@ type ClubMessageRow = {
   created_at: string;
 };
 
-type UserRow = { id: string; name: string | null; avatar_url: string | null };
+type UserRow = { id: string; name: string | null; username?: string | null; avatar_url: string | null };
 
 export default function ClubChatPage() {
   const params = useParams();
@@ -100,10 +101,15 @@ export default function ClubChatPage() {
       const authorIds = [...new Set(rows.map((r) => r.user_id).filter(Boolean))];
       const authorById: Record<string, UserRow> = {};
       if (authorIds.length) {
-        const { data: urows } = await supabaseClient.from('users').select('id,name,avatar_url').in('id', authorIds);
+        const { data: urows } = await supabaseClient.from('users').select('id,name,username,avatar_url').in('id', authorIds);
         for (const u of urows ?? []) {
-          const r = u as { id: string; name?: string | null; avatar_url?: string | null };
-          authorById[String(r.id)] = { id: String(r.id), name: r.name ?? null, avatar_url: r.avatar_url ?? null };
+          const r = u as { id: string; name?: string | null; username?: string | null; avatar_url?: string | null };
+          authorById[String(r.id)] = {
+            id: String(r.id),
+            name: r.name ?? null,
+            username: r.username ?? null,
+            avatar_url: r.avatar_url ?? null,
+          };
         }
       }
 
@@ -276,7 +282,10 @@ export default function ClubChatPage() {
         ) : (
           messages.map((m) => {
             const mine = m.user_id === user.id;
-            const label = (m.author?.name ?? 'Member').trim() || 'Member';
+            const label = resolvePublicDisplayName({
+              id: m.author?.id ?? m.user_id,
+              username: m.author?.username,
+            });
             return (
               <div key={m.id} className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
                 <div className={`max-w-[86%] rounded-2xl border ${mine ? 'bg-primary/15 border-primary/25' : 'bg-muted border-border'} overflow-hidden`}>

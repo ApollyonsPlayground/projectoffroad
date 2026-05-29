@@ -37,7 +37,6 @@ export default function SettingsPage() {
   const [dmAllow, setDmAllow] = useState<DmAllow>('everyone');
   const [blockedRows, setBlockedRows] = useState<{ blocked_id: string; label: string }[]>([]);
   const [loadingBlocks, setLoadingBlocks] = useState(false);
-  const [hideDisplayName, setHideDisplayName] = useState(false);
   const [syncGoogleName, setSyncGoogleName] = useState(false);
 
   useEffect(() => {
@@ -50,7 +49,6 @@ export default function SettingsPage() {
     setNotifyMessages(profile.notify_messages === true);
     const dm = String(profile.dm_allow_from ?? 'everyone');
     setDmAllow(dm === 'nobody' ? 'nobody' : 'everyone');
-    setHideDisplayName(profile.hide_display_name === true);
     setSyncGoogleName(profile.sync_display_name_from_google === true);
   }, [profile]);
 
@@ -134,11 +132,6 @@ export default function SettingsPage() {
   const changeDm = async (v: DmAllow) => {
     setDmAllow(v);
     await persistPrefs({ dm_allow_from: v });
-  };
-
-  const toggleHideDisplayName = async (v: boolean) => {
-    setHideDisplayName(v);
-    await persistPrefs({ hide_display_name: v });
   };
 
   const toggleSyncGoogleName = async (v: boolean) => {
@@ -298,26 +291,12 @@ export default function SettingsPage() {
           ) : (
             <div className="space-y-4">
               <p className="text-neutral-600 text-[12px] leading-relaxed">
-                Set your display name and optional @username under{' '}
+                Your public trail name is your @username — shown on the feed, runs, and messages. Change it under{' '}
                 <Link href="/profile/edit" className="text-primary/90 hover:text-primary/80">
                   Edit profile
                 </Link>
-                . New posts and comments use your current public label (not stale Google metadata).
+                . Real names from Google stay private and are never shown on the feed.
               </p>
-              <label className="flex items-start gap-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={hideDisplayName}
-                  onChange={(e) => void toggleHideDisplayName(e.target.checked)}
-                  className="w-5 h-5 mt-0.5 accent-muted-gold flex-shrink-0"
-                />
-                <span>
-                  <span className="text-neutral-300 text-sm font-semibold block">Hide display name</span>
-                  <span className="text-neutral-600 text-[12px] leading-relaxed">
-                    Others see your @username if set, otherwise a neutral label. Your profile details stay separate from Google after sign-in.
-                  </span>
-                </span>
-              </label>
               <label className="flex items-start gap-3 cursor-pointer">
                 <input
                   type="checkbox"
@@ -326,9 +305,9 @@ export default function SettingsPage() {
                   className="w-5 h-5 mt-0.5 accent-muted-gold flex-shrink-0"
                 />
                 <span>
-                  <span className="text-neutral-300 text-sm font-semibold block">Keep display name in sync with Google</span>
+                  <span className="text-neutral-300 text-sm font-semibold block">Keep private account name in sync with Google</span>
                   <span className="text-neutral-600 text-[12px] leading-relaxed">
-                    When enabled, your saved display name updates whenever you sign in with Google. Turn off to keep a custom name.
+                    When enabled, your saved account name (not your @username) updates when you sign in with Google.
                   </span>
                 </span>
               </label>

@@ -9,6 +9,7 @@ import { isIosNative } from '@/utils/capacitator/isIosNative'
 import { appleNativeAuth } from '@/utils/auth/appleNativeSignIn'
 import { isAppleSignInNativeAvailable } from '@/utils/auth/appleSignInNativeAvailable'
 import { formatOAuthAuthError } from '@/utils/auth/oauthIdentityErrors'
+import { assignUniqueUsername } from '@/lib/username/generateUsername'
 import { buildOAuthRedirect, readOAuthNextParam } from '@/utils/auth/oauthRedirect'
 import { App as CapacitorApp } from '@capacitor/app'
 import { Browser } from '@capacitor/browser'
@@ -111,6 +112,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           name: oauthName,
           avatar_url,
           sync_display_name_from_google: false,
+          hide_display_name: true,
         })
         if (insErr?.code === '23505') {
           const { data: raceRow } = await supabase
@@ -142,6 +144,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const { error: updErr } = await supabase.from('users').update(patch).eq('id', userId)
         if (updErr) console.warn('[Auth] profile update:', updErr.message)
       }
+
+      await assignUniqueUsername(supabase, userId)
 
       // maybeSingle: avoids 406 when row still missing after a failed upsert
       const { data, error } = await supabase

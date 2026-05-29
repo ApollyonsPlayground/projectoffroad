@@ -59,8 +59,9 @@ interface TrailTripNoteRow {
   body: string;
   created_at: string;
   run_id: string;
+  user_id?: string;
   runs?: { title: string; date: string } | null;
-  users?: { name: string | null } | null;
+  users?: { name: string | null; username?: string | null } | null;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -222,8 +223,8 @@ export default function TrailDetailPage() {
     let cancelled = false;
     void (async () => {
       const attempts = [
-        'id, body, created_at, run_id, runs(title, date), users(name)',
-        'id, body, created_at, run_id, users(name)',
+        'id, body, created_at, run_id, runs(title, date), users(name, username)',
+        'id, body, created_at, run_id, users(name, username)',
       ];
       for (const sel of attempts) {
         const { data, error } = await supabaseClient
@@ -694,7 +695,12 @@ export default function TrailDetailPage() {
                   className="rounded-xl border border-border bg-muted/80 px-3 py-3"
                 >
                   <p className="text-[11px] text-muted-foreground mb-1.5">
-                    <span className="text-muted-foreground font-semibold">{n.users?.name ?? 'Rider'}</span>
+                    <span className="text-muted-foreground font-semibold">
+                      {resolvePublicDisplayName({
+                        id: n.user_id,
+                        username: n.users?.username,
+                      })}
+                    </span>
                     <span className="text-muted-foreground mx-1">·</span>
                     {n.runs?.title ? (
                       <Link

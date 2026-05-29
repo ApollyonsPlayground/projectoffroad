@@ -40,7 +40,7 @@ import BottomNav from '@/components/BottomNav';
 import { TrailReportFormDrawer } from '@/components/trails/TrailReportFormDrawer';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/Toast';
-import { snapshotPublicIdentity } from '@/lib/profileDisplay';
+import { resolvePublicDisplayName, snapshotPublicIdentity } from '@/lib/profileDisplay';
 import type { RunLiveMapParticipant } from '@/components/RunLiveMap';
 import { RUN_GROUP_CHAT_PRESETS } from '@/lib/runs/chatPresets';
 import { mapDbTrailRow, coordsFromRow } from '@/lib/trails/mapDbTrail';
@@ -113,6 +113,7 @@ interface RunDetail {
 interface HostProfile {
   id: string;
   name: string | null;
+  username?: string | null;
   avatar_url: string | null;
 }
 
@@ -122,6 +123,7 @@ interface Participant {
   rsvp_status: string;
   users: {
     name: string | null;
+    username?: string | null;
     avatar_url: string | null;
   } | null;
 }
@@ -142,7 +144,7 @@ interface RunChatMessage {
   user_id: string;
   content: string;
   created_at: string;
-  users?: { name: string | null; avatar_url: string | null } | null;
+  users?: { name: string | null; username?: string | null; avatar_url: string | null } | null;
 }
 
 interface RunReflectionRow {
@@ -151,7 +153,7 @@ interface RunReflectionRow {
   body: string;
   created_at: string;
   updated_at: string;
-  users?: { name: string | null } | null;
+  users?: { name: string | null; username?: string | null } | null;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -395,7 +397,7 @@ export default function RunDetailPage() {
       if (hid) {
         const { data: hp } = await supabaseClient
           .from('users')
-          .select('id, name, avatar_url')
+          .select('id, name, username, avatar_url')
           .eq('id', hid)
           .maybeSingle();
         setHostProfile(hp as HostProfile | null);
@@ -404,11 +406,19 @@ export default function RunDetailPage() {
       let parts: Participant[] = [];
       const participantsEmb = await supabaseClient
         .from('run_participants')
-        .select('id, user_id, rsvp_status, users(name, avatar_url)')
+        .select('id, user_id, rsvp_status, users(name, username, avatar_url)')
         .eq('run_id', runIdResolved);
 
       if (!participantsEmb.error && participantsEmb.data) {
-        parts = participantsEmb.data as unknown as Participant[];
+        parts = (participantsEmb.data as unknown as Participant[]).map((p) => ({
+          ...p,
+          users: p.users
+            ? {
+                ...p.users,
+                name: resolvePublicDisplayName({ id: p.user_id, username: p.users.username }),
+              }
+            : null,
+        }));
       } else {
         const base = await supabaseClient
           .from('run_participants')
@@ -416,15 +426,19 @@ export default function RunDetailPage() {
           .eq('run_id', runIdResolved);
         const rawRows = (base.data ?? []) as { id: string; user_id: string; rsvp_status: string }[];
         const userIds = [...new Set(rawRows.map((r) => r.user_id).filter(Boolean))];
-        const usersById: Record<string, { name: string | null; avatar_url: string | null }> = {};
+        const usersById: Record<string, { name: string | null; username?: string | null; avatar_url: string | null }> = {};
         if (userIds.length) {
           const { data: urows } = await supabaseClient
             .from('users')
-            .select('id, name, avatar_url')
+            .select('id, name, username, avatar_url')
             .in('id', userIds);
           for (const u of urows ?? []) {
-            const row = u as { id: string; name: string | null; avatar_url: string | null };
-            usersById[row.id] = { name: row.name ?? null, avatar_url: row.avatar_url ?? null };
+            const row = u as { id: string; name: string | null; username?: string | null; avatar_url: string | null };
+            usersById[row.id] = {
+              name: resolvePublicDisplayName({ id: row.id, username: row.username }),
+              username: row.username ?? null,
+              avatar_url: row.avatar_url ?? null,
+            };
           }
         }
         parts = rawRows.map((r) => ({
@@ -517,7 +531,10 @@ export default function RunDetailPage() {
 
     let cancelled = false;
     void (async () => {
-      const attempts = ['id, body, created_at, updated_at, user_id, users(name)', 'id, body, created_at, updated_at, user_id'];
+      const attempts = [
+        'id, body, created_at, updated_at, user_id, users(name, username)',
+        'id, body, created_at, updated_at, user_id',
+      ];
       for (const sel of attempts) {
         const { data, error } = await supabaseClient
           .from('run_reflections')
@@ -525,7 +542,15 @@ export default function RunDetailPage() {
           .eq('run_id', runIdResolved)
           .order('created_at', { ascending: false });
         if (!error && data != null && !cancelled) {
-          const rows = data as unknown as RunReflectionRow[];
+          const rows = (data as unknown as RunReflectionRow[]).map((r) => ({
+            ...r,
+            users: r.users
+              ? {
+                  ...r.users,
+                  name: resolvePublicDisplayName({ id: r.user_id, username: r.users.username }),
+                }
+              : null,
+          }));
           setRunReflections(rows);
           const mine = user ? rows.find((r) => r.user_id === user.id) : undefined;
           if (!reflectionTouchedRef.current) {
@@ -1033,24 +1058,42 @@ export default function RunDetailPage() {
 
   const enrichChatRow = useCallback(
     (row: RunChatMessage): RunChatMessage => {
-      if (row.users?.name) return row;
       const fromPart = participants.find((p) => p.user_id === row.user_id)?.users;
       if (fromPart) return { ...row, users: fromPart };
-      if (user && row.user_id === user.id) {
+      if (row.users?.username != null || (row.users?.name && row.users.name.startsWith('@'))) {
         return {
           ...row,
           users: {
-            name:
-              (user.user_metadata?.full_name as string) ||
-              user.email?.split('@')[0] ||
-              'You',
+            ...row.users,
+            name: resolvePublicDisplayName({
+              id: row.user_id,
+              username: row.users?.username,
+            }),
+            avatar_url: row.users?.avatar_url ?? null,
+          },
+        };
+      }
+      if (user && row.user_id === user.id) {
+        const prof = profile as { username?: string } | null;
+        return {
+          ...row,
+          users: {
+            name: resolvePublicDisplayName({ id: user.id, username: prof?.username }),
+            username: prof?.username ?? null,
             avatar_url: (user.user_metadata?.avatar_url as string) || null,
           },
         };
       }
-      return { ...row, users: { name: 'Rider', avatar_url: null } };
+      return {
+        ...row,
+        users: {
+          name: resolvePublicDisplayName({ id: row.user_id, username: row.users?.username }),
+          username: row.users?.username ?? null,
+          avatar_url: row.users?.avatar_url ?? null,
+        },
+      };
     },
-    [participants, user]
+    [participants, user, profile]
   );
 
   useEffect(() => {
@@ -1059,7 +1102,7 @@ export default function RunDetailPage() {
     let cancelled = false;
     void (async () => {
       const attempts = [
-        'id, content, created_at, user_id, users(name, avatar_url)',
+        'id, content, created_at, user_id, users(name, username, avatar_url)',
         'id, content, created_at, user_id',
       ];
       for (const sel of attempts) {
@@ -1158,10 +1201,22 @@ export default function RunDetailPage() {
       showToast('Trip note saved', 'success');
       const { data: again } = await supabaseClient
         .from('run_reflections')
-        .select('id, body, created_at, updated_at, user_id, users(name)')
+        .select('id, body, created_at, updated_at, user_id, users(name, username)')
         .eq('run_id', run.id)
         .order('created_at', { ascending: false });
-      if (again) setRunReflections(again as unknown as RunReflectionRow[]);
+      if (again) {
+        setRunReflections(
+          (again as unknown as RunReflectionRow[]).map((r) => ({
+            ...r,
+            users: r.users
+              ? {
+                  ...r.users,
+                  name: resolvePublicDisplayName({ id: r.user_id, username: r.users.username }),
+                }
+              : null,
+          }))
+        );
+      }
     } catch {
       showToast('Could not save trip note — try again after migrations are applied', 'error');
     } finally {
@@ -1181,11 +1236,15 @@ export default function RunDetailPage() {
     if (run.host_id && !participants.some((p) => p.user_id === run.host_id)) {
       base.push({
         user_id: run.host_id,
-        users: { name: hostProfile?.name ?? runHostFallbackName(run?.run_source) },
+        users: {
+          name: hostProfile
+            ? resolvePublicDisplayName({ id: run.host_id, username: hostProfile.username })
+            : runHostFallbackName(run?.run_source),
+        },
       });
     }
     return base;
-  }, [participants, run, hostProfile?.name]);
+  }, [participants, run, hostProfile]);
 
   // ── Loading skeleton ─────────────────────────────────────────────────────
   if (isLoading) {
@@ -1759,7 +1818,10 @@ export default function RunDetailPage() {
                   <div className="flex-1 min-w-0">
                     <p className="text-[11px] text-muted-foreground uppercase font-bold">{runHostProfileHeading(run.run_source)}</p>
                     <p className="text-[14px] font-bold text-foreground truncate group-hover:text-primary/90 transition-colors">
-                      {hostProfile.name ?? runHostFallbackName(run.run_source)}
+                      {resolvePublicDisplayName({
+                        id: run.host_id,
+                        username: hostProfile.username,
+                      }) || runHostFallbackName(run.run_source)}
                     </p>
                   </div>
                   <ChevronRight size={18} className="text-muted-foreground group-hover:text-primary/90 flex-shrink-0" />

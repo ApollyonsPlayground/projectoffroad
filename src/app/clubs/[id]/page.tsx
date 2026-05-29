@@ -10,6 +10,7 @@ import BottomNav from '@/components/BottomNav';
 import ClubGarage from '@/components/clubs/ClubGarage';
 import { useToast } from '@/components/Toast';
 import { ensureStoragePublicObjectUrl } from '@/lib/supabase/storagePublicUrl';
+import { resolvePublicDisplayName } from '@/lib/profileDisplay';
 
 interface Club {
   id: string;
@@ -39,7 +40,7 @@ interface Member {
   user_id: string;
   role: string;
   status?: string;
-  user?: { name: string; avatar_url: string };
+  user?: { name: string; avatar_url: string; username?: string | null };
 }
 
 function storageAwareClubImageUrl(raw: unknown): string | null {
@@ -114,6 +115,7 @@ export default function ClubDetailPage() {
   const [editOpen, setEditOpen] = useState(false);
   const [editSaving, setEditSaving] = useState(false);
   const [bannerUploading, setBannerUploading] = useState(false);
+  const [logoUploading, setLogoUploading] = useState(false);
   const [editForm, setEditForm] = useState({
     name: '',
     description: '',
@@ -204,12 +206,25 @@ export default function ClubDetailPage() {
     if (!sb || !clubId) return;
     const embedTry = await sb
       .from('club_members')
-      .select('*, user:users(id, name, avatar_url)')
+      .select('*, user:users(id, name, username, avatar_url)')
       .eq('club_id', clubId)
       .order('role', { ascending: true });
 
     if (!embedTry.error && embedTry.data) {
-      setMembers(embedTry.data as Member[]);
+      setMembers(
+        (embedTry.data as Member[]).map((m) => ({
+          ...m,
+          user: m.user
+            ? {
+                ...m.user,
+                name: resolvePublicDisplayName({
+                  id: m.user_id,
+                  username: (m.user as { username?: string | null }).username,
+                }),
+              }
+            : m.user,
+        }))
+      );
       return;
     }
 
@@ -226,14 +241,15 @@ export default function ClubDetailPage() {
       status?: string;
     }[];
     const userIds = [...new Set(rawRows.map((r) => r.user_id).filter(Boolean))];
-    const usersById: Record<string, { name: string; avatar_url: string }> = {};
+    const usersById: Record<string, { name: string; avatar_url: string; username?: string | null }> = {};
     if (userIds.length) {
-      const { data: urows } = await sb.from('users').select('id, name, avatar_url').in('id', userIds);
+      const { data: urows } = await sb.from('users').select('id, name, username, avatar_url').in('id', userIds);
       for (const u of urows ?? []) {
-        const row = u as { id: string; name: string | null; avatar_url: string | null };
+        const row = u as { id: string; name: string | null; username?: string | null; avatar_url: string | null };
         usersById[row.id] = {
-          name: String(row.name ?? 'Member').trim() || 'Member',
+          name: resolvePublicDisplayName({ id: row.id, username: row.username }),
           avatar_url: row.avatar_url ?? '',
+          username: row.username,
         };
       }
     }
@@ -246,6 +262,41 @@ export default function ClubDetailPage() {
         user: usersById[r.user_id],
       }))
     );
+  }
+
+  async function uploadClubLogoFile(file: File) {
+    if (!sb || !club || !user || user.id !== club.owner_id) return;
+    if (!file.type.startsWith('image/')) {
+      showToast('Use a JPG, PNG, or WebP image', 'info');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      showToast('Club photo must be under 5 MB', 'info');
+      return;
+    }
+    setLogoUploading(true);
+    try {
+      const extRaw = file.name.split('.').pop()?.toLowerCase();
+      const safeExt =
+        extRaw === 'png' || extRaw === 'webp' || extRaw === 'jpg' || extRaw === 'jpeg' ? extRaw : 'jpg';
+      const path = `${club.id}/logo-${Date.now()}.${safeExt}`;
+      const { error: upErr } = await sb.storage.from('club-logos').upload(path, file, {
+        upsert: true,
+        contentType: file.type,
+      });
+      if (upErr) throw upErr;
+      const { data: pub } = sb.storage.from('club-logos').getPublicUrl(path);
+      const url = pub.publicUrl;
+      const { error: dbErr } = await sb.from('clubs').update({ logo: url }).eq('id', club.id);
+      if (dbErr) throw dbErr;
+      setEditForm((f) => ({ ...f, logo: url }));
+      await fetchClub();
+      showToast('Club photo saved', 'success');
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : 'Upload failed', 'error');
+    } finally {
+      setLogoUploading(false);
+    }
   }
 
   async function uploadClubBannerFile(file: File) {
@@ -559,13 +610,36 @@ export default function ClubDetailPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-muted-foreground mb-1">Logo image URL</label>
+                    <label className="block text-xs font-medium text-muted-foreground mb-1">
+                      Club photo / logo
+                    </label>
+                    {editForm.logo ? (
+                      <img
+                        src={editForm.logo}
+                        alt="Club logo preview"
+                        className="w-16 h-16 rounded-xl object-cover border border-border mb-2"
+                      />
+                    ) : null}
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      disabled={logoUploading || editSaving}
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (f) void uploadClubLogoFile(f);
+                        e.target.value = '';
+                      }}
+                      className="w-full text-sm text-foreground file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-muted file:text-foreground"
+                    />
                     <input
                       value={editForm.logo}
                       onChange={(e) => setEditForm((f) => ({ ...f, logo: e.target.value }))}
-                      placeholder="https://..."
-                      className="w-full px-3 py-2 bg-background border border-border rounded-lg text-foreground text-sm"
+                      placeholder="Or paste image URL (save below)"
+                      className="w-full px-3 py-2 mt-2 bg-background border border-border rounded-lg text-foreground text-sm"
                     />
+                    <p className="text-[11px] text-muted-foreground mt-1">
+                      Upload saves immediately. URL-only changes apply when you tap Save changes.
+                    </p>
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-muted-foreground mb-1">

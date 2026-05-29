@@ -40,22 +40,16 @@ export function resolveLeaderboardDisplayName(p: ProfileIdentityFields | null | 
   return resolvePublicDisplayName(p);
 }
 
-/** What everyone else sees (feed headers, other profiles, search). */
+function neutralRiderLabel(id: string | null | undefined): string {
+  const tail = String(id ?? '').replace(/-/g, '').slice(-4);
+  return tail.length >= 4 ? `Rider ${tail}` : 'Rider';
+}
+
+/** What everyone else sees (feed headers, other profiles, search). Never exposes real name or email. */
 export function resolvePublicDisplayName(p: ProfileIdentityFields | null | undefined): string {
-  const hide = Boolean(p?.hide_display_name);
   const handle = String(p?.username ?? '').trim().toLowerCase();
-  if (hide) {
-    if (handle) return `@${handle}`;
-    const id = String(p?.id ?? '').replace(/-/g, '');
-    const tail = id.slice(-4);
-    return tail.length >= 4 ? `Rider ${tail}` : 'Rider';
-  }
-  const n = String(p?.name ?? '').trim();
-  if (n) return n;
-  const emailLocal = String(p?.email ?? '').split('@')[0]?.trim();
-  if (emailLocal) return emailLocal;
   if (handle) return `@${handle}`;
-  return 'Rider';
+  return neutralRiderLabel(p?.id);
 }
 
 /** Signed-in user viewing their own profile / composer — ignores hide_display_name */
@@ -69,21 +63,13 @@ export function resolveOwnProfileDisplayName(p: ProfileIdentityFields | null | u
   return 'Rider';
 }
 
-/** Snapshot label for new posts, comments, reposts, SOS — matches public rules */
+/** Snapshot label for new posts, comments, reposts, SOS — @username only, never real name. */
 export function snapshotPublicIdentity(
   profile: Record<string, unknown> | null | undefined,
   user: { id: string; email?: string | null; user_metadata?: Record<string, unknown> }
 ): string {
-  const meta = user.user_metadata ?? {};
-  const googleName =
-    (meta.full_name as string | undefined)?.trim() ||
-    (meta.name as string | undefined)?.trim() ||
-    undefined;
   return resolvePublicDisplayName({
     id: user.id,
-    email: (profile?.email as string | undefined) ?? user.email ?? null,
-    name: (profile?.name as string | undefined)?.trim() || googleName || null,
     username: (profile?.username as string | undefined) ?? null,
-    hide_display_name: profile?.hide_display_name === true,
   });
 }

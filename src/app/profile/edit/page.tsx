@@ -123,22 +123,7 @@ export default function EditProfilePage() {
       <main className="max-w-app-shell mx-auto px-4 py-6 space-y-5">
         <div>
           <label className="block text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
-            Display name
-          </label>
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="w-full bg-card border border-border rounded-xl px-3 py-2.5 text-[15px] text-foreground outline-none focus:border-primary/50"
-            autoComplete="name"
-          />
-          <p className="text-[11px] text-muted-foreground mt-1.5 leading-relaxed">
-            Shown when your name isn&apos;t hidden — separate from Google; turn off sync in Settings if needed.
-          </p>
-        </div>
-
-        <div>
-          <label className="block text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
-            Username
+            Trail name (@username)
           </label>
           <div className="flex items-center gap-1 bg-card border border-border rounded-xl px-3 py-2.5 focus-within:border-primary/50">
             <span className="text-muted-foreground text-[15px] select-none">@</span>
@@ -153,7 +138,22 @@ export default function EditProfilePage() {
             />
           </div>
           <p className="text-[11px] text-muted-foreground mt-1.5 leading-relaxed">
-            Optional · 3–24 characters · letters, numbers, underscores · shown as @handle when you hide your display name
+            This is what others see on the feed, runs, and messages — 3–24 characters, letters, numbers, underscores.
+          </p>
+        </div>
+
+        <div>
+          <label className="block text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
+            Account name (private)
+          </label>
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="w-full bg-card border border-border rounded-xl px-3 py-2.5 text-[15px] text-foreground outline-none focus:border-primary/50"
+            autoComplete="name"
+          />
+          <p className="text-[11px] text-muted-foreground mt-1.5 leading-relaxed">
+            For your records only — not shown on the public feed. Separate from Google; turn off sync in Settings if needed.
           </p>
         </div>
 

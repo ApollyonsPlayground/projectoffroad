@@ -8,6 +8,7 @@ import { ViewTransitions } from "@/components/ViewTransitions";
 import { ToastProvider } from "@/components/Toast";
 import { AdminLauncher } from "@/components/admin/AdminLauncher";
 import DisclaimerModal from "@/components/DisclaimerModal";
+import { WelcomeNicknameToast } from "@/components/onboarding/WelcomeNicknameToast";
 import { DesktopNavbar } from "@/components/DesktopNavbar";
 
 const inter = Inter({
@@ -60,6 +61,7 @@ export default function RootLayout({
               {children}
             </ViewTransitions>
             <DisclaimerModal />
+            <WelcomeNicknameToast />
             <AdminLauncher />
           </ToastProvider>
         </AuthProvider>

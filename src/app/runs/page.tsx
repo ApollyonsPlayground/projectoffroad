@@ -26,6 +26,7 @@ import { useToast } from '@/components/Toast';
 import { HostRunWizard } from '@/components/runs/HostRunWizard';
 import { mapDbTrailRow } from '@/lib/trails/mapDbTrail';
 import { resolveRunCardImage } from '@/lib/runs/runCardImage';
+import { resolvePublicDisplayName } from '@/lib/profileDisplay';
 import {
   runHostFallbackName,
   runHostListLabel,
@@ -410,10 +411,16 @@ export default function RunsPage() {
       const hostIds = [...new Set(fetchedRuns.map((r) => r.host_id).filter(Boolean))] as string[];
       const hostNameById: Record<string, string> = {};
       if (hostIds.length) {
-        const { data: hostRows } = await supabaseClient.from('users').select('id, name').in('id', hostIds);
+        const { data: hostRows } = await supabaseClient
+          .from('users')
+          .select('id, name, username')
+          .in('id', hostIds);
         if (hostRows) {
-          for (const row of hostRows as { id: string; name: string | null }[]) {
-            hostNameById[row.id] = String(row.name ?? '').trim();
+          for (const row of hostRows as { id: string; name: string | null; username?: string | null }[]) {
+            hostNameById[row.id] = resolvePublicDisplayName({
+              id: row.id,
+              username: row.username,
+            });
           }
         }
       }
