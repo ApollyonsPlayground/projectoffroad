@@ -12,6 +12,7 @@ import {
   Calendar,
   Users,
   MessageCircle,
+  Sparkles,
   ChevronRight,
 } from 'lucide-react';
 import BottomNav from '@/components/BottomNav';
@@ -30,6 +31,7 @@ const ITEMS: Item[] = [
   { href: '/dashboard/', label: 'Dashboard', desc: 'Stats & upcoming runs', icon: LayoutDashboard, auth: true },
   { href: '/achievements/', label: 'Achievements', desc: 'Badges & milestones', icon: Award, auth: true },
   { href: '/guides/', label: 'Guides', desc: 'Beginner tips & truck buying', icon: BookOpen },
+  { href: '/updates/', label: "What's new", desc: 'Recent app updates & fixes', icon: Sparkles },
   { href: '/settings/', label: 'Settings', desc: 'Account & privacy', icon: Settings, auth: true },
   { href: '/trails/', label: 'Trail explorer', desc: 'Browse SoCal trails', icon: Map },
   { href: '/runs/', label: 'Runs', desc: 'Calendar & join runs', icon: Calendar },

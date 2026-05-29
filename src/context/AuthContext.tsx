@@ -10,6 +10,7 @@ import { appleNativeAuth } from '@/utils/auth/appleNativeSignIn'
 import { isAppleSignInNativeAvailable } from '@/utils/auth/appleSignInNativeAvailable'
 import { formatOAuthAuthError } from '@/utils/auth/oauthIdentityErrors'
 import { assignUniqueUsername } from '@/lib/username/generateUsername'
+import { markDisclaimerAccepted } from '@/lib/disclaimerStorage'
 import { buildOAuthRedirect, readOAuthNextParam } from '@/utils/auth/oauthRedirect'
 import { App as CapacitorApp } from '@capacitor/app'
 import { Browser } from '@capacitor/browser'
@@ -211,6 +212,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .then(({ data: { session } }) => {
         setUser(session?.user ?? null)
         if (session?.user) {
+          markDisclaimerAccepted()
           void fetchProfile(session.user.id)
         } else {
           setLoading(false)
@@ -224,6 +226,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null)
       if (session?.user) {
+        markDisclaimerAccepted()
         void fetchProfile(session.user.id)
       } else {
         setProfile(null)

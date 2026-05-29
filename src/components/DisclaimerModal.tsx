@@ -4,8 +4,7 @@ import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { ShieldAlert, AlertTriangle } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-
-const STORAGE_KEY = 'project_offroad_disclaimer_v1';
+import { DISCLAIMER_STORAGE_KEY, markDisclaimerAccepted } from '@/lib/disclaimerStorage';
 
 /**
  * Legal advisory gate — must not rely on Framer Motion opacity animations here:
@@ -24,16 +23,17 @@ export default function DisclaimerModal() {
 
   useEffect(() => {
     if (!mounted) return;
+    if (user) {
+      markDisclaimerAccepted();
+      setShow(false);
+      setResolved(true);
+      return;
+    }
     if (loading) return;
     try {
-      if (user) {
-        localStorage.setItem(STORAGE_KEY, 'true');
-        setShow(false);
-      } else {
-        setShow(!localStorage.getItem(STORAGE_KEY));
-      }
+      setShow(!localStorage.getItem(DISCLAIMER_STORAGE_KEY));
     } catch {
-      setShow(!user);
+      setShow(true);
     }
     setResolved(true);
   }, [mounted, loading, user]);
@@ -50,15 +50,13 @@ export default function DisclaimerModal() {
   }, [show]);
 
   const handleAccept = () => {
-    try {
-      localStorage.setItem(STORAGE_KEY, 'true');
-    } catch {
-      /* private mode — still close so app is usable */
-    }
+    markDisclaimerAccepted();
     setShow(false);
   };
 
-  if (!mounted || !resolved || !show) return null;
+  if (!mounted || !resolved) return null;
+  if (user) return null;
+  if (!show) return null;
 
   const ui = (
     <div

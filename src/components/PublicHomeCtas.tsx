@@ -1,13 +1,29 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 
 export function PublicHomeCtas() {
   const { user, loading } = useAuth();
+  const router = useRouter();
 
-  // Avoid flashing "Sign in" while auth is hydrating.
+  useEffect(() => {
+    if (!loading && user) {
+      router.replace('/feed/');
+    }
+  }, [loading, user, router]);
+
   const showSignedIn = !loading && Boolean(user);
+
+  if (showSignedIn) {
+    return (
+      <nav className="flex flex-wrap items-center gap-2 sm:justify-end" aria-label="Primary">
+        <span className="px-4 py-2.5 rounded-xl text-sm font-bold text-muted-foreground">Opening app…</span>
+      </nav>
+    );
+  }
 
   return (
     <nav className="flex flex-wrap items-center gap-2 sm:justify-end" aria-label="Primary">

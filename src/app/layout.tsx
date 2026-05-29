@@ -8,6 +8,8 @@ import { ViewTransitions } from "@/components/ViewTransitions";
 import { ToastProvider } from "@/components/Toast";
 import { AdminLauncher } from "@/components/admin/AdminLauncher";
 import DisclaimerModal from "@/components/DisclaimerModal";
+import { DevUpdatesModal } from "@/components/dev/DevUpdatesModal";
+import { SignedInAppRedirect } from "@/components/SignedInAppRedirect";
 import { WelcomeNicknameToast } from "@/components/onboarding/WelcomeNicknameToast";
 import { DesktopNavbar } from "@/components/DesktopNavbar";
 
@@ -61,6 +63,8 @@ export default function RootLayout({
               {children}
             </ViewTransitions>
             <DisclaimerModal />
+            <SignedInAppRedirect />
+            <DevUpdatesModal />
             <WelcomeNicknameToast />
             <AdminLauncher />
           </ToastProvider>
