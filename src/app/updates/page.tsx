@@ -43,6 +43,19 @@ export default function UpdatesPage() {
               <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">{release.date}</p>
               <h2 className="text-lg font-black text-foreground mt-1">{release.title}</h2>
             </div>
+            {release.callout ? (
+              <div className="px-4 py-4 border-b border-border bg-primary/5 space-y-2">
+                <p className="text-[12px] font-black uppercase tracking-wider text-primary">
+                  {release.callout.title}
+                </p>
+                <p className="text-[14px] text-muted-foreground leading-relaxed">{release.callout.body}</p>
+                {release.callout.ctaHref && release.callout.ctaLabel ? (
+                  <Link href={release.callout.ctaHref} className="text-[13px] font-bold text-primary hover:underline">
+                    {release.callout.ctaLabel} →
+                  </Link>
+                ) : null}
+              </div>
+            ) : null}
             <ul className="divide-y divide-border">
               {release.items.map((item) => (
                 <li key={item.title} className="px-4 py-4 space-y-2">

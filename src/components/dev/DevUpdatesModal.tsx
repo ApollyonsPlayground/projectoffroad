@@ -71,7 +71,6 @@ export function DevUpdatesModal() {
     <div
       className="fixed inset-0 z-[19999] flex items-end sm:items-center justify-center bg-background/80 backdrop-blur-sm p-4 sm:p-6"
       role="presentation"
-      onClick={dismiss}
     >
       <div
         role="dialog"
@@ -104,6 +103,24 @@ export function DevUpdatesModal() {
           </div>
         </div>
 
+        {release.callout ? (
+          <div className="shrink-0 mx-5 mt-4 rounded-xl border border-primary/35 bg-primary/10 px-4 py-3 space-y-2">
+            <p className="text-[12px] font-black uppercase tracking-wider text-primary">
+              {release.callout.title}
+            </p>
+            <p className="text-[13px] text-foreground/90 leading-relaxed">{release.callout.body}</p>
+            {release.callout.ctaHref && release.callout.ctaLabel ? (
+              <Link
+                href={release.callout.ctaHref}
+                className="inline-flex text-[12px] font-bold text-primary hover:underline"
+                onClick={dismiss}
+              >
+                {release.callout.ctaLabel} →
+              </Link>
+            ) : null}
+          </div>
+        ) : null}
+
         <ul className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
           {release.items.map((item) => (
             <li key={item.title} className="space-y-1.5">
@@ -126,7 +143,7 @@ export function DevUpdatesModal() {
             onClick={dismiss}
             className="w-full py-3.5 min-h-[48px] rounded-xl bg-primary text-primary-foreground font-black text-sm uppercase tracking-wider touch-manipulation"
           >
-            Got it
+            Got it — thanks
           </button>
           <p className="text-center text-[11px] text-muted-foreground">
             <Link href="/updates/" className="text-primary font-semibold hover:underline" onClick={dismiss}>

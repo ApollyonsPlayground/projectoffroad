@@ -1,4 +1,4 @@
-export const DEV_UPDATES_VERSION = '2026-05-29';
+export const DEV_UPDATES_VERSION = '2026-05-31';
 
 export type DevUpdateTag = 'new' | 'improved' | 'fix';
 
@@ -8,30 +8,52 @@ export type DevUpdateItem = {
   tag: DevUpdateTag;
 };
 
+export type DevUpdateCallout = {
+  title: string;
+  body: string;
+  ctaLabel?: string;
+  ctaHref?: string;
+};
+
 export type DevUpdateRelease = {
   version: string;
   date: string;
   title: string;
   items: DevUpdateItem[];
+  /** Optional banner — e.g. ask for feedback before enabling a feature. */
+  callout?: DevUpdateCallout;
 };
 
 export const DEV_UPDATES: DevUpdateRelease[] = [
   {
     version: DEV_UPDATES_VERSION,
-    date: 'May 29, 2026',
-    title: 'Club branding, trail names & smoother entry',
+    date: 'May 31, 2026',
+    title: 'Community vote, club branding & what’s next',
+    callout: {
+      title: 'Push notifications — your input wanted',
+      body:
+        'We’re wiring up push notifications on iOS and Android. Nothing is being sent yet — we want to get the types right first. Which of these would feel helpful vs. annoying? Run reminders before a run you joined (72h / 48h / 24h), new runs near you, club updates, direct messages, big community votes (open / winner revealed), or safety alerts on active runs. Tell us what you’d keep or skip — email support or mention it in club chat.',
+      ctaLabel: 'Contact support',
+      ctaHref: '/support/',
+    },
     items: [
+      {
+        tag: 'new',
+        title: 'Community trail vote (on the feed)',
+        summary:
+          'A 14-day blind vote is pinned at the top of the feed for our next big group run. Pick Lytle Creek or Cleghorn — day or night. You get one vote; counts stay hidden until the timer ends, then the winner is revealed.',
+      },
       {
         tag: 'new',
         title: 'Club cover photo',
         summary:
-          'Club owners can set a full-width background cover on the club page (and on directory cards). Tap Add cover photo on your club page or upload from Edit club info.',
+          'Club owners can set a full-width background on the club page and directory cards. Tap Add cover photo on your club page or upload from Edit club info.',
       },
       {
         tag: 'new',
         title: 'Club logo upload',
         summary:
-          'Club owners can upload a logo from their phone — use the camera button on the club page or the file picker under Edit club info.',
+          'Upload a club logo from your phone — camera button on the club page or file picker under Edit club info.',
       },
       {
         tag: 'new',
@@ -40,33 +62,46 @@ export const DEV_UPDATES: DevUpdateRelease[] = [
           'Every rider gets a unique @handle on sign-in. The feed, runs, clubs, and messages show nicknames only — real names stay private on public surfaces.',
       },
       {
-        tag: 'new',
-        title: "What's new",
+        tag: 'improved',
+        title: 'Push setup (no messages yet)',
         summary:
-          'Open Menu → What\'s new anytime for release notes. A one-time popup highlights the latest changes after you update.',
-      },
-      {
-        tag: 'new',
-        title: 'Trail condition reports',
-        summary:
-          'Submit structured trail reports from trail pages or completed runs. Reports can include photos and always post to the feed.',
-      },
-      {
-        tag: 'new',
-        title: 'Followers & following lists',
-        summary: 'Tap follower/following counts on profiles to browse who you follow and who follows you.',
-      },
-      {
-        tag: 'new',
-        title: 'Community trail vote',
-        summary:
-          'A 14-day blind vote on the feed picks the trail for our next big run — Lytle Creek or Cleghorn, day or night. Vote once; the winner is revealed when the timer ends.',
+          'The native app can register your device for future push alerts when you’re signed in. Delivery is still off — you won’t get push notifications until we finish setup and turn sending on.',
       },
       {
         tag: 'improved',
         title: 'Signed-in app entry',
         summary:
           'Returning users skip the marketing homepage and off-road advisory gate — you land in the feed automatically.',
+      },
+      {
+        tag: 'new',
+        title: 'Trail condition reports',
+        summary:
+          'Submit structured trail reports from trail pages or completed runs. Reports can include photos and post to the feed.',
+      },
+      {
+        tag: 'fix',
+        title: 'Repost visibility',
+        summary:
+          'Reposts now appear in your feed only when you follow the person who reposted (plus your own reposts).',
+      },
+    ],
+  },
+  {
+    version: '2026-05-29',
+    date: 'May 29, 2026',
+    title: 'Club branding, trail names & smoother entry',
+    items: [
+      {
+        tag: 'new',
+        title: "What's new",
+        summary:
+          'Open Menu → What\'s new anytime for release notes. This popup highlights major changes after each update.',
+      },
+      {
+        tag: 'new',
+        title: 'Followers & following lists',
+        summary: 'Tap follower/following counts on profiles to browse who you follow and who follows you.',
       },
       {
         tag: 'improved',
@@ -79,11 +114,6 @@ export const DEV_UPDATES: DevUpdateRelease[] = [
         title: 'Run lifecycle',
         summary:
           'Runs auto-start at their scheduled time and auto-complete after 24 hours. Hosts can still start a run early.',
-      },
-      {
-        tag: 'fix',
-        title: 'Repost visibility',
-        summary: 'Reposts now appear in your feed only when you follow the person who reposted (plus your own reposts).',
       },
     ],
   },
