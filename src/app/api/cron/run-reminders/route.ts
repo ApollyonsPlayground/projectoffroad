@@ -95,7 +95,8 @@ export async function GET(request: NextRequest) {
         });
         if (!insErr) {
           queued += 1;
-          // Future: enqueue FCM / web push using title + run.id + bucket
+          // Remote push delivery intentionally disabled (PUSH_SEND_ENABLED !== true).
+          // run_reminder_deliveries rows are logged only until FCM/APNs send is implemented.
         } else if (insErr.code !== '23505') {
           console.warn('[cron/run-reminders] insert', insErr);
         }
