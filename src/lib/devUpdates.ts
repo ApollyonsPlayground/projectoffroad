@@ -57,6 +57,12 @@ export const DEV_UPDATES: DevUpdateRelease[] = [
         summary: 'Tap follower/following counts on profiles to browse who you follow and who follows you.',
       },
       {
+        tag: 'new',
+        title: 'Community trail vote',
+        summary:
+          'A 14-day blind vote on the feed picks the trail for our next big run — Lytle Creek or Cleghorn, day or night. Vote once; the winner is revealed when the timer ends.',
+      },
+      {
         tag: 'improved',
         title: 'Signed-in app entry',
         summary:

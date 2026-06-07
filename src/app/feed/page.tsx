@@ -48,6 +48,7 @@ import {
 } from '@/lib/profileDisplay';
 import { ensureStoragePublicObjectUrl } from '@/lib/supabase/storagePublicUrl';
 import { resolveRunCardImage } from '@/lib/runs/runCardImage';
+import { VoteFeedHero } from '@/components/voting/VoteFeedHero';
 import {
   captureVideoFrameScaledDataUrl,
   isLimitedMediaDevice,
@@ -2760,6 +2761,8 @@ export default function HomePage() {
       {/* ── Main ──────────────────────────────────── */}
       <main className="max-w-app-shell mx-auto min-h-screen bg-background pb-safe-nav">
         <HomeStoriesRunsPager supabaseClient={supabaseClient} user={user} />
+
+        <VoteFeedHero />
 
         {/* Feed — avoid Framer opacity-from-0 here (can stick invisible on some mobile Chrome builds). */}
         {isLoading ? (
