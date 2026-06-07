@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { ShieldAlert, AlertTriangle } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-import { DISCLAIMER_STORAGE_KEY, markDisclaimerAccepted } from '@/lib/disclaimerStorage';
+import { DISCLAIMER_STORAGE_KEY, markDisclaimerAccepted, DISCLAIMER_ACCEPTED_EVENT } from '@/lib/disclaimerStorage';
 
 /**
  * Legal advisory gate — must not rely on Framer Motion opacity animations here:
@@ -52,6 +52,7 @@ export default function DisclaimerModal() {
   const handleAccept = () => {
     markDisclaimerAccepted();
     setShow(false);
+    window.dispatchEvent(new CustomEvent(DISCLAIMER_ACCEPTED_EVENT));
   };
 
   if (!mounted || !resolved) return null;

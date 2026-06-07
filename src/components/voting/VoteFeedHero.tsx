@@ -34,10 +34,10 @@ function VoteComingSoon({ event }: { event: VotingEvent }) {
         <p className="text-[10px] font-black uppercase tracking-widest text-primary mb-2">
           Huge community event
         </p>
-        <h2 className="text-xl font-black text-foreground">Community run vote coming soon</h2>
+        <h2 className="text-xl font-black text-foreground">Vote opens soon</h2>
         <p className="text-sm text-muted-foreground mt-2 max-w-lg">
           {event.description ||
-            'Help pick the trail for our next group run. Four options — Lytle Creek and Cleghorn, day and night.'}
+            'Help pick the trail for our next group run. Four options — Lytle Creek and Cleghorn, day and night. Voting opens soon on the feed.'}
         </p>
         <div className="flex items-center gap-2 mt-4 text-sm font-semibold text-foreground">
           <Clock size={16} className="text-primary shrink-0" />

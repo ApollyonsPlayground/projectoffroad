@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { Sparkles, X } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { isDisclaimerAccepted, DISCLAIMER_ACCEPTED_EVENT } from '@/lib/disclaimerStorage';
 import {
   DEV_UPDATES_VERSION,
   devUpdatesStorageKey,
@@ -34,16 +35,27 @@ export function DevUpdatesModal() {
     setMounted(true);
   }, []);
 
-  useEffect(() => {
-    if (!mounted || loading || !user) return;
+  const tryOpen = useCallback(() => {
+    if (!mounted || loading) return;
     try {
       const key = devUpdatesStorageKey(DEV_UPDATES_VERSION);
       if (localStorage.getItem(key) === '1') return;
+      // Signed-out visitors see this after the legal disclaimer; signed-in users see it immediately.
+      if (!user && !isDisclaimerAccepted()) return;
       setOpen(true);
     } catch {
       setOpen(true);
     }
   }, [mounted, loading, user]);
+
+  useEffect(() => {
+    tryOpen();
+  }, [tryOpen]);
+
+  useEffect(() => {
+    window.addEventListener(DISCLAIMER_ACCEPTED_EVENT, tryOpen);
+    return () => window.removeEventListener(DISCLAIMER_ACCEPTED_EVENT, tryOpen);
+  }, [tryOpen]);
 
   useEffect(() => {
     if (!open) {
@@ -94,7 +106,7 @@ export function DevUpdatesModal() {
             </div>
             <div>
               <p className="text-[10px] font-black uppercase tracking-[0.18em] text-primary-foreground/70">
-                What&apos;s new · {release.date}
+                App update · {release.date}
               </p>
               <h2 id="dev-updates-title" className="text-lg font-black text-primary-foreground leading-tight">
                 {release.title}

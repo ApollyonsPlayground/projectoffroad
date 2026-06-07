@@ -1,4 +1,4 @@
-export const DEV_UPDATES_VERSION = '2026-05-31';
+export const DEV_UPDATES_VERSION = '2026-06-01';
 
 export type DevUpdateTag = 'new' | 'improved' | 'fix';
 
@@ -28,20 +28,20 @@ export const DEV_UPDATES: DevUpdateRelease[] = [
   {
     version: DEV_UPDATES_VERSION,
     date: 'May 31, 2026',
-    title: 'Community vote, club branding & what’s next',
+    title: 'Still building — vote, clubs & push on the way',
     callout: {
-      title: 'Push notifications — your input wanted',
+      title: 'We’re still actively building',
       body:
-        'We’re wiring up push notifications on iOS and Android. Nothing is being sent yet — we want to get the types right first. Which of these would feel helpful vs. annoying? Run reminders before a run you joined (72h / 48h / 24h), new runs near you, club updates, direct messages, big community votes (open / winner revealed), or safety alerts on active runs. Tell us what you’d keep or skip — email support or mention it in club chat.',
+        'SoCal Offroaders is under active development — new features land regularly. Push notifications are being wired up (nothing sent yet). Which alerts would feel helpful vs. annoying? Run reminders (72h / 48h / 24h), new runs near you, club updates, DMs, community vote open / winner, or safety on active runs. Reply via support or club chat.',
       ctaLabel: 'Contact support',
       ctaHref: '/support/',
     },
     items: [
       {
         tag: 'new',
-        title: 'Community trail vote (on the feed)',
+        title: 'Community trail vote — opens soon',
         summary:
-          'A 14-day blind vote is pinned at the top of the feed for our next big group run. Pick Lytle Creek or Cleghorn — day or night. You get one vote; counts stay hidden until the timer ends, then the winner is revealed.',
+          'A 14-day blind vote for our next big group run is coming to the top of the feed — Lytle Creek or Cleghorn, day or night. Vote opens soon; you’ll get one vote and the winner is revealed when the timer ends.',
       },
       {
         tag: 'new',
