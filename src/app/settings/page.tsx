@@ -236,8 +236,8 @@ export default function SettingsPage() {
           </div>
           <p className="text-neutral-600 text-[11px] uppercase tracking-wider mb-3">
             Preferences are saved to your account. On the native app, run joiners can get local reminders at
-            about 72h, 48h, and 24h before start when enabled below. Remote push tokens register on sign-in
-            (iOS/Android); no push messages are sent yet — delivery stays off until we flip it on server-side.
+            about 72h, 48h, and 24h before start when enabled below. Remote push is temporarily
+            disabled while we fix a crash on the permission prompt — no push alerts are sent.
           </p>
           <div className="space-y-3">
             <label className="flex items-center justify-between cursor-pointer">

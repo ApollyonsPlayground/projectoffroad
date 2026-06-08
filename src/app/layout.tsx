@@ -11,7 +11,6 @@ import DisclaimerModal from "@/components/DisclaimerModal";
 import { DevUpdatesModal } from "@/components/dev/DevUpdatesModal";
 import { SignedInAppRedirect } from "@/components/SignedInAppRedirect";
 import { WelcomeNicknameToast } from "@/components/onboarding/WelcomeNicknameToast";
-import { PushRegistration } from "@/components/push/PushRegistration";
 import { DesktopNavbar } from "@/components/DesktopNavbar";
 
 const inter = Inter({
@@ -67,7 +66,6 @@ export default function RootLayout({
             <SignedInAppRedirect />
             <DevUpdatesModal />
             <WelcomeNicknameToast />
-            <PushRegistration />
             <AdminLauncher />
           </ToastProvider>
         </AuthProvider>

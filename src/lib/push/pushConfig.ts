@@ -3,10 +3,7 @@ export function isPushSendEnabled(): boolean {
   return process.env.PUSH_SEND_ENABLED?.trim().toLowerCase() === 'true';
 }
 
-/** Client-side token registration on native shell (does not send notifications). */
+/** Client-side token registration — off by default until push is stable (was crashing on allow). */
 export function isPushRegistrationEnabled(): boolean {
-  if (typeof process.env.NEXT_PUBLIC_PUSH_REGISTER === 'string') {
-    return process.env.NEXT_PUBLIC_PUSH_REGISTER.trim().toLowerCase() !== 'false';
-  }
-  return true;
+  return process.env.NEXT_PUBLIC_PUSH_REGISTER?.trim().toLowerCase() === 'true';
 }

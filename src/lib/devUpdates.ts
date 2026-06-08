@@ -32,7 +32,7 @@ export const DEV_UPDATES: DevUpdateRelease[] = [
     callout: {
       title: 'We’re still actively building',
       body:
-        'SoCal Offroaders is under active development — new features land regularly. Push notifications are being wired up (nothing sent yet). Which alerts would feel helpful vs. annoying? Run reminders (72h / 48h / 24h), new runs near you, club updates, DMs, community vote open / winner, or safety on active runs. Reply via support or club chat.',
+        'SoCal Offroaders is under active development — new features land regularly. Push notifications are paused while we fix a stability issue (nothing is sent). Which alerts would feel helpful vs. annoying when we turn them back on? Run reminders (72h / 48h / 24h), new runs near you, club updates, DMs, community vote open / winner, or safety on active runs. Reply via support or club chat.',
       ctaLabel: 'Contact support',
       ctaHref: '/support/',
     },
@@ -63,9 +63,9 @@ export const DEV_UPDATES: DevUpdateRelease[] = [
       },
       {
         tag: 'improved',
-        title: 'Push setup (no messages yet)',
+        title: 'Push setup (paused)',
         summary:
-          'The native app can register your device for future push alerts when you’re signed in. Delivery is still off — you won’t get push notifications until we finish setup and turn sending on.',
+          'Remote push registration is turned off for now while we fix a crash when allowing notifications. Local run reminders on the native app still work if enabled in Settings.',
       },
       {
         tag: 'improved',
