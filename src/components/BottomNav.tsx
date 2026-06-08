@@ -14,7 +14,7 @@ const NAV_ITEMS = [
   { href: '/feed/',      label: 'Home',      icon: Home,          requiresAuth: false },
   { href: '/trails/',    label: 'Trails',    icon: Map,           requiresAuth: false },
   { href: '/runs/',      label: 'Runs',      icon: Calendar,      requiresAuth: false },
-  { href: '/clubs/',     label: 'CLUB',      icon: Users,         requiresAuth: false },
+  { href: '/clubs/',     label: 'CLUBS',     icon: Users,         requiresAuth: false },
   { href: '/messages/',  label: 'Messages',  icon: MessageCircle, requiresAuth: true  },
   { href: '/profile/',   label: 'Profile',   icon: User,          requiresAuth: true  },
   { href: '/menu/',      label: 'More',      icon: LayoutGrid,    requiresAuth: false },

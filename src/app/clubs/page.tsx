@@ -399,7 +399,7 @@ export default function ClubsPage() {
           <div className="flex items-center justify-between gap-2 mb-3">
             <h1 className="shrink-0" aria-label="Clubs directory">
               <span className="inline-flex items-center rounded-lg border border-emerald-500/45 bg-emerald-500/15 px-3 py-2 text-base font-black tracking-[0.28em] text-emerald-400">
-                CLUB
+                CLUBS
               </span>
             </h1>
             <Link
