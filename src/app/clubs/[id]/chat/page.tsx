@@ -8,6 +8,7 @@ import BottomNav from '@/components/BottomNav';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/Toast';
 import { isLimitedMediaDevice, resizeImageFileToJpegBlob } from '@/lib/media/mobileSafeCapture';
+import { useMediaPicker } from '@/hooks/useMediaPicker';
 import { resolvePublicDisplayName } from '@/lib/profileDisplay';
 
 type ClubMessageRow = {
@@ -42,6 +43,15 @@ export default function ClubChatPage() {
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState('');
   const endRef = useRef<HTMLDivElement>(null);
+
+  const {
+    inputRef: attachInputRef,
+    handleInputChange: handleAttachInputChange,
+    open: openAttachPicker,
+  } = useMediaPicker((picked) => setFile(picked), {
+    allowVideo: true,
+    onError: (msg) => showToast(msg, 'error'),
+  });
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -342,15 +352,21 @@ export default function ClubChatPage() {
           ) : null}
 
           <div className="flex items-end gap-2 rounded-2xl border border-border bg-muted p-2">
-            <label className="w-10 h-10 rounded-xl border border-border bg-background/40 flex items-center justify-center text-muted-foreground hover:text-foreground cursor-pointer">
-              <input
-                type="file"
-                accept="image/*,video/*"
-                className="hidden"
-                onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-              />
+            <input
+              ref={attachInputRef}
+              type="file"
+              accept="image/*,video/*"
+              className="hidden"
+              onChange={handleAttachInputChange}
+            />
+            <button
+              type="button"
+              onClick={() => void openAttachPicker()}
+              className="w-10 h-10 rounded-xl border border-border bg-background/40 flex items-center justify-center text-muted-foreground hover:text-foreground"
+              aria-label="Attach photo or video"
+            >
               <ImageIcon size={18} />
-            </label>
+            </button>
 
             <textarea
               value={text}

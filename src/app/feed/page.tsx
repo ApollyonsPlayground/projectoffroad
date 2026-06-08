@@ -54,6 +54,7 @@ import {
   isLimitedMediaDevice,
   resizeImageFileToJpegBlob,
 } from '@/lib/media/mobileSafeCapture';
+import { useMediaPicker } from '@/hooks/useMediaPicker';
 
 // ─── NewPostDrawer ─────────────────────────────────────────────────────────────
 
@@ -72,7 +73,6 @@ function NewPostDrawer({ open, onClose, onPosted }: {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<'idle' | 'uploading' | 'inserting'>('idle');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (open) {
@@ -99,9 +99,7 @@ function NewPostDrawer({ open, onClose, onPosted }: {
     return new Blob([bytes], { type: mime });
   }
 
-  const handleMediaPick = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const processMediaFile = async (file: File) => {
 
     const isVideo = file.type.startsWith('video/');
     const maxBytes = isVideo ? 50 * 1024 * 1024 : 10 * 1024 * 1024;
@@ -155,7 +153,7 @@ function NewPostDrawer({ open, onClose, onPosted }: {
         showToast('Videos must be 30 seconds or shorter', 'error');
         setMediaFile(null);
         setImagePreview(null);
-        if (fileInputRef.current) fileInputRef.current.value = '';
+        if (mediaInputRef.current) mediaInputRef.current.value = '';
         return;
       }
 
@@ -165,9 +163,18 @@ function NewPostDrawer({ open, onClose, onPosted }: {
       showToast('Could not read video', 'error');
       setMediaFile(null);
       setImagePreview(null);
-      if (fileInputRef.current) fileInputRef.current.value = '';
+      if (mediaInputRef.current) mediaInputRef.current.value = '';
     }
   };
+
+  const {
+    inputRef: mediaInputRef,
+    handleInputChange: handleMediaInputChange,
+    open: openMediaPicker,
+  } = useMediaPicker(processMediaFile, {
+    allowVideo: true,
+    onError: (msg) => showToast(msg, 'error'),
+  });
 
   const handleSubmit = async () => {
     if (!body.trim() || isSubmitting) return;
@@ -571,14 +578,14 @@ function NewPostDrawer({ open, onClose, onPosted }: {
             <div className="flex items-center justify-between px-4 py-3 border-t border-border">
               <div className="flex items-center gap-3">
                 <input
-                  ref={fileInputRef}
+                  ref={mediaInputRef}
                   type="file"
                   accept="image/*,video/*"
                   className="hidden"
-                  onChange={(e) => void handleMediaPick(e)}
+                  onChange={handleMediaInputChange}
                 />
                 <button
-                  onClick={() => fileInputRef.current?.click()}
+                  onClick={() => void openMediaPicker()}
                   className="flex items-center gap-2 text-[13px] text-muted-foreground hover:text-primary/90 transition-colors"
                 >
                   <ImageIcon size={18} strokeWidth={1.8} />

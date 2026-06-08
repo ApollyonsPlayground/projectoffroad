@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Plus, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { User } from '@supabase/supabase-js';
@@ -9,6 +9,7 @@ import { StoryWatchModal, type WatchStoryRow, type StoryReelBucket } from '@/com
 import { resolvePublicDisplayName } from '@/lib/profileDisplay';
 import { useToast } from '@/components/Toast';
 import { isLimitedMediaDevice, resizeImageFileToJpegBlob } from '@/lib/media/mobileSafeCapture';
+import { useMediaPicker } from '@/hooks/useMediaPicker';
 
 type ProfileLite = {
   id: string;
@@ -36,7 +37,6 @@ export function FollowingStoriesStrip({
   embedded?: boolean;
 }) {
   const { showToast } = useToast();
-  const fileRef = useRef<HTMLInputElement>(null);
   const [buckets, setBuckets] = useState<BucketUser[]>([]);
   const [loading, setLoading] = useState(false);
   const [postingStory, setPostingStory] = useState(false);
@@ -128,10 +128,8 @@ export function FollowingStoriesStrip({
     setWatchOpen(true);
   };
 
-  const onPickStoryFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = '';
-    if (!file || !supabaseClient || !user) return;
+  const processStoryFile = async (file: File) => {
+    if (!supabaseClient || !user) return;
 
     const mime = file.type || '';
     let mediaType: 'image' | 'video' | null = null;
@@ -194,6 +192,15 @@ export function FollowingStoriesStrip({
     }
   };
 
+  const {
+    inputRef: fileRef,
+    handleInputChange: handleStoryInputChange,
+    open: openStoryPicker,
+  } = useMediaPicker(processStoryFile, {
+    allowVideo: true,
+    onError: (m) => showToast(m, 'error'),
+  });
+
   if (!user) return null;
 
   return (
@@ -203,7 +210,7 @@ export function FollowingStoriesStrip({
         type="file"
         accept="image/*,video/*"
         className="hidden"
-        onChange={(ev) => void onPickStoryFile(ev)}
+        onChange={handleStoryInputChange}
       />
 
       <div className={`px-4 ${embedded ? 'pt-2 pb-2' : 'pt-3 pb-2'}`}>
@@ -217,7 +224,7 @@ export function FollowingStoriesStrip({
           <button
             type="button"
             disabled={postingStory}
-            onClick={() => fileRef.current?.click()}
+            onClick={() => void openStoryPicker()}
             className="flex flex-col items-center gap-1.5 flex-shrink-0 select-none disabled:opacity-50"
           >
             <div className="relative w-[58px] h-[58px] rounded-full p-[2px] bg-gradient-to-br from-primary to-primary/70">

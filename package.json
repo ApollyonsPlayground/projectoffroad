@@ -23,12 +23,15 @@
     "android:icons": "node scripts/generate-android-icons.mjs",
     "ios:open": "npx cap open ios",
     "ios:sync": "npx cap sync ios",
-    "ios:entitlements": "bash scripts/ios-enable-apple-sign-in.sh"
+    "ios:entitlements": "bash scripts/ios-enable-apple-sign-in.sh",
+    "ios:camera": "bash scripts/ios-camera-usage.sh"
   },
   "dependencies": {
+    "@capacitor/action-sheet": "^8.1.1",
     "@capacitor/android": "^8.3.1",
     "@capacitor/app": "^8.1.0",
     "@capacitor/browser": "^8.0.3",
+    "@capacitor/camera": "^8.2.0",
     "@capacitor/cli": "^8.3.1",
     "@capacitor/core": "^8.3.1",
     "@capacitor/haptics": "^8.0.2",

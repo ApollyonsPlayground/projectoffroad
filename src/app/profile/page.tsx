@@ -42,6 +42,7 @@ import {
   fetchSavedPostIdsRecent,
 } from '@/lib/supabase/resilientSocial';
 import { ensureStoragePublicObjectUrl } from '@/lib/supabase/storagePublicUrl';
+import { useImagePicker } from '@/hooks/useImagePicker';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -280,7 +281,6 @@ export default function ProfilePage() {
   const [editingVehicle, setEditingVehicle] = useState<Vehicle | null | undefined>(undefined);
 
   // Avatar upload
-  const avatarInputRef = useRef<HTMLInputElement>(null);
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [localAvatarUrl, setLocalAvatarUrl] = useState<string | null>(null);
 
@@ -388,9 +388,8 @@ export default function ProfilePage() {
     }
   }, [user, supabaseClient]);
 
-  const handleAvatarUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !user || !supabaseClient) return;
+  const uploadAvatarFile = useCallback(async (file: File) => {
+    if (!user || !supabaseClient) return;
     if (file.size > 5 * 1024 * 1024) {
       showToast('Avatar must be under 5 MB', 'error');
       return;
@@ -425,10 +424,14 @@ export default function ProfilePage() {
       showToast(msg, 'error');
     } finally {
       setAvatarUploading(false);
-      // Reset so the same file can be picked again
-      if (avatarInputRef.current) avatarInputRef.current.value = '';
     }
   }, [user, supabaseClient, showToast, refreshProfile]);
+
+  const {
+    inputRef: avatarInputRef,
+    handleInputChange: handleAvatarInputChange,
+    open: openAvatarPicker,
+  } = useImagePicker(uploadAvatarFile, (msg) => showToast(msg, 'error'));
 
   useEffect(() => {
     if (!loading) fetchData();
@@ -671,7 +674,7 @@ export default function ProfilePage() {
             {/* Avatar */}
             <div className="relative flex-shrink-0">
               <button
-                onClick={() => avatarInputRef.current?.click()}
+                onClick={() => void openAvatarPicker()}
                 disabled={avatarUploading}
                 aria-label="Change avatar"
                 className="relative w-20 h-20 rounded-full bg-card overflow-hidden ring-2 ring-primary/40 block focus:outline-none focus-visible:ring-4 focus-visible:ring-primary"
@@ -695,7 +698,7 @@ export default function ProfilePage() {
                 )}
               </button>
               <button
-                onClick={() => avatarInputRef.current?.click()}
+                onClick={() => void openAvatarPicker()}
                 disabled={avatarUploading}
                 className="absolute -bottom-1 -right-1 w-7 h-7 bg-primary disabled:bg-muted rounded-full flex items-center justify-center transition-colors"
                 aria-label="Change avatar"
@@ -711,7 +714,7 @@ export default function ProfilePage() {
                 type="file"
                 accept="image/*"
                 className="hidden"
-                onChange={handleAvatarUpload}
+                onChange={handleAvatarInputChange}
               />
             </div>
 

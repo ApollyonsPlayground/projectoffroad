@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
 import { resolvePublicDisplayName } from '@/lib/profileDisplay';
 import { useToast } from '@/components/Toast';
+import { useMediaPicker } from '@/hooks/useMediaPicker';
 
 interface Message {
   id: string;
@@ -63,7 +64,6 @@ export default function ConversationPage() {
 
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const mediaInputRef = useRef<HTMLInputElement>(null);
   const dmMediaFetchedRef = useRef<Set<string>>(new Set());
 
   const scrollToBottom = useCallback((smooth = true) => {
@@ -189,9 +189,8 @@ export default function ConversationPage() {
     };
   }, [supabaseClient, conversationId, user, scrollToBottom]);
 
-  const handleMediaFiles = async (files: FileList | null) => {
-    const file = files?.[0];
-    if (!file || !supabaseClient || !user || !conversationId || uploadingMedia || sending) return;
+  const uploadMediaFile = async (file: File) => {
+    if (!supabaseClient || !user || !conversationId || uploadingMedia || sending) return;
 
     const mime = file.type || '';
     let mediaType: 'image' | 'video' | null = null;
@@ -244,6 +243,15 @@ export default function ConversationPage() {
       setUploadingMedia(false);
     }
   };
+
+  const {
+    inputRef: mediaInputRef,
+    handleInputChange: handleMediaInputChange,
+    open: openMediaPicker,
+  } = useMediaPicker(uploadMediaFile, {
+    allowVideo: true,
+    onError: (msg) => showToast(msg, 'error'),
+  });
 
   const handleSend = async () => {
     const content = text.trim();
@@ -462,14 +470,11 @@ export default function ConversationPage() {
           type="file"
           accept="image/*,video/*"
           className="hidden"
-          onChange={(e) => {
-            void handleMediaFiles(e.target.files);
-            e.target.value = '';
-          }}
+          onChange={handleMediaInputChange}
         />
         <button
           type="button"
-          onClick={() => mediaInputRef.current?.click()}
+          onClick={() => void openMediaPicker()}
           disabled={uploadingMedia || sending}
           className="w-10 h-10 flex-shrink-0 flex items-center justify-center rounded-full bg-card border border-border text-primary/90 hover:bg-zinc-800 disabled:opacity-40 transition-colors"
           aria-label="Attach photo or video"

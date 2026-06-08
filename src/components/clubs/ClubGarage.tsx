@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Camera, Loader2, Trash2 } from 'lucide-react';
 import { supabase } from '@/lib/db/supabase';
 import { useToast } from '@/components/Toast';
+import { useImagePicker } from '@/hooks/useImagePicker';
 
 export interface GaragePhoto {
   id: string;
@@ -56,10 +57,8 @@ export default function ClubGarage({ clubId, currentUserId, canUpload, isClubOwn
     void load();
   }, [load]);
 
-  async function onPickFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    e.target.value = '';
-    if (!file || !supabase || !currentUserId || !canUpload) return;
+  async function uploadGaragePhoto(file: File) {
+    if (!supabase || !currentUserId || !canUpload) return;
 
     const ext = file.name.split('.').pop()?.toLowerCase();
     const ok = ['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(ext ?? '');
@@ -95,6 +94,12 @@ export default function ClubGarage({ clubId, currentUserId, canUpload, isClubOwn
     }
   }
 
+  const {
+    inputRef: garageInputRef,
+    handleInputChange: handleGarageInputChange,
+    open: openGaragePicker,
+  } = useImagePicker(uploadGaragePhoto, (m) => showToast(m, 'error'));
+
   async function removePhoto(photo: GaragePhoto) {
     if (!supabase || !currentUserId) return;
     const allowed = photo.user_id === currentUserId || isClubOwner;
@@ -129,11 +134,25 @@ export default function ClubGarage({ clubId, currentUserId, canUpload, isClubOwn
           </p>
         </div>
         {canUpload && currentUserId && (
-          <label className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-bold cursor-pointer disabled:opacity-50">
-            {uploading ? <Loader2 className="animate-spin" size={18} /> : <Camera size={18} />}
-            <span>{uploading ? 'Uploading…' : 'Add photo'}</span>
-            <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="hidden" onChange={onPickFile} disabled={uploading} />
-          </label>
+          <>
+            <input
+              ref={garageInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              className="hidden"
+              onChange={handleGarageInputChange}
+              disabled={uploading}
+            />
+            <button
+              type="button"
+              disabled={uploading}
+              onClick={() => void openGaragePicker()}
+              className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-bold disabled:opacity-50"
+            >
+              {uploading ? <Loader2 className="animate-spin" size={18} /> : <Camera size={18} />}
+              <span>{uploading ? 'Uploading…' : 'Add photo'}</span>
+            </button>
+          </>
         )}
       </div>
 

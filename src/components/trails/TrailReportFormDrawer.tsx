@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Camera, Check, Loader2, X } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/Toast';
 import { isLimitedMediaDevice, resizeImageFileToJpegBlob } from '@/lib/media/mobileSafeCapture';
+import { useImagePicker } from '@/hooks/useImagePicker';
 import {
   TRAIL_REPORT_CONDITION_OPTIONS,
   TRAIL_REPORT_DIFFICULTY_OPTIONS,
@@ -49,7 +50,6 @@ export function TrailReportFormDrawer({
 }: TrailReportFormDrawerProps) {
   const { user, supabaseClient } = useAuth();
   const { showToast } = useToast();
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [conditionStatus, setConditionStatus] = useState<TrailReportCondition>('open');
   const [difficultyToday, setDifficultyToday] = useState<TrailReportDifficulty>('moderate');
   const [surfaceConditions, setSurfaceConditions] = useState<string[]>([]);
@@ -87,10 +87,7 @@ export function TrailReportFormDrawer({
     setProgress('idle');
   }, [open, runId, trailId]);
 
-  if (!open) return null;
-
-  const handlePhotoPick = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const picked = Array.from(event.target.files ?? []);
+  const addPhotoFiles = (picked: File[]) => {
     if (picked.length === 0) return;
     const images = picked.filter((file) => file.type.startsWith('image/'));
     if (images.length !== picked.length) {
@@ -102,8 +99,14 @@ export function TrailReportFormDrawer({
       return;
     }
     setPhotos((prev) => [...prev, ...images].slice(0, MAX_PHOTOS));
-    if (fileInputRef.current) fileInputRef.current.value = '';
   };
+
+  const { inputRef: fileInputRef, open: openPhotoPicker } = useImagePicker(
+    (file) => addPhotoFiles([file]),
+    (m) => showToast(m, 'error')
+  );
+
+  if (!open) return null;
 
   const uploadAndModeratePhotos = async (): Promise<string[]> => {
     if (!user || !supabaseClient) throw new Error('Sign in to report trail conditions');
@@ -395,12 +398,15 @@ export function TrailReportFormDrawer({
               accept="image/*"
               multiple
               className="hidden"
-              onChange={handlePhotoPick}
+              onChange={(event) => {
+                addPhotoFiles(Array.from(event.target.files ?? []));
+                event.target.value = '';
+              }}
             />
             <button
               type="button"
               disabled={photos.length >= MAX_PHOTOS}
-              onClick={() => fileInputRef.current?.click()}
+              onClick={() => void openPhotoPicker()}
               className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-card border border-border text-[14px] font-bold text-foreground disabled:opacity-50"
             >
               <Camera size={16} />

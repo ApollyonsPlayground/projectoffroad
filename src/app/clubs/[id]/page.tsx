@@ -12,6 +12,8 @@ import { useToast } from '@/components/Toast';
 import { ensureStoragePublicObjectUrl } from '@/lib/supabase/storagePublicUrl';
 import { resolvePublicDisplayName } from '@/lib/profileDisplay';
 import { instagramHref, websiteHref } from '@/lib/safeExternalUrl';
+import { useImagePicker } from '@/hooks/useImagePicker';
+import { isCapacitorNative } from '@/utils/capacitator/isNative';
 
 interface Club {
   id: string;
@@ -323,6 +325,18 @@ export default function ClubDetailPage() {
     }
   }
 
+  const {
+    inputRef: logoInputRef,
+    handleInputChange: handleLogoInputChange,
+    open: openLogoPicker,
+  } = useImagePicker((file) => uploadClubLogoFile(file), (m) => showToast(m, 'error'));
+
+  const {
+    inputRef: bannerInputRef,
+    handleInputChange: handleBannerInputChange,
+    open: openBannerPicker,
+  } = useImagePicker((file) => uploadClubBannerFile(file), (m) => showToast(m, 'error'));
+
   async function saveClubEdits() {
     if (!sb || !club || !user || user.id !== club.owner_id) return;
     const name = editForm.name.trim();
@@ -496,25 +510,29 @@ export default function ClubDetailPage() {
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-background via-background/25 to-transparent" />
           {isClubOwner && (
-            <label className="absolute bottom-3 right-3 sm:right-6 inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-background/85 backdrop-blur-sm border border-border text-xs font-semibold text-foreground cursor-pointer hover:bg-background transition disabled:opacity-50">
+            <>
               <input
+                ref={bannerInputRef}
                 type="file"
                 accept="image/jpeg,image/png,image/webp"
-                className="sr-only"
+                className="hidden"
                 disabled={bannerUploading}
-                onChange={(e) => {
-                  const f = e.target.files?.[0];
-                  if (f) void uploadClubBannerFile(f);
-                  e.target.value = '';
-                }}
+                onChange={handleBannerInputChange}
               />
-              {bannerUploading ? (
-                <Loader2 size={14} className="animate-spin shrink-0" />
-              ) : (
-                <Camera size={14} className="shrink-0" />
-              )}
-              {club.banner_image ? 'Change cover photo' : 'Add cover photo'}
-            </label>
+              <button
+                type="button"
+                disabled={bannerUploading}
+                onClick={() => void openBannerPicker()}
+                className="absolute bottom-3 right-3 sm:right-6 inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-background/85 backdrop-blur-sm border border-border text-xs font-semibold text-foreground cursor-pointer hover:bg-background transition disabled:opacity-50"
+              >
+                {bannerUploading ? (
+                  <Loader2 size={14} className="animate-spin shrink-0" />
+                ) : (
+                  <Camera size={14} className="shrink-0" />
+                )}
+                {club.banner_image ? 'Change cover photo' : 'Add cover photo'}
+              </button>
+            </>
           )}
         </div>
 
@@ -534,20 +552,25 @@ export default function ClubDetailPage() {
               )}
             </div>
             {isClubOwner && (
-              <label className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-primary flex items-center justify-center cursor-pointer border-2 border-background shadow-md hover:bg-primary/90 transition disabled:opacity-50">
+              <>
                 <input
+                  ref={logoInputRef}
                   type="file"
                   accept="image/jpeg,image/png,image/webp"
-                  className="sr-only"
+                  className="hidden"
                   disabled={logoUploading}
-                  onChange={(e) => {
-                    const f = e.target.files?.[0];
-                    if (f) void uploadClubLogoFile(f);
-                    e.target.value = '';
-                  }}
+                  onChange={handleLogoInputChange}
                 />
-                <Camera size={14} className="text-primary-foreground" />
-              </label>
+                <button
+                  type="button"
+                  disabled={logoUploading}
+                  onClick={() => void openLogoPicker()}
+                  aria-label="Change club photo"
+                  className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-primary flex items-center justify-center cursor-pointer border-2 border-background shadow-md hover:bg-primary/90 transition disabled:opacity-50"
+                >
+                  <Camera size={14} className="text-primary-foreground" />
+                </button>
+              </>
             )}
           </div>
           <div className="flex-1 min-w-0 pb-0.5">
@@ -664,17 +687,25 @@ export default function ClubDetailPage() {
                         className="w-16 h-16 rounded-xl object-cover border border-border mb-2"
                       />
                     ) : null}
-                    <input
-                      type="file"
-                      accept="image/jpeg,image/png,image/webp"
-                      disabled={logoUploading || editSaving}
-                      onChange={(e) => {
-                        const f = e.target.files?.[0];
-                        if (f) void uploadClubLogoFile(f);
-                        e.target.value = '';
-                      }}
-                      className="w-full text-sm text-foreground file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-muted file:text-foreground"
-                    />
+                    {isCapacitorNative() ? (
+                      <button
+                        type="button"
+                        disabled={logoUploading || editSaving}
+                        onClick={() => void openLogoPicker()}
+                        className="w-full py-2.5 px-3 rounded-lg bg-muted text-sm font-semibold text-foreground disabled:opacity-50"
+                      >
+                        Take photo or choose image
+                      </button>
+                    ) : (
+                      <input
+                        ref={logoInputRef}
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        disabled={logoUploading || editSaving}
+                        onChange={handleLogoInputChange}
+                        className="w-full text-sm text-foreground file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-muted file:text-foreground"
+                      />
+                    )}
                     <input
                       value={editForm.logo}
                       onChange={(e) => setEditForm((f) => ({ ...f, logo: e.target.value }))}
@@ -700,17 +731,25 @@ export default function ClubDetailPage() {
                         No cover yet — use &quot;Add cover photo&quot; at the top of this page, or upload below.
                       </p>
                     )}
-                    <input
-                      type="file"
-                      accept="image/jpeg,image/png,image/webp"
-                      disabled={bannerUploading || editSaving}
-                      onChange={(e) => {
-                        const f = e.target.files?.[0];
-                        if (f) void uploadClubBannerFile(f);
-                        e.target.value = '';
-                      }}
-                      className="w-full text-sm text-foreground file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-muted file:text-foreground"
-                    />
+                    {isCapacitorNative() ? (
+                      <button
+                        type="button"
+                        disabled={bannerUploading || editSaving}
+                        onClick={() => void openBannerPicker()}
+                        className="w-full py-2.5 px-3 rounded-lg bg-muted text-sm font-semibold text-foreground disabled:opacity-50"
+                      >
+                        Take photo or choose cover image
+                      </button>
+                    ) : (
+                      <input
+                        ref={bannerInputRef}
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        disabled={bannerUploading || editSaving}
+                        onChange={handleBannerInputChange}
+                        className="w-full text-sm text-foreground file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-muted file:text-foreground"
+                      />
+                    )}
                     <input
                       value={editForm.banner_image}
                       onChange={(e) => setEditForm((f) => ({ ...f, banner_image: e.target.value }))}
