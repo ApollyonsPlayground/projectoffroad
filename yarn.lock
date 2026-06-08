@@ -807,6 +807,11 @@
   resolved "https://registry.npmjs.org/@bytecodealliance/preview2-shim/-/preview2-shim-0.17.6.tgz"
   integrity sha512-n3cM88gTen5980UOBAD6xDcNNL3ocTK8keab21bpx1ONdA+ARj7uD1qoFxOWCyKlkpSi195FH+GeAut7Oc6zZw==
 
+"@capacitor/action-sheet@^8.1.1":
+  version "8.1.1"
+  resolved "https://registry.npmjs.org/@capacitor/action-sheet/-/action-sheet-8.1.1.tgz"
+  integrity sha512-yHuGSR/FS2dDr9oBmy+Ql+y7/i5XsUAlENx5oRND5NtzsNLLiFxpNPGLWV27aU9uf9ICjI92VzH93Zh0g2FL1A==
+
 "@capacitor/android@^8.3.1":
   version "8.3.1"
   resolved "https://registry.npmjs.org/@capacitor/android/-/android-8.3.1.tgz"
@@ -821,6 +826,11 @@
   version "8.0.3"
   resolved "https://registry.npmjs.org/@capacitor/browser/-/browser-8.0.3.tgz"
   integrity sha512-WJWPHEPbweiFoHYmVlCbZf5yrqJ2Rchx2Xvbmd+3Lf+Zkpq3nXBThThY2CF69lYEg1NINGF9BcHThIOEU1gZlQ==
+
+"@capacitor/camera@^8.2.0":
+  version "8.2.0"
+  resolved "https://registry.npmjs.org/@capacitor/camera/-/camera-8.2.0.tgz"
+  integrity sha512-hYfrT6xpL936qoEkIpJzSnb0fQCaTkOux1cXzGBfH8QLOGqr6gSLiWZlZz/fqMPmMKJMNRBqlTQkj5fuMhVZog==
 
 "@capacitor/cli@^8.3.1":
   version "8.3.1"
