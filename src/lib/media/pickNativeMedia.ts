@@ -1,4 +1,3 @@
-import { ActionSheet, ActionSheetButtonStyle } from '@capacitor/action-sheet';
 import {
   Camera,
   CameraErrorCode,
@@ -8,6 +7,7 @@ import {
 } from '@capacitor/camera';
 import { isCapacitorNative } from '@/utils/capacitator/isNative';
 import { resizeImageFileToJpegBlob } from '@/lib/media/mobileSafeCapture';
+import { requestMediaActionSheet } from '@/lib/media/mediaActionSheetState';
 
 const CANCEL_CODES = new Set<string>([
   CameraErrorCode.TakePhotoCancelled,
@@ -100,29 +100,11 @@ export async function chooseGalleryFile(
   return mediaResultToFile(item);
 }
 
-async function showMediaActionSheet(
-  allowVideo: boolean
-): Promise<'photo' | 'video' | 'gallery' | 'cancel'> {
-  const options: { title: string; style?: ActionSheetButtonStyle }[] = [{ title: 'Take Photo' }];
-  if (allowVideo) options.push({ title: 'Record Video' });
-  options.push({ title: 'Choose from Library' });
-  options.push({ title: 'Cancel', style: ActionSheetButtonStyle.Cancel });
-
-  const { index } = await ActionSheet.showActions({ title: 'Add media', options });
-  if (index === undefined || index < 0) return 'cancel';
-
-  const cancelIdx = options.length - 1;
-  if (index === cancelIdx) return 'cancel';
-  if (index === 0) return 'photo';
-  if (allowVideo && index === 1) return 'video';
-  return 'gallery';
-}
-
 /** Native camera / gallery picker. Returns null when the user cancels. */
 export async function pickNativeMediaFile(allowVideo: boolean): Promise<File | null> {
   if (!isCapacitorNative()) return null;
 
-  const choice = await showMediaActionSheet(allowVideo);
+  const choice = await requestMediaActionSheet(allowVideo);
   if (choice === 'cancel') return null;
   if (choice === 'photo') return takePhotoFile();
   if (choice === 'video') return recordVideoFile();
