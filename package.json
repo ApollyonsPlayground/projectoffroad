@@ -1,6 +1,6 @@
 {
   "name": "socaloffroadersv3",
-  "version": "0.1.0",
+  "version": "0.1.8",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -25,7 +25,9 @@
     "ios:sync": "npx cap sync ios",
     "ios:entitlements": "bash scripts/ios-enable-apple-sign-in.sh",
     "ios:camera": "bash scripts/ios-camera-usage.sh",
-    "ios:location": "bash scripts/ios-location-usage.sh"
+    "ios:location": "bash scripts/ios-location-usage.sh",
+    "version:sync": "node scripts/sync-app-version.mjs",
+    "ios:sync-version": "bash scripts/ios-sync-version.sh"
   },
   "dependencies": {
     "@capacitor/action-sheet": "^8.1.1",

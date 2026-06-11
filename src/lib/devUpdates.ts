@@ -1,3 +1,4 @@
+/** Bump when shipping a user-facing release — keep in sync with app-version.json / What's new modal. */
 export const DEV_UPDATES_VERSION = '2026-06-01';
 
 export type DevUpdateTag = 'new' | 'improved' | 'fix';

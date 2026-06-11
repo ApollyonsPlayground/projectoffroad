@@ -58,11 +58,19 @@ cd android
 
 Output: `android/app/build/outputs/bundle/release/*.aab`
 
-### Version bump (Play requires increment)
+### Version bump (required every native rebuild)
 
-Edit `android/app/build.gradle`:
-- `versionCode` must increase every upload
-- `versionName` is user-visible
+**Agent / dev:** edit `app-version.json`, then run `npm run version:sync`.
+
+| Field | Purpose |
+|-------|---------|
+| `versionName` | User-visible (Play + App Store), e.g. `1.0.8` |
+| `androidVersionCode` | Integer — **must** increase every Play upload |
+| `iosBuildNumber` | String — **must** increase every TestFlight upload |
+
+On Mac after sync: `npm run ios:sync-version` (updates Xcode project + Info.plist).
+
+**Noah (website):** update `src/lib/devUpdates.ts` — `DEV_UPDATES_VERSION` + new release block for `/updates`. See `docs/VERSION_PENDING.md` after each code bump.
 
 ## iOS TestFlight release (macOS / MacinCloud)
 

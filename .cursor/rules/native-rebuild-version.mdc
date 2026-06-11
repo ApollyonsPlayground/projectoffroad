@@ -1,0 +1,39 @@
+---
+description: Bump native app versions and notify Noah to update website release notes when a store rebuild is required
+alwaysApply: true
+---
+
+# Native rebuild → version bump + user notification
+
+When a change **requires a new Android/iOS binary** (Capacitor plugin add/update, `android/**`, `ios/**`, manifest/Info.plist permissions, `capacitor.config.ts` native impact):
+
+## Agent must do (code)
+
+1. Edit **`app-version.json`** at repo root:
+   - Increment `androidVersionCode` (integer, every Play upload)
+   - Increment `iosBuildNumber` (string, every TestFlight upload)
+   - Bump `versionName` for user-visible releases (semver patch: `1.0.7` → `1.0.8`)
+   - Optionally bump `packageJsonVersion`
+   - Set `rebuildReason` and `lastBumped` (today ISO date)
+2. Run **`npm run version:sync`** (updates `android/app/build.gradle` + `package.json`)
+3. Update **`docs/VERSION_PENDING.md`** with the new numbers and rebuild reason
+
+## Agent must tell Noah (every time)
+
+In the same response, include a clear **"Version bump — your website steps"** section:
+
+- New **versionName** and **versionCode / iOS build**
+- **Noah updates:** `src/lib/devUpdates.ts` (`DEV_UPDATES_VERSION` + new release entry on `/updates`)
+- **Then:** deploy web, rebuild Android + iOS (`docs/release.md`)
+- Point to **`docs/VERSION_PENDING.md`**
+
+Do **not** edit `devUpdates.ts` release copy unless Noah asks — he owns website release notes.
+
+## Web-only changes
+
+No version bump. Say web deploy only; no store rebuild.
+
+## Source of truth
+
+- Code: `app-version.json` → `npm run version:sync` → Android; `npm run ios:sync-version` on Mac → iOS
+- Website release notes: `src/lib/devUpdates.ts` (Noah)

@@ -1,0 +1,8 @@
+{
+  "versionName": "1.0.8",
+  "androidVersionCode": 9,
+  "iosBuildNumber": "9",
+  "packageJsonVersion": "0.1.8",
+  "rebuildReason": "Push notifications, status bar, geolocation, local notifications, Android location + notification permissions",
+  "lastBumped": "2026-06-12"
+}

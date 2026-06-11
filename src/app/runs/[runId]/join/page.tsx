@@ -63,6 +63,14 @@ export default function RunGuestJoinPage() {
     const nameErr = validateGuestDisplayName(trailName);
     if (nameErr) { showToast(nameErr, 'error'); return; }
 
+    if (user && !user.is_anonymous) {
+      showToast(
+        'You are signed in with a full account. Sign out first to join as a guest, or join this run from the run page with your account.',
+        'error'
+      );
+      return;
+    }
+
     setJoining(true);
     try {
       if (!user) {
