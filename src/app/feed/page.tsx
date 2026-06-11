@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -14,7 +15,6 @@ import {
   ZoomIn,
   X,
   Image as ImageIcon,
-  ChevronDown,
   Send,
   Flag,
   Bookmark,
@@ -55,6 +55,7 @@ import {
   resizeImageFileToJpegBlob,
 } from '@/lib/media/mobileSafeCapture';
 import { useMediaPicker } from '@/hooks/useMediaPicker';
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 
 // ─── NewPostDrawer ─────────────────────────────────────────────────────────────
 
@@ -72,22 +73,47 @@ function NewPostDrawer({ open, onClose, onPosted }: {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<'idle' | 'uploading' | 'inserting'>('idle');
+  const [mounted, setMounted] = useState(false);
+  const [keyboardInset, setKeyboardInset] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  useBodyScrollLock(open);
+
   useEffect(() => {
-    if (open) {
-      document.body.style.overflow = 'hidden';
-      setTimeout(() => textareaRef.current?.focus(), 300);
-    } else {
-      document.body.style.overflow = '';
-      // Reset on close
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!open) {
+      setKeyboardInset(0);
       setBody('');
       setRig('');
       setMediaFile(null);
       setImagePreview(null);
       setUploadProgress('idle');
+      return;
     }
-    return () => { document.body.style.overflow = ''; };
+    const timer = window.setTimeout(() => textareaRef.current?.focus(), 120);
+    return () => window.clearTimeout(timer);
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const viewport = window.visualViewport;
+    if (!viewport) return;
+
+    const updateInset = () => {
+      setKeyboardInset(Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop));
+    };
+
+    viewport.addEventListener('resize', updateInset);
+    viewport.addEventListener('scroll', updateInset);
+    updateInset();
+
+    return () => {
+      viewport.removeEventListener('resize', updateInset);
+      viewport.removeEventListener('scroll', updateInset);
+    };
   }, [open]);
 
   function dataUrlToBlob(dataUrl: string): Blob {
@@ -486,150 +512,146 @@ function NewPostDrawer({ open, onClose, onPosted }: {
     }
   };
 
-  return (
-    <AnimatePresence>
-      {open && (
-        <>
-          {/* Backdrop */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[9990] bg-background/70 backdrop-blur-sm"
+  if (!mounted || !open) return null;
+
+  const footerPad = Math.max(keyboardInset, 12);
+
+  const ui = (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="new-post-title"
+      className="fixed inset-0 z-[9991] flex flex-col bg-background touch-none"
+    >
+      <div className="flex flex-col flex-1 min-h-0 w-full max-w-app-shell mx-auto">
+        <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 border-b border-border safe-top touch-manipulation">
+          <button
+            type="button"
             onClick={onClose}
-          />
-          {/* Drawer panel */}
-          <motion.div
-            initial={{ y: '100%' }}
-            animate={{ y: 0 }}
-            exit={{ y: '100%' }}
-            transition={{ type: 'spring', stiffness: 420, damping: 36 }}
-            className="fixed bottom-0 left-0 right-0 z-[9991] max-w-app-shell mx-auto bg-muted border border-border rounded-t-2xl overflow-hidden"
-            style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
-            onClick={(e) => e.stopPropagation()}
+            aria-label="Close"
+            className="p-1 text-muted-foreground hover:text-foreground transition-colors"
           >
-            {/* Handle */}
-            <div className="flex justify-center pt-3 pb-1">
-              <div className="w-10 h-1 bg-zinc-700 rounded-full" />
-            </div>
+            <X size={22} />
+          </button>
+          <span id="new-post-title" className="font-bold text-foreground text-[15px]">
+            New Post
+          </span>
+          <button
+            type="button"
+            onClick={handleSubmit}
+            disabled={!body.trim() || isSubmitting}
+            className="flex items-center gap-1.5 px-4 py-1.5 bg-primary disabled:bg-zinc-800 disabled:text-muted-foreground text-primary-foreground font-bold text-[13px] rounded-full transition-colors min-w-[68px] justify-center"
+          >
+            {isSubmitting ? (
+              <Loader2 size={16} className="animate-spin" />
+            ) : (
+              <>
+                <Send size={13} strokeWidth={2.5} />
+                Post
+              </>
+            )}
+          </button>
+        </div>
 
-            {/* Header */}
-            <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-              <button onClick={onClose} aria-label="Close drawer" className="p-1 text-muted-foreground hover:text-foreground transition-colors">
-                <ChevronDown size={22} />
-              </button>
-              <span className="font-bold text-foreground text-[15px]">New Post</span>
-              <motion.button
-                whileTap={{ scale: 0.92 }}
-                onClick={handleSubmit}
-                disabled={!body.trim() || isSubmitting}
-                className="flex items-center gap-1.5 px-4 py-1.5 bg-primary disabled:bg-zinc-800 disabled:text-muted-foreground text-primary-foreground font-bold text-[13px] rounded-full transition-colors min-w-[68px] justify-center"
+        <div
+          data-scroll-lock-allow
+          className="flex-1 min-h-0 overflow-y-auto overscroll-contain touch-pan-y px-4 pt-4 pb-3"
+        >
+          <textarea
+            ref={textareaRef}
+            value={body}
+            onChange={(e) => setBody(e.target.value)}
+            placeholder="What happened on the trail today?"
+            maxLength={500}
+            rows={6}
+            className="w-full bg-transparent text-foreground text-[15px] leading-relaxed placeholder:text-muted-foreground resize-none outline-none touch-manipulation"
+          />
+
+          <input
+            value={rig}
+            onChange={(e) => setRig(e.target.value)}
+            placeholder="Vehicle (e.g. 2022 Tacoma TRD Pro)"
+            className="w-full mt-2 bg-card border border-border rounded-xl px-3 py-2.5 text-[13px] text-muted-foreground placeholder:text-muted-foreground outline-none focus:border-primary/60 transition-colors touch-manipulation"
+          />
+
+          {imagePreview && (
+            <div className="relative mt-3 rounded-xl overflow-hidden border border-border">
+              <img src={imagePreview} alt="Preview" className="w-full max-h-56 object-cover" />
+              <button
+                type="button"
+                onClick={() => {
+                  setMediaFile(null);
+                  setImagePreview(null);
+                }}
+                className="absolute top-2 right-2 p-1.5 bg-background/70 rounded-full text-muted-foreground hover:text-foreground touch-manipulation"
+                aria-label="Remove image"
               >
-                {isSubmitting ? (
-                  <motion.span
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }}
-                    className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full inline-block"
-                  />
-                ) : (
-                  <>
-                    <Send size={13} strokeWidth={2.5} />
-                    Post
-                  </>
-                )}
-              </motion.button>
+                <X size={14} />
+              </button>
             </div>
+          )}
+        </div>
 
-            {/* Body */}
-            <div className="px-4 pt-4 pb-3">
-              <textarea
-                ref={textareaRef}
-                value={body}
-                onChange={(e) => setBody(e.target.value)}
-                placeholder="What happened on the trail today?"
-                maxLength={500}
-                rows={4}
-                className="w-full bg-transparent text-foreground text-[15px] leading-relaxed placeholder:text-muted-foreground resize-none outline-none"
-              />
-
+        <div
+          className="flex-shrink-0 border-t border-border bg-background touch-manipulation"
+          style={{ paddingBottom: `max(${footerPad}px, env(safe-area-inset-bottom))` }}
+        >
+          <div className="flex items-center justify-between px-4 py-3">
+            <div className="flex items-center gap-3">
               <input
-                value={rig}
-                onChange={(e) => setRig(e.target.value)}
-                placeholder="Vehicle (e.g. 2022 Tacoma TRD Pro)"
-                className="w-full mt-2 bg-card border border-border rounded-xl px-3 py-2.5 text-[13px] text-muted-foreground placeholder:text-muted-foreground outline-none focus:border-primary/60 transition-colors"
+                ref={mediaInputRef}
+                type="file"
+                accept="image/*,video/*"
+                className="hidden"
+                onChange={handleMediaInputChange}
               />
-
-              {/* Image preview */}
-              {imagePreview && (
-                <div className="relative mt-3 rounded-xl overflow-hidden border border-border">
-                  <img src={imagePreview} alt="Preview" className="w-full max-h-56 object-cover" />
-                  <button
-                    onClick={() => { setMediaFile(null); setImagePreview(null); }}
-                    className="absolute top-2 right-2 p-1.5 bg-background/70 rounded-full text-muted-foreground hover:text-foreground"
-                    aria-label="Remove image"
-                  >
-                    <X size={14} />
-                  </button>
-                </div>
+              <button
+                type="button"
+                onClick={() => void openMediaPicker()}
+                className="flex items-center gap-2 text-[13px] text-muted-foreground hover:text-primary/90 transition-colors"
+              >
+                <ImageIcon size={18} strokeWidth={1.8} />
+                <span>
+                  {mediaFile
+                    ? mediaFile.name.slice(0, 20) + (mediaFile.name.length > 20 ? '…' : '')
+                    : 'Add Photo/Video'}
+                </span>
+              </button>
+              {uploadProgress !== 'idle' && (
+                <span className="text-[11px] text-primary/90 flex items-center gap-1">
+                  <Loader2 size={11} className="animate-spin" />
+                  {uploadProgress === 'uploading' ? 'Uploading…' : 'Saving…'}
+                </span>
               )}
             </div>
+            <span className="text-[11px] text-muted-foreground font-mono">{body.length}/500</span>
+          </div>
 
-            {/* Footer toolbar */}
-            <div className="flex items-center justify-between px-4 py-3 border-t border-border">
-              <div className="flex items-center gap-3">
-                <input
-                  ref={mediaInputRef}
-                  type="file"
-                  accept="image/*,video/*"
-                  className="hidden"
-                  onChange={handleMediaInputChange}
-                />
-                <button
-                  onClick={() => void openMediaPicker()}
-                  className="flex items-center gap-2 text-[13px] text-muted-foreground hover:text-primary/90 transition-colors"
-                >
-                  <ImageIcon size={18} strokeWidth={1.8} />
-                  <span>
-                    {mediaFile
-                      ? mediaFile.name.slice(0, 20) + (mediaFile.name.length > 20 ? '…' : '')
-                      : 'Add Photo/Video'}
-                  </span>
-                </button>
-                {uploadProgress !== 'idle' && (
-                  <span className="text-[11px] text-primary/90 flex items-center gap-1">
-                    <Loader2 size={11} className="animate-spin" />
-                    {uploadProgress === 'uploading' ? 'Uploading…' : 'Saving…'}
-                  </span>
-                )}
-              </div>
-              <span className="text-[11px] text-muted-foreground font-mono">{body.length}/500</span>
-            </div>
-
-            {/* Sticky Post button */}
-            <div className="px-4 pb-6 pt-2" style={{ paddingBottom: 'max(24px, env(safe-area-inset-bottom))' }}>
-              <motion.button
-                whileTap={{ scale: 0.97 }}
-                onClick={handleSubmit}
-                disabled={!body.trim() || isSubmitting}
-                className="w-full py-4 rounded-2xl font-black text-[16px] flex items-center justify-center gap-2.5 transition-colors
-                  disabled:bg-card disabled:text-muted-foreground
-                  enabled:bg-primary enabled:text-primary-foreground enabled:shadow-lg enabled:shadow-primary/30 enabled:hover:opacity-90"
-              >
-                {isSubmitting ? (
-                  <Loader2 size={18} className="animate-spin" />
-                ) : (
-                  <>
-                    <Send size={16} strokeWidth={2.5} />
-                    {body.trim() ? 'Post to Community' : 'Write something first…'}
-                  </>
-                )}
-              </motion.button>
-            </div>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
+          <div className="px-4 pb-3">
+            <button
+              type="button"
+              onClick={handleSubmit}
+              disabled={!body.trim() || isSubmitting}
+              className="w-full py-4 rounded-2xl font-black text-[16px] flex items-center justify-center gap-2.5 transition-colors
+                disabled:bg-card disabled:text-muted-foreground
+                enabled:bg-primary enabled:text-primary-foreground enabled:shadow-lg enabled:shadow-primary/30 enabled:hover:opacity-90"
+            >
+              {isSubmitting ? (
+                <Loader2 size={18} className="animate-spin" />
+              ) : (
+                <>
+                  <Send size={16} strokeWidth={2.5} />
+                  {body.trim() ? 'Post to Community' : 'Write something first…'}
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   );
+
+  return createPortal(ui, document.body);
 }
 
 // ─── Types ────────────────────────────────────────────────────────────────────
