@@ -10,6 +10,7 @@ import { AdminLauncher } from "@/components/admin/AdminLauncher";
 import DisclaimerModal from "@/components/DisclaimerModal";
 import { DevUpdatesModal } from "@/components/dev/DevUpdatesModal";
 import { SignedInAppRedirect } from "@/components/SignedInAppRedirect";
+import { AppBootGate } from "@/components/boot/AppBootGate";
 import { WelcomeNicknameToast } from "@/components/onboarding/WelcomeNicknameToast";
 import { DesktopNavbar } from "@/components/DesktopNavbar";
 
@@ -55,6 +56,7 @@ export default function RootLayout({
     >
       <body className="antialiased bg-background text-foreground min-h-[100dvh] font-sans">
         <AuthProvider>
+          <AppBootGate />
           <NativeSafeAreaSync />
           <ThemeSync />
           <ToastProvider>
