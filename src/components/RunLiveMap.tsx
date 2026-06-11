@@ -11,6 +11,12 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import type { SupabaseClient, User } from '@supabase/supabase-js';
 import { Loader2, MapPin, Navigation } from 'lucide-react';
+import {
+  getDeviceLocation,
+  LocationAccessError,
+  requestLocationAccess,
+  watchDeviceLocation,
+} from '@/lib/location/requestDeviceLocation';
 
 const STALE_MS = 45 * 60 * 1000;
 const MIN_POST_INTERVAL_MS = 12_000;
@@ -88,7 +94,7 @@ export default function RunLiveMap({
   const [rows, setRows] = useState<LiveLocationRow[]>([]);
   const [sharing, setSharing] = useState(false);
   const [shareBusy, setShareBusy] = useState(false);
-  const watchIdRef = useRef<number | null>(null);
+  const stopWatchRef = useRef<(() => void) | null>(null);
   const lastPostRef = useRef(0);
 
   const nameByUserId = useMemo(() => {
@@ -134,10 +140,8 @@ export default function RunLiveMap({
   }, [supabaseClient, runId, fetchLocations]);
 
   const stopWatch = useCallback(() => {
-    if (watchIdRef.current != null) {
-      navigator.geolocation.clearWatch(watchIdRef.current);
-      watchIdRef.current = null;
-    }
+    stopWatchRef.current?.();
+    stopWatchRef.current = null;
   }, []);
 
   const removeMyLocation = useCallback(async () => {
@@ -192,46 +196,39 @@ export default function RunLiveMap({
       return;
     }
 
-    if (!navigator.geolocation) {
-      onToast?.('Location is not available in this browser', 'error');
-      return;
-    }
-
     setShareBusy(true);
-    let first: GeolocationPosition;
     try {
-      first = await new Promise<GeolocationPosition>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, {
-          enableHighAccuracy: true,
-          timeout: 12_000,
-        });
-      });
-    } catch {
-      onToast?.('Allow location access to share with the group', 'error');
+      // Native: explicit permission dialog. Web: browser prompt on getDeviceLocation.
+      await requestLocationAccess();
+      const first = await getDeviceLocation({ enableHighAccuracy: true, timeout: 12_000 });
+
+      await postPosition(first.latitude, first.longitude, first.accuracy);
+
+      const watch = await watchDeviceLocation(
+        (pos) => {
+          void postPosition(pos.latitude, pos.longitude, pos.accuracy);
+        },
+        () => {
+          onToast?.('Lost GPS signal — try again when you have a fix', 'info');
+        },
+        { enableHighAccuracy: true, maximumAge: 15_000, timeout: 30_000 }
+      );
+      stopWatchRef.current = watch.stop;
+
+      setSharing(true);
+      onToast?.('Sharing your position with this run (updates ~every 12s when moving)', 'success');
+      void fetchLocations();
+    } catch (err) {
+      const message =
+        err instanceof LocationAccessError
+          ? err.message
+          : err instanceof Error
+            ? err.message
+            : 'Allow location access to share with the group';
+      onToast?.(message, 'error');
+    } finally {
       setShareBusy(false);
-      return;
     }
-
-    await postPosition(
-      first.coords.latitude,
-      first.coords.longitude,
-      first.coords.accuracy ?? null
-    );
-
-    watchIdRef.current = navigator.geolocation.watchPosition(
-      (pos) => {
-        void postPosition(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy ?? null);
-      },
-      () => {
-        onToast?.('Lost GPS signal — try again when you have a fix', 'info');
-      },
-      { enableHighAccuracy: true, maximumAge: 15_000, timeout: 30_000 }
-    );
-
-    setSharing(true);
-    setShareBusy(false);
-    onToast?.('Sharing your position with this run (updates ~every 12s when moving)', 'success');
-    void fetchLocations();
   };
 
   useEffect(() => {

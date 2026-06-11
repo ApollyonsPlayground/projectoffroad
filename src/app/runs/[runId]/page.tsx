@@ -61,6 +61,11 @@ import { isPlatformStaffRole } from '@/lib/admin/platformStaff';
 import { runJoinActionLabel } from '@/lib/runs/runParticipation';
 import { RunGuestInvitePanel } from '@/components/runs/RunGuestInvitePanel';
 import { GuestAccountUpgrade } from '@/components/runs/GuestAccountUpgrade';
+import {
+  getDeviceLocation,
+  LocationAccessError,
+  requestLocationAccess,
+} from '@/lib/location/requestDeviceLocation';
 
 const RunLiveMap = dynamic(() => import('@/components/RunLiveMap'), {
   ssr: false,
@@ -826,15 +831,9 @@ export default function RunDetailPage() {
     const userName = snapshotPublicIdentity(profile ?? undefined, user);
 
     try {
-      // Grab browser GPS
-      const position = await new Promise<GeolocationPosition>((resolve, reject) =>
-        navigator.geolocation.getCurrentPosition(resolve, reject, {
-          enableHighAccuracy: true,
-          timeout: 10000,
-        })
-      );
-
-      const { latitude, longitude } = position.coords;
+      await requestLocationAccess();
+      const position = await getDeviceLocation({ enableHighAccuracy: true, timeout: 10_000 });
+      const { latitude, longitude } = position;
 
       const { error } = await supabaseClient.from('sos_alerts').insert({
         run_id: run.id,
@@ -848,9 +847,14 @@ export default function RunDetailPage() {
       if (error) throw error;
       showToast('SOS alert sent to all riders in this run.', 'success');
     } catch (err: unknown) {
-      const code =
-        err && typeof err === 'object' && 'code' in err ? (err as { code?: unknown }).code : undefined;
-      if (code === 1) {
+      const denied =
+        err instanceof LocationAccessError
+          ? err.code === 'denied'
+          : err &&
+              typeof err === 'object' &&
+              'code' in err &&
+              (err as { code?: unknown }).code === 1;
+      if (denied) {
         // PERMISSION_DENIED — fall back to alert without coords
         const { error } = await supabaseClient.from('sos_alerts').insert({
           run_id: run.id,
