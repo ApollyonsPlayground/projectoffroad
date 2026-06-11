@@ -74,13 +74,14 @@ On Mac after sync: `npm run ios:sync-version` (updates Xcode project + Info.plis
 
 ## iOS TestFlight release (macOS / MacinCloud)
 
-1. Open project in Xcode via:
-   - `npx cap add ios` (if needed)
+1. On **macOS** (from repo root):
+   - `npm install`
    - `npx cap sync ios`
-   - `npx cap open ios`
+   - `npm run ios:verify-plugins` (must pass — checks Camera, Geolocation, Push in Podfile/SPM)
+   - `npm run ios:camera` and `npm run ios:location` (Info.plist permission strings)
+   - `npx cap open ios` → open **`App.xcworkspace`**, not `.xcodeproj`
 2. In Xcode:
-   - TARGETS → App → General → bump **Build** (must increase every upload)
-   - Product → Archive
+   - Product → **Clean Build Folder**, then **Archive** (required after plugin changes)
    - Distribute App → App Store Connect → Upload
 3. App Store Connect → TestFlight:
    - wait for Processing to finish

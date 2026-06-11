@@ -8,6 +8,11 @@ import {
 import { isCapacitorNative } from '@/utils/capacitator/isNative';
 import { resizeImageFileToJpegBlob } from '@/lib/media/mobileSafeCapture';
 import { requestMediaActionSheet } from '@/lib/media/mediaActionSheetState';
+import { pickFileViaHtmlInput } from '@/lib/media/htmlFilePick';
+import {
+  isNativeCameraPluginAvailable,
+  isPluginUnimplementedError,
+} from '@/lib/media/isNativeCameraAvailable';
 
 const CANCEL_CODES = new Set<string>([
   CameraErrorCode.TakePhotoCancelled,
@@ -41,6 +46,16 @@ function mimeAndExtForFormat(format: string, isVideo: boolean): { mime: string; 
   return { mime: 'image/jpeg', ext: 'jpg' };
 }
 
+async function finalizePickedFile(file: File): Promise<File> {
+  if (file.type.startsWith('video/')) return file;
+  try {
+    const resized = await resizeImageFileToJpegBlob(file, 2048, 0.88);
+    return new File([resized], `photo-${Date.now()}.jpg`, { type: 'image/jpeg' });
+  } catch {
+    return file;
+  }
+}
+
 async function mediaResultToFile(result: MediaResult): Promise<File> {
   const path = result.webPath;
   if (!path) throw new Error('No media returned');
@@ -54,29 +69,52 @@ async function mediaResultToFile(result: MediaResult): Promise<File> {
   const blob = await response.blob();
   const prefix = isVideo ? 'video' : 'photo';
   const raw = new File([blob], `${prefix}-${Date.now()}.${ext}`, { type: blob.type || mime });
+  return finalizePickedFile(raw);
+}
 
-  if (isVideo) return raw;
-
-  try {
-    const resized = await resizeImageFileToJpegBlob(raw, 2048, 0.88);
-    return new File([resized], `photo-${Date.now()}.jpg`, { type: 'image/jpeg' });
-  } catch {
-    return raw;
+async function withCameraOrHtmlFallback<T>(
+  cameraCall: () => Promise<T>,
+  htmlPick: () => Promise<File | null>,
+  mapHtml: (file: File) => Promise<T>
+): Promise<T | null> {
+  if (isNativeCameraPluginAvailable()) {
+    try {
+      return await cameraCall();
+    } catch (err) {
+      if (isUserCancelledMediaPick(err)) throw err;
+      if (!isPluginUnimplementedError(err)) throw err;
+    }
   }
+
+  const file = await htmlPick();
+  if (!file) return null;
+  return mapHtml(file);
 }
 
-export async function takePhotoFile(): Promise<File> {
-  const result = await Camera.takePhoto({ quality: 90, includeMetadata: true });
-  return mediaResultToFile(result);
+export async function takePhotoFile(): Promise<File | null> {
+  return withCameraOrHtmlFallback(
+    async () => {
+      const result = await Camera.takePhoto({ quality: 90, includeMetadata: true });
+      return mediaResultToFile(result);
+    },
+    () => pickFileViaHtmlInput({ accept: 'image/*', capture: 'environment' }),
+    finalizePickedFile
+  );
 }
 
-export async function recordVideoFile(): Promise<File> {
-  const result = await Camera.recordVideo({
-    saveToGallery: false,
-    isPersistent: true,
-    includeMetadata: true,
-  });
-  return mediaResultToFile(result);
+export async function recordVideoFile(): Promise<File | null> {
+  return withCameraOrHtmlFallback(
+    async () => {
+      const result = await Camera.recordVideo({
+        saveToGallery: false,
+        isPersistent: true,
+        includeMetadata: true,
+      });
+      return mediaResultToFile(result);
+    },
+    () => pickFileViaHtmlInput({ accept: 'video/*', capture: 'environment' }),
+    (file) => Promise.resolve(file)
+  );
 }
 
 export async function chooseGalleryFile(
@@ -89,15 +127,27 @@ export async function chooseGalleryFile(
         ? MediaTypeSelection.Video
         : MediaTypeSelection.All;
 
-  const { results } = await Camera.chooseFromGallery({
-    mediaType: selection,
-    allowMultipleSelection: false,
-    includeMetadata: true,
-  });
+  const accept =
+    mediaType === 'photo'
+      ? 'image/*'
+      : mediaType === 'video'
+        ? 'video/*'
+        : 'image/*,video/*';
 
-  const item = results[0];
-  if (!item) return null;
-  return mediaResultToFile(item);
+  return withCameraOrHtmlFallback(
+    async () => {
+      const { results } = await Camera.chooseFromGallery({
+        mediaType: selection,
+        allowMultipleSelection: false,
+        includeMetadata: true,
+      });
+      const item = results[0];
+      if (!item) return null;
+      return mediaResultToFile(item);
+    },
+    () => pickFileViaHtmlInput({ accept }),
+    finalizePickedFile
+  );
 }
 
 /** Native camera / gallery picker. Returns null when the user cancels. */
@@ -106,9 +156,14 @@ export async function pickNativeMediaFile(allowVideo: boolean): Promise<File | n
 
   const choice = await requestMediaActionSheet(allowVideo);
   if (choice === 'cancel') return null;
-  if (choice === 'photo') return takePhotoFile();
-  if (choice === 'video') return recordVideoFile();
-  return chooseGalleryFile(allowVideo ? 'all' : 'photo');
+  try {
+    if (choice === 'photo') return await takePhotoFile();
+    if (choice === 'video') return await recordVideoFile();
+    return await chooseGalleryFile(allowVideo ? 'all' : 'photo');
+  } catch (err) {
+    if (isUserCancelledMediaPick(err)) return null;
+    throw err;
+  }
 }
 
 export async function pickNativeImageFile(): Promise<File | null> {
