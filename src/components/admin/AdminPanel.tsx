@@ -18,13 +18,15 @@ import {
   MapPin,
   Calendar,
   ExternalLink,
+  Vote,
 } from 'lucide-react';
+import { VotingAdminPanel } from '@/components/admin/VotingAdminPanel';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/Toast';
 import { ensureStoragePublicObjectUrl } from '@/lib/supabase/storagePublicUrl';
 
-type Tab = 'overview' | 'clubs' | 'posts' | 'users';
+type Tab = 'overview' | 'clubs' | 'posts' | 'users' | 'voting';
 type ClubFilter = 'all' | 'verified' | 'pending';
 
 export type AdminPanelVariant = 'page' | 'drawer';
@@ -350,6 +352,7 @@ export function AdminPanel({ variant, onCloseDrawer }: Props) {
     { id: 'clubs', label: 'Clubs', Icon: Building2 },
     { id: 'posts', label: 'Posts', Icon: FileText },
     { id: 'users', label: 'Users', Icon: Users },
+    { id: 'voting', label: 'Votes', Icon: Vote },
   ];
 
   const headerTitle = variant === 'drawer' ? 'Admin tools' : 'Owner / Admin';
@@ -684,6 +687,10 @@ export function AdminPanel({ variant, onCloseDrawer }: Props) {
             ))}
             {users.length === 0 && <p className="text-muted-foreground text-[14px] text-center py-8">No users.</p>}
           </div>
+        )}
+
+        {tab === 'voting' && supabaseClient && (
+          <VotingAdminPanel supabaseClient={supabaseClient} />
         )}
       </main>
     </div>

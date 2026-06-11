@@ -59,6 +59,8 @@ import {
 import { cancelRunTimeLocalReminders, scheduleRunTimeLocalReminders } from '@/lib/runs/runReminderLocal';
 import { isPlatformStaffRole } from '@/lib/admin/platformStaff';
 import { runJoinActionLabel } from '@/lib/runs/runParticipation';
+import { RunGuestInvitePanel } from '@/components/runs/RunGuestInvitePanel';
+import { GuestAccountUpgrade } from '@/components/runs/GuestAccountUpgrade';
 
 const RunLiveMap = dynamic(() => import('@/components/RunLiveMap'), {
   ssr: false,
@@ -121,6 +123,7 @@ interface Participant {
   id: string;
   user_id: string;
   rsvp_status: string;
+  is_guest?: boolean;
   users: {
     name: string | null;
     username?: string | null;
@@ -256,13 +259,14 @@ export default function RunDetailPage() {
     return s.trim().replace(/\/+$/, '');
   }, [params?.runId]);
   const router = useRouter();
-  const { user, profile, supabaseClient } = useAuth();
+  const { user, profile, supabaseClient, isGuest } = useAuth();
   const { showToast } = useToast();
 
   const [run, setRun] = useState<RunDetail | null>(null);
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [joined, setJoined] = useState(false);
+  const [canManageGuestInvites, setCanManageGuestInvites] = useState(false);
   const [joining, setJoining] = useState(false);
   const [activating, setActivating] = useState(false);
   const [hostBusy, setHostBusy] = useState<'complete' | 'cancel' | 'delete' | null>(null);
@@ -449,16 +453,58 @@ export default function RunDetailPage() {
         }));
       }
 
-      setParticipants(parts);
+      let guestParts: Participant[] = [];
+      const guestEmb = await supabaseClient
+        .from('run_guest_participants')
+        .select('id, user_id, display_name')
+        .eq('run_id', runIdResolved);
+
+      if (!guestEmb.error && guestEmb.data) {
+        guestParts = (
+          guestEmb.data as { id: string; user_id: string; display_name: string }[]
+        ).map((g) => ({
+          id: g.id,
+          user_id: g.user_id,
+          rsvp_status: 'guest',
+          is_guest: true,
+          users: {
+            name: g.display_name,
+            username: null,
+            avatar_url: null,
+          },
+        }));
+      }
+
+      const allParts = [...parts, ...guestParts];
+      setParticipants(allParts);
+
       if (user) {
-        setJoined(parts.some((p) => p.user_id === user.id));
+        setJoined(allParts.some((p) => p.user_id === user.id));
+        let manageInvites = loaded.host_id === user.id;
+        if (!manageInvites && isPlatformStaffRole(String((profile as { role?: unknown })?.role ?? ''))) {
+          manageInvites = true;
+        }
+        if (!manageInvites && clubKey) {
+          const { data: mem } = await supabaseClient
+            .from('club_members')
+            .select('role')
+            .eq('club_id', clubKey)
+            .eq('user_id', user.id)
+            .eq('status', 'approved')
+            .maybeSingle();
+          const role = String((mem as { role?: string } | null)?.role ?? '').toLowerCase();
+          manageInvites = ['owner', 'admin', 'officer', 'leader'].includes(role);
+        }
+        setCanManageGuestInvites(manageInvites);
+      } else {
+        setCanManageGuestInvites(false);
       }
     } catch {
       showToast('Could not load run', 'error');
     } finally {
       setIsLoading(false);
     }
-  }, [supabaseClient, runIdResolved, user, showToast]);
+  }, [supabaseClient, runIdResolved, user, profile, showToast]);
 
   useEffect(() => { fetchDetail(); }, [fetchDetail]);
 
@@ -1275,10 +1321,13 @@ export default function RunDetailPage() {
   const hasDirections = !!(trailDirectionsUrl || stagingDirectionsUrl);
   const canAddTrailReport = Boolean(
     user &&
+      !isGuest &&
       run.trail_id &&
       run.status === 'completed' &&
       (joined || user.id === run.host_id)
   );
+  const memberCount = participants.filter((p) => !p.is_guest).length;
+  const guestCount = participants.filter((p) => p.is_guest).length;
   const trailReportTrailName = run.trail?.name ?? run.title;
 
   const liveMapReference =
@@ -1325,6 +1374,23 @@ export default function RunDetailPage() {
       </header>
 
       <main className="max-w-app-shell mx-auto px-4 pt-5 space-y-5">
+        {isGuest && (run.status === 'completed' || run.status === 'cancelled') && (
+          <div className="space-y-3">
+            <div className="rounded-2xl border border-border bg-card px-4 py-4 space-y-2">
+              <p className="text-[15px] font-bold text-foreground">This run has ended</p>
+              <p className="text-[13px] text-muted-foreground leading-relaxed">
+                Guest access to chat, the live map, and SOS is closed. Create a full account to join future runs and
+                explore the community.
+              </p>
+            </div>
+            <GuestAccountUpgrade returnPath={`/runs/${run.id}/`} />
+          </div>
+        )}
+
+        {isGuest && run.status !== 'completed' && run.status !== 'cancelled' && (
+          <GuestAccountUpgrade returnPath={`/runs/${run.id}/`} />
+        )}
+
         <AnimatePresence>
           {editOpen && (
             <>
@@ -1964,7 +2030,14 @@ export default function RunDetailPage() {
 
           {run.status !== 'completed' && run.status !== 'cancelled' && (
             <div className="grid grid-cols-1 gap-3">
-              {isHost ? (
+              {isGuest ? (
+                joined ? (
+                  <div className="flex items-center justify-center gap-2 py-3 text-[14px] font-bold rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-400">
+                    <CheckCircle2 size={16} />
+                    Joined as guest
+                  </div>
+                ) : null
+              ) : isHost ? (
                 <div className="flex items-center justify-center gap-2 py-3 text-[14px] font-bold rounded-xl border border-primary/35 bg-primary/10 text-primary/80">
                   <Shield size={16} className="text-primary/90 flex-shrink-0" />
                   {runHostSelfDetailBadge(run.run_source)}
@@ -2281,6 +2354,17 @@ export default function RunDetailPage() {
           </motion.div>
         )}
 
+        {/* ── Guest invites (host or club manager) ──────────────────────── */}
+        {canManageGuestInvites && supabaseClient && run.status !== 'cancelled' && (
+          <RunGuestInvitePanel
+            runId={run.id}
+            supabaseClient={supabaseClient}
+            maxParticipants={run.max_participants}
+            participantCount={memberCount}
+            guestCount={guestCount}
+          />
+        )}
+
         {/* ── Manage Run (host or platform staff) ───────────────────────── */}
         <AnimatePresence>
           {canManageRun && run.status !== 'cancelled' && (
@@ -2444,14 +2528,23 @@ export default function RunDetailPage() {
                           HOST
                         </span>
                       )}
+                      {p.is_guest && (
+                        <span className="ml-1.5 px-1.5 py-px text-[9px] font-black text-cyan-950 bg-cyan-400 rounded leading-none">
+                          GUEST
+                        </span>
+                      )}
                     </p>
                   </div>
                   <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${
-                    p.rsvp_status === 'going'
+                    p.is_guest
+                      ? 'bg-cyan-500/15 text-cyan-300'
+                      : p.rsvp_status === 'going'
                       ? 'bg-emerald-500/15 text-emerald-400'
                       : 'bg-zinc-700 text-muted-foreground'
                   }`}>
-                    {p.rsvp_status === 'going'
+                    {p.is_guest
+                      ? 'Guest'
+                      : p.rsvp_status === 'going'
                       ? 'Going'
                       : p.rsvp_status.charAt(0).toUpperCase() + p.rsvp_status.slice(1)}
                   </span>
@@ -2508,7 +2601,7 @@ export default function RunDetailPage() {
                 </ul>
               )}
 
-              {user && (joined || isHost) && (
+              {user && !isGuest && (joined || isHost) && (
                 <div className="space-y-2 pt-1 border-t border-border/80">
                   <label className="text-[11px] font-bold uppercase text-muted-foreground tracking-wide">
                     Your note

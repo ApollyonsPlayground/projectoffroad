@@ -19,7 +19,7 @@ function normalizePath(path: string | null | undefined): string {
  * Native-only cold-start gate: splash while session restore runs, then route by auth.
  */
 export function AppBootGate() {
-  const { user, loading } = useAuth();
+  const { user, loading, isGuest, guestRunId } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
 
@@ -55,6 +55,8 @@ export function AppBootGate() {
 
       if (!user) {
         router.replace('/');
+      } else if (isGuest && guestRunId) {
+        router.replace(`/runs/${guestRunId}/`);
       } else if (HOME_PATHS.has(entryPath)) {
         router.replace('/feed/');
       }
@@ -68,7 +70,7 @@ export function AppBootGate() {
     return () => {
       cancelled = true;
     };
-  }, [isNative, loading, user, router]);
+  }, [isNative, loading, user, isGuest, guestRunId, router]);
 
   if (!isNative) return null;
 

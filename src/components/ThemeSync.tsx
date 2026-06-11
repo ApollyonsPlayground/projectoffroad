@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { DEFAULT_UI_PRESET, normalizeUiPreset, type UiPresetId } from '@/lib/ui/uiPresets';
+import { syncNativeStatusBar } from '@/lib/native/syncNativeStatusBar';
 
 export const THEME_STORAGE_KEY = 'socal_ui_theme';
 
@@ -50,6 +51,8 @@ export function ThemeSync() {
     }
     const metaColor = getComputedStyle(document.documentElement).getPropertyValue('--theme-color-meta').trim();
     meta.setAttribute('content', metaColor || '#000000');
+
+    void syncNativeStatusBar();
   }, [profile?.ui_theme]);
 
   return null;

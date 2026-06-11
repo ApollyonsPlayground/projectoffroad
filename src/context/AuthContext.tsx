@@ -12,6 +12,7 @@ import { formatOAuthAuthError } from '@/utils/auth/oauthIdentityErrors'
 import { assignUniqueUsername } from '@/lib/username/generateUsername'
 import { markDisclaimerAccepted } from '@/lib/disclaimerStorage'
 import { buildOAuthRedirect, readOAuthNextParam } from '@/utils/auth/oauthRedirect'
+import { upgradeGuestToMember, type GuestUpgradeResult } from '@/lib/runs/guestUpgrade'
 import { App as CapacitorApp } from '@capacitor/app'
 import { Browser } from '@capacitor/browser'
 
@@ -64,9 +65,12 @@ interface AuthContextType {
   signOut: () => Promise<void>
   signInWithGoogle: () => Promise<{ error: string | null }>
   signInWithApple: () => Promise<{ error: string | null }>
-  linkGoogle: () => Promise<{ error: string | null }>
-  linkApple: () => Promise<{ error: string | null }>
+  linkGoogle: (nextAfterLogin?: string) => Promise<{ error: string | null }>
+  linkApple: (nextAfterLogin?: string) => Promise<{ error: string | null }>
+  completeGuestUpgrade: () => Promise<GuestUpgradeResult>
   refreshProfile: () => Promise<void>
+  isGuest: boolean
+  guestRunId: string | null
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -100,11 +104,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const { data: existing, error: selErr } = await supabase
         .from('users')
-        .select('id, sync_display_name_from_google, avatar_url')
+        .select('id, sync_display_name_from_google, avatar_url, is_guest, guest_run_id')
         .eq('id', userId)
         .maybeSingle()
 
       if (selErr) console.warn('[Auth] profile select:', selErr.message)
+
+      if (existing && (existing as { is_guest?: boolean }).is_guest) {
+        const { data: guestRow, error: guestErr } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', userId)
+          .maybeSingle()
+        if (!guestErr && guestRow) setProfile(guestRow)
+        return
+      }
+
+      if (session.user.is_anonymous) {
+        const { data: anonRow } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', userId)
+          .maybeSingle()
+        if (anonRow) {
+          setProfile(anonRow)
+          return
+        }
+        setProfile(null)
+        return
+      }
 
       if (!existing) {
         const { error: insErr } = await supabase.from('users').insert({
@@ -326,7 +354,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   async function linkWithOAuthProvider(
     provider: 'google' | 'apple',
     disabledHelp: string,
-    emptyUrlHelp: string
+    emptyUrlHelp: string,
+    nextAfterLogin = '/settings/'
   ): Promise<{ error: string | null }> {
     if (!supabase) return { error: 'Supabase is not configured.' }
 
@@ -335,7 +364,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { error: 'Sign in first, then connect accounts in Settings.' }
     }
 
-    const redirectTo = buildOAuthRedirect('/settings/')
+    const redirectTo = buildOAuthRedirect(nextAfterLogin)
 
     let oauth: Awaited<ReturnType<typeof supabase.auth.linkIdentity>>
     try {
@@ -410,15 +439,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return appleOAuthFallback()
   }
 
-  async function linkGoogle() {
+  async function linkGoogle(nextAfterLogin?: string) {
     return linkWithOAuthProvider(
       'google',
       'Google sign-in is disabled in Supabase. Enable Google under Authentication → Providers to connect it.',
-      'Could not open Google to connect your account.'
+      'Could not open Google to connect your account.',
+      nextAfterLogin ?? '/settings/'
     )
   }
 
-  async function linkApple() {
+  async function linkApple(nextAfterLogin?: string) {
     if (!supabase) return { error: 'Supabase is not configured.' }
 
     const session = (await supabase.auth.getSession()).data.session
@@ -427,15 +457,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     if (isIosNative() && isAppleSignInNativeAvailable()) {
-      return appleNativeAuth(supabase, 'link')
+      const result = await appleNativeAuth(supabase, 'link')
+      if (!result.error) {
+        const { data: guestRow } = await supabase
+          .from('users')
+          .select('is_guest')
+          .eq('id', session.user.id)
+          .maybeSingle()
+        if ((guestRow as { is_guest?: boolean } | null)?.is_guest) {
+          try {
+            await completeGuestUpgrade()
+          } catch (e) {
+            console.warn('[Auth] guest upgrade after Apple link:', e)
+          }
+        }
+      }
+      return result
     }
 
     return linkWithOAuthProvider(
       'apple',
       'Apple sign-in is disabled in Supabase. Enable Apple under Authentication → Providers to connect it.',
-      'Could not open Apple to connect your account.'
+      'Could not open Apple to connect your account.',
+      nextAfterLogin ?? '/settings/'
     )
   }
+
+  async function completeGuestUpgrade(): Promise<GuestUpgradeResult> {
+    if (!supabase || !user) {
+      throw new Error('Sign in required')
+    }
+    const result = await upgradeGuestToMember(supabase)
+    if (result.upgraded) {
+      await assignUniqueUsername(supabase, user.id)
+    }
+    await refreshProfile()
+    return result
+  }
+
+  const isGuest = Boolean(profile?.is_guest || user?.is_anonymous)
+  const guestRunId = (profile?.guest_run_id as string | null | undefined) ?? null
 
   return (
     <AuthContext.Provider
@@ -450,7 +511,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signInWithApple,
         linkGoogle,
         linkApple,
+        completeGuestUpgrade,
         refreshProfile,
+        isGuest,
+        guestRunId,
       }}
     >
       {children}

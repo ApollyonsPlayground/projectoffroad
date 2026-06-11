@@ -23,7 +23,7 @@ const NAV_ITEMS = [
 export default function BottomNav() {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, supabaseClient } = useAuth();
+  const { user, supabaseClient, isGuest } = useAuth();
   const [hasUnread, setHasUnread] = useState(false);
 
   // Check for unread messages and subscribe to changes
@@ -98,6 +98,8 @@ export default function BottomNav() {
     }
     router.push(href);
   };
+
+  if (isGuest) return null;
 
   return (
     <nav

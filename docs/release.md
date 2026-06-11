@@ -30,6 +30,12 @@ Examples:
 
 You must rebuild and redistribute the native app (Play/TestFlight) after the web deploy.
 
+## Supabase: guest join (anonymous auth)
+
+Run guest invites use Supabase **anonymous sign-in**. Local config sets `enable_anonymous_sign_ins = true` in `supabase/config.toml`.
+
+**Production:** after applying migrations (`npm run db:push`), enable the same in Supabase Dashboard → **Authentication** → **Providers** → **Anonymous** → allow anonymous sign-ins.
+
 ## Deploy the website (GitLab → Vercel)
 
 1. Push your changes to the GitLab repo branch Vercel watches.

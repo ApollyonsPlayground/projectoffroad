@@ -166,8 +166,7 @@ This runs [scripts/upsert-trails.mjs](scripts/upsert-trails.mjs) against [src/da
 
 ## 4. SOS
 
-- **Global SOS:** red floating button (all screens) — [src/components/GlobalSOS.tsx](src/components/GlobalSOS.tsx). Uses GPS, then **Open Maps**, **Share**, and **Copy text** with a pre-written emergency message.
-- **Run SOS:** unchanged on [src/app/runs/[runId]/page.tsx](src/app/runs/[runId]/page.tsx) — broadcasts to participants via `sos_alerts`.
+- **Run SOS:** on [src/app/runs/[runId]/page.tsx](src/app/runs/[runId]/page.tsx) — broadcasts to participants via `sos_alerts` during active runs.
 
 ## 5. PWA and Capacitor
 

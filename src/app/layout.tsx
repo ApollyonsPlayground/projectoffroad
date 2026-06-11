@@ -13,6 +13,8 @@ import { SignedInAppRedirect } from "@/components/SignedInAppRedirect";
 import { AppBootGate } from "@/components/boot/AppBootGate";
 import { WelcomeNicknameToast } from "@/components/onboarding/WelcomeNicknameToast";
 import { DesktopNavbar } from "@/components/DesktopNavbar";
+import { GuestRunGuard } from "@/components/runs/GuestRunGuard";
+import { GuestUpgradeSync } from "@/components/runs/GuestUpgradeSync";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -56,6 +58,8 @@ export default function RootLayout({
     >
       <body className="antialiased bg-background text-foreground min-h-[100dvh] font-sans">
         <AuthProvider>
+          <GuestRunGuard />
+          <GuestUpgradeSync />
           <AppBootGate />
           <NativeSafeAreaSync />
           <ThemeSync />
