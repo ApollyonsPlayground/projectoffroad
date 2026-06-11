@@ -22,6 +22,10 @@ import { useToast } from '@/components/Toast';
 import { mapDbTrailRow, coordsFromRow, explorerTrailMatchesSearch, rawDifficultyToTier, type ExplorerTrail } from '@/lib/trails/mapDbTrail';
 import { fetchAllTrailRows } from '@/lib/trails/fetchTrailsPaginated';
 import { isLimitedMediaDevice, resizeImageFileToJpegBlob } from '@/lib/media/mobileSafeCapture';
+import {
+  formatRunPublishError,
+  type RunPublishErrorDisplay,
+} from '@/lib/runs/formatRunPublishError';
 
 const MeetupMapPicker = dynamic(() => import('@/components/runs/MeetupMapPicker'), {
   ssr: false,
@@ -314,6 +318,7 @@ export function HostRunWizard({ variant = 'drawer', onSuccess, onCancel }: Props
   const [disclaimerAck, setDisclaimerAck] = useState(false);
   const [loadingDropdowns, setLoadingDropdowns] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [publishError, setPublishError] = useState<RunPublishErrorDisplay | null>(null);
   const [flyerFile, setFlyerFile] = useState<File | null>(null);
   const [flyerPreviewUrl, setFlyerPreviewUrl] = useState('');
   const [clubOnly, setClubOnly] = useState(false);
@@ -625,9 +630,17 @@ export function HostRunWizard({ variant = 'drawer', onSuccess, onCancel }: Props
     }
   };
 
+  const reportPublishFailure = (err: unknown) => {
+    const display = formatRunPublishError(err, { mode, staffFromDb });
+    console.error('[HostRunWizard] publish failed', { display, err });
+    setPublishError(display);
+    showToast(display.headline, 'error');
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !supabaseClient) return;
+    setPublishError(null);
     if (!form.title.trim() || !form.date) {
       showToast('Fill in title and date', 'error');
       return;
@@ -702,6 +715,11 @@ export function HostRunWizard({ variant = 'drawer', onSuccess, onCancel }: Props
             const allowed =
               staffOfficialClubOptions.some((c) => c.id === cid) || clubs.some((c) => c.id === cid);
             if (!allowed) {
+              setPublishError({
+                headline: 'Invalid club',
+                detail: 'Pick Staff verified or a club from the list.',
+                technical: 'client: staff club_id not in options',
+              });
               showToast('Pick Staff verified or a club from the list', 'error');
               return;
             }
@@ -720,38 +738,17 @@ export function HostRunWizard({ variant = 'drawer', onSuccess, onCancel }: Props
         .from('runs')
         .insert(row)
         .select('id')
-        .single();
+        .maybeSingle();
       if (error) {
-        console.error('[HostRunWizard] runs insert failed', error);
-        const rlsBlocked =
-          error.code === '42501' ||
-          String(error.message ?? '').toLowerCase().includes('row-level security');
-        if (rlsBlocked) {
-          showToast(
-            mode === 'club_official' && staffFromDb
-              ? 'Could not publish staff official run — apply the latest database migration (npm run db:push), then try again.'
-              : mode === 'club_official'
-                ? 'Official club runs require an approved officer or owner role for the selected club.'
-                : 'You do not have permission to publish this run.',
-            'error'
-          );
-          return;
-        }
-        if (
-          error.message?.includes('run_source') ||
-          error.message?.includes('user_acknowledged') ||
-          error.message?.includes('host_id') ||
-          error.message?.includes('meetup_latitude') ||
-          error.message?.includes('meetup_longitude') ||
-          error.message?.includes('comms_note')
-        ) {
-          showToast(
-            'Database needs the latest migrations (runs workflow + meetup coordinates). Run npm run db:push.',
-            'error'
-          );
-          return;
-        }
-        throw error;
+        reportPublishFailure(error);
+        return;
+      }
+      if (!createdRun?.id) {
+        reportPublishFailure({
+          code: 'PGRST116',
+          message: 'Insert succeeded but no row was returned (visibility or RLS on read-back).',
+        });
+        return;
       }
 
       const createdRunId = createdRun?.id ? String(createdRun.id) : '';
@@ -795,8 +792,7 @@ export function HostRunWizard({ variant = 'drawer', onSuccess, onCancel }: Props
       setPinTouched(false);
       onSuccess();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Failed to create run';
-      if (!String(msg).includes('migration')) showToast(msg, 'error');
+      reportPublishFailure(err);
     } finally {
       setSubmitting(false);
     }
@@ -1338,6 +1334,18 @@ export function HostRunWizard({ variant = 'drawer', onSuccess, onCancel }: Props
 
       {/* Submit */}
       <div className="flex flex-col gap-2 pt-1">
+        {publishError ? (
+          <div
+            role="alert"
+            className="rounded-xl border border-red-500/40 bg-red-950/40 px-4 py-3 space-y-1"
+          >
+            <p className="text-[14px] font-bold text-red-200">{publishError.headline}</p>
+            <p className="text-[13px] text-red-100/90 leading-relaxed">{publishError.detail}</p>
+            {process.env.NODE_ENV === 'development' && publishError.technical ? (
+              <p className="text-[11px] font-mono text-red-300/70 break-all pt-1">{publishError.technical}</p>
+            ) : null}
+          </div>
+        ) : null}
         <button
           type="submit"
           disabled={submitting}
