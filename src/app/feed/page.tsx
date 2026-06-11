@@ -521,7 +521,7 @@ function NewPostDrawer({ open, onClose, onPosted }: {
       role="dialog"
       aria-modal="true"
       aria-labelledby="new-post-title"
-      className="fixed inset-0 z-[9991] flex flex-col bg-background touch-none"
+      className="fixed inset-0 z-[9991] flex flex-col bg-background"
     >
       <div className="flex flex-col flex-1 min-h-0 w-full max-w-app-shell mx-auto">
         <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 border-b border-border safe-top touch-manipulation">

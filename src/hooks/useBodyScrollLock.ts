@@ -18,7 +18,6 @@ export function useBodyScrollLock(locked: boolean) {
       bodyPosition: body.style.position,
       bodyTop: body.style.top,
       bodyWidth: body.style.width,
-      bodyTouchAction: body.style.touchAction,
     };
 
     html.style.overflow = 'hidden';
@@ -26,7 +25,6 @@ export function useBodyScrollLock(locked: boolean) {
     body.style.position = 'fixed';
     body.style.top = `-${scrollY}px`;
     body.style.width = '100%';
-    body.style.touchAction = 'none';
 
     const allowScroll = (target: EventTarget | null) =>
       target instanceof Element && Boolean(target.closest('[data-scroll-lock-allow]'));
@@ -44,7 +42,6 @@ export function useBodyScrollLock(locked: boolean) {
       body.style.position = prev.bodyPosition;
       body.style.top = prev.bodyTop;
       body.style.width = prev.bodyWidth;
-      body.style.touchAction = prev.bodyTouchAction;
       window.scrollTo(0, scrollY);
     };
   }, [locked]);

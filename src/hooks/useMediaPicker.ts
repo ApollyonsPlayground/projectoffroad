@@ -24,7 +24,11 @@ export function useMediaPicker(
 
   const open = async () => {
     try {
-      await openMediaPicker(onFile, () => inputRef.current?.click(), allowVideo);
+      const input = inputRef.current;
+      if (!input) return;
+      input.accept = allowVideo ? 'image/*,video/*' : 'image/*';
+      input.value = '';
+      await openMediaPicker(onFile, () => input.click());
     } catch (err) {
       if (isUserCancelledMediaPick(err)) return;
       onError?.(err instanceof Error ? err.message : 'Could not open camera');

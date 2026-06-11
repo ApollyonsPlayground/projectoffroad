@@ -14,7 +14,6 @@ import { AppBootGate } from "@/components/boot/AppBootGate";
 import { WelcomeNicknameToast } from "@/components/onboarding/WelcomeNicknameToast";
 import { OnboardingGate } from "@/components/onboarding/OnboardingGate";
 import { ThemePromptModal } from "@/components/onboarding/ThemePromptModal";
-import { MediaActionSheetHost } from "@/components/media/MediaActionSheetHost";
 import { DesktopNavbar } from "@/components/DesktopNavbar";
 import { GuestRunGuard } from "@/components/runs/GuestRunGuard";
 import { GuestUpgradeSync } from "@/components/runs/GuestUpgradeSync";
@@ -77,7 +76,6 @@ export default function RootLayout({
             <DevUpdatesModal />
             <WelcomeNicknameToast />
             <ThemePromptModal />
-            <MediaActionSheetHost />
             <AdminLauncher />
           </ToastProvider>
         </AuthProvider>
