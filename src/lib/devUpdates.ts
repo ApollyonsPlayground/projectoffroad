@@ -1,5 +1,5 @@
 /** Bump when shipping a user-facing release — keep in sync with app-version.json / What's new modal. */
-export const DEV_UPDATES_VERSION = '2026-06-01';
+export const DEV_UPDATES_VERSION = '2026-06-12';
 
 export type DevUpdateTag = 'new' | 'improved' | 'fix';
 
@@ -28,6 +28,49 @@ export type DevUpdateRelease = {
 export const DEV_UPDATES: DevUpdateRelease[] = [
   {
     version: DEV_UPDATES_VERSION,
+    date: 'June 12, 2026',
+    title: 'App 1.0.8 — themes, guest invites & native polish',
+    items: [
+      {
+        tag: 'new',
+        title: 'Themes & onboarding',
+        summary:
+          'Six distinct color presets, custom accent colors, and a short setup flow for new riders (trail name + theme). Existing members get a one-time theme picker.',
+      },
+      {
+        tag: 'new',
+        title: 'Guest run invites',
+        summary:
+          'Hosts can share a link so friends join a run with a temporary trail name — no full account required. Access is limited to that run until it ends.',
+      },
+      {
+        tag: 'improved',
+        title: 'Live map location',
+        summary:
+          'Tapping Share my location on an active run now prompts for GPS permission on the native app. SOS uses the same flow.',
+      },
+      {
+        tag: 'improved',
+        title: 'Status bar & shell',
+        summary:
+          'On iPhone and Android, the status bar matches your theme preset or custom colors.',
+      },
+      {
+        tag: 'improved',
+        title: 'Run publishing',
+        summary:
+          'Clearer errors when a run fails to publish, with hints on what to fix.',
+      },
+      {
+        tag: 'fix',
+        title: 'Official staff runs',
+        summary:
+          'Platform staff can publish official runs and guest invite links without permission errors.',
+      },
+    ],
+  },
+  {
+    version: '2026-06-01',
     date: 'May 31, 2026',
     title: 'Still building — vote, clubs & push on the way',
     callout: {

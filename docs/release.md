@@ -70,7 +70,7 @@ Output: `android/app/build/outputs/bundle/release/*.aab`
 
 On Mac after sync: `npm run ios:sync-version` (updates Xcode project + Info.plist).
 
-**Noah (website):** update `src/lib/devUpdates.ts` — `DEV_UPDATES_VERSION` + new release block for `/updates`. See `docs/VERSION_PENDING.md` after each code bump.
+**Release notes:** agent updates `src/lib/devUpdates.ts` on native bumps (no sensitive info). Noah deploys web and may tweak copy. See `docs/VERSION_PENDING.md` after each bump.
 
 ## iOS TestFlight release (macOS / MacinCloud)
 

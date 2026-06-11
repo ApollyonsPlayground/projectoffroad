@@ -4,19 +4,17 @@
 **Native version:** `1.0.8` (Android `versionCode` **9**, iOS build **9**)  
 **Why:** Native rebuild — push notifications, status bar, geolocation, local notifications, location permissions.
 
-## You update on the website
-
-1. **`src/lib/devUpdates.ts`**
-   - Bump `DEV_UPDATES_VERSION` (e.g. `'2026-06-12'`)
-   - Add a new entry at the top of `DEV_UPDATES` with release notes for this build
-2. **Deploy web** to Vercel (GitLab push) after editing release notes
-3. Optional: mention version `1.0.8` in the release title or callout
-
 ## Already updated in code (agent)
 
 - `app-version.json`
 - `android/app/build.gradle` (via `npm run version:sync`)
 - `package.json` version
+- `src/lib/devUpdates.ts` — version `2026-06-12`, App **1.0.8** release notes
+
+## You still do
+
+1. **Deploy web** to Vercel (GitLab push) so `/updates` and the What's new modal go live
+2. Edit release copy in `devUpdates.ts` if you want different wording
 
 ## Native rebuild (after web deploy)
 

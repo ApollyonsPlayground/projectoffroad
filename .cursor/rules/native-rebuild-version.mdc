@@ -1,5 +1,5 @@
 ---
-description: Bump native app versions and notify Noah to update website release notes when a store rebuild is required
+description: Bump native app versions, update devUpdates release notes, and notify Noah when a store rebuild is required
 alwaysApply: true
 ---
 
@@ -16,18 +16,23 @@ When a change **requires a new Android/iOS binary** (Capacitor plugin add/update
    - Optionally bump `packageJsonVersion`
    - Set `rebuildReason` and `lastBumped` (today ISO date)
 2. Run **`npm run version:sync`** (updates `android/app/build.gradle` + `package.json`)
-3. Update **`docs/VERSION_PENDING.md`** with the new numbers and rebuild reason
+3. Update **`src/lib/devUpdates.ts`**: bump `DEV_UPDATES_VERSION`, add a new top entry in `DEV_UPDATES` for `/updates` and the What's new modal
+4. Update **`docs/VERSION_PENDING.md`** with version numbers and rebuild checklist
+
+### `devUpdates.ts` rules
+
+- User-facing copy only — **no** emails, credentials, internal URLs, migration names, or incident details
+- Mention version in title when shipping a native build (e.g. `App 1.0.8 — …`)
+- Tags: `new` | `improved` | `fix`
 
 ## Agent must tell Noah (every time)
 
-In the same response, include a clear **"Version bump — your website steps"** section:
+In the same response, include **"Version bump"**:
 
 - New **versionName** and **versionCode / iOS build**
-- **Noah updates:** `src/lib/devUpdates.ts` (`DEV_UPDATES_VERSION` + new release entry on `/updates`)
-- **Then:** deploy web, rebuild Android + iOS (`docs/release.md`)
-- Point to **`docs/VERSION_PENDING.md`**
-
-Do **not** edit `devUpdates.ts` release copy unless Noah asks — he owns website release notes.
+- Confirm **`devUpdates.ts`** was updated (or what Noah should tweak)
+- **Next:** deploy web, rebuild Android + iOS (`docs/release.md`)
+- Point to **`docs/VERSION_PENDING.md`** if anything is still manual (e.g. iOS on Mac)
 
 ## Web-only changes
 
@@ -36,4 +41,4 @@ No version bump. Say web deploy only; no store rebuild.
 ## Source of truth
 
 - Code: `app-version.json` → `npm run version:sync` → Android; `npm run ios:sync-version` on Mac → iOS
-- Website release notes: `src/lib/devUpdates.ts` (Noah)
+- Website release notes: `src/lib/devUpdates.ts` (agent updates; Noah can edit copy anytime)
