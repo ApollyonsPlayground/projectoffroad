@@ -30,7 +30,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import BottomNav from '@/components/BottomNav';
 import { FollowListDrawer, type FollowListMode } from '@/components/FollowListDrawer';
-import { ProfileThemeSwatches } from '@/components/ProfileThemeSwatches';
+import { ThemePicker } from '@/components/theme/ThemePicker';
 import { ProfileSkeleton } from '@/components/SkeletonLoader';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/Toast';
@@ -656,13 +656,14 @@ export default function ProfilePage() {
       </header>
 
       {supabaseClient && user ? (
-        <div className="max-w-app-shell mx-auto px-4 py-2.5 border-b border-border flex flex-wrap items-center justify-between gap-3 bg-muted/80">
-          <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider shrink-0">Theme</span>
-          <ProfileThemeSwatches
+        <div className="max-w-app-shell mx-auto px-4 py-4 border-b border-border bg-muted/50">
+          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-3">Appearance</p>
+          <ThemePicker
             supabaseClient={supabaseClient}
             userId={user.id}
-            profileUiTheme={profile?.ui_theme as string | undefined}
+            profile={profile}
             onApplied={refreshProfile}
+            showPreview={false}
           />
         </div>
       ) : null}

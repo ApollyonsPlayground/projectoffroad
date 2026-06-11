@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/Toast';
 import { normalizeUsername } from '@/lib/profileDisplay';
+import { needsOnboardingWizard } from '@/lib/ui/onboarding';
 
 const storageKey = (userId: string) => `nickname_welcome_seen_${userId}`;
 
@@ -12,7 +13,7 @@ export function WelcomeNicknameToast() {
   const { showToast } = useToast();
 
   useEffect(() => {
-    if (loading || !user || !profile) return;
+    if (loading || !user || !profile || needsOnboardingWizard(profile)) return;
     const handle = normalizeUsername(String(profile.username ?? ''));
     if (!handle) return;
     if (typeof window === 'undefined') return;

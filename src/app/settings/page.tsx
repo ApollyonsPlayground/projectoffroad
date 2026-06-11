@@ -22,6 +22,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/Toast';
 import { SITE_SUPPORT_EMAIL } from '@/lib/siteContact';
 import { resolvePublicDisplayName } from '@/lib/profileDisplay';
+import { ThemePicker } from '@/components/theme/ThemePicker';
 
 type DmAllow = 'everyone' | 'nobody';
 
@@ -184,6 +185,21 @@ export default function SettingsPage() {
 
       <div className="max-w-xl mx-auto px-4 py-6 space-y-6">
         {user ? <ConnectedAccounts /> : null}
+
+        {user && supabaseClient ? (
+          <div className="bg-neutral-900 border-2 border-neutral-800 rounded-lg p-4">
+            <h2 className="text-foreground font-bold uppercase tracking-wide mb-1">Appearance</h2>
+            <p className="text-neutral-600 text-[12px] mb-4 leading-relaxed">
+              Shell brightness, presets, and custom accent colors.
+            </p>
+            <ThemePicker
+              supabaseClient={supabaseClient}
+              userId={user.id}
+              profile={profile}
+              onApplied={refreshProfile}
+            />
+          </div>
+        ) : null}
 
         {/* Account */}
         <div className="bg-neutral-900 border-2 border-neutral-800 rounded-lg p-4">

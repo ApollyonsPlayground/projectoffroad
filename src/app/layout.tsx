@@ -12,6 +12,8 @@ import { DevUpdatesModal } from "@/components/dev/DevUpdatesModal";
 import { SignedInAppRedirect } from "@/components/SignedInAppRedirect";
 import { AppBootGate } from "@/components/boot/AppBootGate";
 import { WelcomeNicknameToast } from "@/components/onboarding/WelcomeNicknameToast";
+import { OnboardingGate } from "@/components/onboarding/OnboardingGate";
+import { ThemePromptModal } from "@/components/onboarding/ThemePromptModal";
 import { DesktopNavbar } from "@/components/DesktopNavbar";
 import { GuestRunGuard } from "@/components/runs/GuestRunGuard";
 import { GuestUpgradeSync } from "@/components/runs/GuestUpgradeSync";
@@ -60,6 +62,7 @@ export default function RootLayout({
         <AuthProvider>
           <GuestRunGuard />
           <GuestUpgradeSync />
+          <OnboardingGate />
           <AppBootGate />
           <NativeSafeAreaSync />
           <ThemeSync />
@@ -72,6 +75,7 @@ export default function RootLayout({
             <SignedInAppRedirect />
             <DevUpdatesModal />
             <WelcomeNicknameToast />
+            <ThemePromptModal />
             <AdminLauncher />
           </ToastProvider>
         </AuthProvider>

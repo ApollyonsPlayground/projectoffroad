@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { isCapacitorNative } from '@/utils/capacitator/isNative';
 import { AppBootSplash } from '@/components/boot/AppBootSplash';
+import { needsOnboardingWizard } from '@/lib/ui/onboarding';
 
 const MIN_SPLASH_MS = 2000;
 const HOME_PATHS = new Set(['/', '']);
@@ -19,7 +20,7 @@ function normalizePath(path: string | null | undefined): string {
  * Native-only cold-start gate: splash while session restore runs, then route by auth.
  */
 export function AppBootGate() {
-  const { user, loading, isGuest, guestRunId } = useAuth();
+  const { user, profile, loading, isGuest, guestRunId } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
 
@@ -58,7 +59,7 @@ export function AppBootGate() {
       } else if (isGuest && guestRunId) {
         router.replace(`/runs/${guestRunId}/`);
       } else if (HOME_PATHS.has(entryPath)) {
-        router.replace('/feed/');
+        router.replace(needsOnboardingWizard(profile) ? '/onboarding/' : '/feed/');
       }
 
       setSplashVisible(false);
@@ -70,7 +71,7 @@ export function AppBootGate() {
     return () => {
       cancelled = true;
     };
-  }, [isNative, loading, user, isGuest, guestRunId, router]);
+  }, [isNative, loading, user, profile, isGuest, guestRunId, router]);
 
   if (!isNative) return null;
 
