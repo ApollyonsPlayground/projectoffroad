@@ -722,6 +722,21 @@ export function HostRunWizard({ variant = 'drawer', onSuccess, onCancel }: Props
         .select('id')
         .single();
       if (error) {
+        console.error('[HostRunWizard] runs insert failed', error);
+        const rlsBlocked =
+          error.code === '42501' ||
+          String(error.message ?? '').toLowerCase().includes('row-level security');
+        if (rlsBlocked) {
+          showToast(
+            mode === 'club_official' && staffFromDb
+              ? 'Could not publish staff official run — apply the latest database migration (npm run db:push), then try again.'
+              : mode === 'club_official'
+                ? 'Official club runs require an approved officer or owner role for the selected club.'
+                : 'You do not have permission to publish this run.',
+            'error'
+          );
+          return;
+        }
         if (
           error.message?.includes('run_source') ||
           error.message?.includes('user_acknowledged') ||
@@ -734,6 +749,7 @@ export function HostRunWizard({ variant = 'drawer', onSuccess, onCancel }: Props
             'Database needs the latest migrations (runs workflow + meetup coordinates). Run npm run db:push.',
             'error'
           );
+          return;
         }
         throw error;
       }
