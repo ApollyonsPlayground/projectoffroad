@@ -1,8 +1,8 @@
 {
-  "versionName": "1.0.8",
-  "androidVersionCode": 9,
-  "iosBuildNumber": "9",
-  "packageJsonVersion": "0.1.8",
-  "rebuildReason": "Push notifications, status bar, geolocation, local notifications, Android location + notification permissions",
-  "lastBumped": "2026-06-12"
+  "versionName": "1.0.9",
+  "androidVersionCode": 10,
+  "iosBuildNumber": "10",
+  "packageJsonVersion": "0.1.9",
+  "rebuildReason": "Native camera/photo/video, geolocation, push + local notifications — full Capacitor plugin sync for App Store",
+  "lastBumped": "2026-06-13"
 }

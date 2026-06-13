@@ -28,7 +28,7 @@ export function useMediaPicker(
       if (!input) return;
       input.accept = allowVideo ? 'image/*,video/*' : 'image/*';
       input.value = '';
-      await openMediaPicker(onFile, () => input.click());
+      await openMediaPicker(onFile, () => input.click(), allowVideo);
     } catch (err) {
       if (isUserCancelledMediaPick(err)) return;
       onError?.(err instanceof Error ? err.message : 'Could not open camera');

@@ -1,4 +1,5 @@
 import { Geolocation } from '@capacitor/geolocation';
+import { isNativePluginAvailable, isPluginUnimplementedError } from '@/lib/capacitor/isPluginAvailable';
 import { isCapacitorNative } from '@/utils/capacitator/isNative';
 
 export type DeviceLocation = {
@@ -22,6 +23,10 @@ export class LocationAccessError extends Error {
 
 function locationGranted(status: { location?: string; coarseLocation?: string }): boolean {
   return status.location === 'granted' || status.coarseLocation === 'granted';
+}
+
+function useCapacitorGeolocation(): boolean {
+  return isCapacitorNative() && isNativePluginAvailable('Geolocation');
 }
 
 function mapBrowserGeolocationError(err: GeolocationPositionError): LocationAccessError {
@@ -64,25 +69,7 @@ function mapCapacitorError(err: unknown): LocationAccessError {
   return new LocationAccessError(msg || 'Could not read your location.', 'unknown');
 }
 
-/**
- * Show the native permission dialog (Capacitor) or detect a prior browser block.
- * On web, the system prompt is shown on the next {@link getDeviceLocation} call.
- */
-export async function requestLocationAccess(): Promise<void> {
-  if (isCapacitorNative()) {
-    const check = await Geolocation.checkPermissions();
-    if (locationGranted(check)) return;
-
-    const requested = await Geolocation.requestPermissions();
-    if (!locationGranted(requested)) {
-      throw new LocationAccessError(
-        'Location permission is required. Open Settings and allow location for SoCal Offroaders.',
-        'denied'
-      );
-    }
-    return;
-  }
-
+async function requestBrowserLocationAccess(): Promise<void> {
   if (typeof navigator === 'undefined' || !navigator.geolocation) {
     throw new LocationAccessError('Location is not available in this browser', 'unavailable');
   }
@@ -100,26 +87,39 @@ export async function requestLocationAccess(): Promise<void> {
   }
 }
 
-export async function getDeviceLocation(options?: {
+/**
+ * Show the native permission dialog (Capacitor) or detect a prior browser block.
+ * On web, the system prompt is shown on the next {@link getDeviceLocation} call.
+ */
+export async function requestLocationAccess(): Promise<void> {
+  if (useCapacitorGeolocation()) {
+    try {
+      const check = await Geolocation.checkPermissions();
+      if (locationGranted(check)) return;
+
+      const requested = await Geolocation.requestPermissions();
+      if (!locationGranted(requested)) {
+        throw new LocationAccessError(
+          'Location permission is required. Open Settings and allow location for SoCal Offroaders.',
+          'denied'
+        );
+      }
+      return;
+    } catch (e) {
+      if (e instanceof LocationAccessError) throw e;
+      if (!isPluginUnimplementedError(e)) throw mapCapacitorError(e);
+    }
+  }
+
+  await requestBrowserLocationAccess();
+}
+
+async function getBrowserDeviceLocation(options?: {
   enableHighAccuracy?: boolean;
   timeout?: number;
 }): Promise<DeviceLocation> {
   const enableHighAccuracy = options?.enableHighAccuracy ?? true;
   const timeout = options?.timeout ?? 12_000;
-
-  if (isCapacitorNative()) {
-    await requestLocationAccess();
-    try {
-      const pos = await Geolocation.getCurrentPosition({ enableHighAccuracy, timeout });
-      return {
-        latitude: pos.coords.latitude,
-        longitude: pos.coords.longitude,
-        accuracy: pos.coords.accuracy ?? null,
-      };
-    } catch (e) {
-      throw mapCapacitorError(e);
-    }
-  }
 
   if (!navigator.geolocation) {
     throw new LocationAccessError('Location is not available in this browser', 'unavailable');
@@ -139,6 +139,34 @@ export async function getDeviceLocation(options?: {
   });
 }
 
+export async function getDeviceLocation(options?: {
+  enableHighAccuracy?: boolean;
+  timeout?: number;
+}): Promise<DeviceLocation> {
+  const enableHighAccuracy = options?.enableHighAccuracy ?? true;
+  const timeout = options?.timeout ?? 12_000;
+
+  if (useCapacitorGeolocation()) {
+    await requestLocationAccess();
+    try {
+      const pos = await Geolocation.getCurrentPosition({ enableHighAccuracy, timeout });
+      return {
+        latitude: pos.coords.latitude,
+        longitude: pos.coords.longitude,
+        accuracy: pos.coords.accuracy ?? null,
+      };
+    } catch (e) {
+      if (!isPluginUnimplementedError(e)) throw mapCapacitorError(e);
+    }
+  }
+
+  if (isCapacitorNative()) {
+    await requestBrowserLocationAccess();
+  }
+
+  return getBrowserDeviceLocation(options);
+}
+
 export type LocationWatchHandle = {
   stop: () => void;
 };
@@ -152,33 +180,42 @@ export async function watchDeviceLocation(
   const maximumAge = options?.maximumAge ?? 15_000;
   const timeout = options?.timeout ?? 30_000;
 
+  if (useCapacitorGeolocation()) {
+    try {
+      await requestLocationAccess();
+      const id = await Geolocation.watchPosition(
+        {
+          enableHighAccuracy,
+          maximumAge,
+          timeout,
+          minimumUpdateInterval: 12_000,
+        },
+        (pos, err) => {
+          if (err) {
+            onError?.(mapCapacitorError(err));
+            return;
+          }
+          if (pos) {
+            onUpdate({
+              latitude: pos.coords.latitude,
+              longitude: pos.coords.longitude,
+              accuracy: pos.coords.accuracy ?? null,
+            });
+          }
+        }
+      );
+      return {
+        stop: () => {
+          void Geolocation.clearWatch({ id });
+        },
+      };
+    } catch (e) {
+      if (!isPluginUnimplementedError(e)) throw mapCapacitorError(e);
+    }
+  }
+
   if (isCapacitorNative()) {
-    const id = await Geolocation.watchPosition(
-      {
-        enableHighAccuracy,
-        maximumAge,
-        timeout,
-        minimumUpdateInterval: 12_000,
-      },
-      (pos, err) => {
-        if (err) {
-          onError?.(mapCapacitorError(err));
-          return;
-        }
-        if (pos) {
-          onUpdate({
-            latitude: pos.coords.latitude,
-            longitude: pos.coords.longitude,
-            accuracy: pos.coords.accuracy ?? null,
-          });
-        }
-      }
-    );
-    return {
-      stop: () => {
-        void Geolocation.clearWatch({ id });
-      },
-    };
+    await requestBrowserLocationAccess();
   }
 
   if (!navigator.geolocation) {

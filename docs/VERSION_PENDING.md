@@ -1,41 +1,61 @@
 # Version bump — action required (Noah)
 
-**Last code bump:** 2026-06-12  
-**Native version:** `1.0.8` (Android `versionCode` **9**, iOS build **9**)  
-**Why:** Native rebuild — push notifications, status bar, geolocation, local notifications, location permissions.
+**Last code bump:** 2026-06-13  
+**Native version:** `1.0.9` (Android `versionCode` **10**, iOS build **10**)  
+**Why:** Native Capacitor plugins — camera/photo/video, geolocation, push registration, local notifications.
 
 ## Already updated in code (agent)
 
 - `app-version.json`
 - `android/app/build.gradle` (via `npm run version:sync`)
 - `package.json` version
-- `src/lib/devUpdates.ts` — version `2026-06-12`, App **1.0.8** release notes
+- `src/lib/devUpdates.ts` — version `2026-06-13`, App **1.0.9** release notes
+- Native JS: `@capacitor/camera`, geolocation hardening, `PushRegistration` wired in layout
+- Removed `@capacitor/action-sheet` dependency
+- `scripts/ios-push-entitlements.sh`, expanded `ios:verify-plugins`
 
 ## You still do
 
-1. **Deploy web** to Vercel (GitLab push) so `/updates` and the What's new modal go live
-2. Edit release copy in `devUpdates.ts` if you want different wording
+1. **Deploy web** to Vercel (GitLab push) — required before native testing picks up new JS
+2. Force-stop / refresh app on test devices after deploy
 
 ## Native rebuild (after web deploy)
 
+### Windows — Android
+
 ```powershell
+cd c:\dev\projectoffroad
 npm install
-npm run build
 npm run version:sync
 npm run android:sync
-# Android Studio → signed AAB
+cd android
+.\gradlew.bat bundleRelease
 ```
 
-**Mac (iOS):**
+Optional for push tokens: place `google-services.json` in `android/app/` (not in git).
+
+### MacinCloud — iOS
+
+See **[docs/macincloud-native-release.md](macincloud-native-release.md)** for full steps.
 
 ```bash
-npm run ios:sync
-npm run ios:sync-version
-npm run ios:entitlements
+npm install
+npx cap add ios          # only if ios/ missing
+npx cap sync ios
+npm run ios:verify-plugins
 npm run ios:camera
 npm run ios:location
-npm run ios:open
-# Xcode → Archive → TestFlight
+npm run ios:push-entitlements
+npm run ios:entitlements
+npm run version:sync
+npm run ios:sync-version
+npx cap open ios
+# Xcode: Push Notifications capability → Clean → Archive → TestFlight
+# Commit ios/ to GitLab after verify passes
 ```
 
-Delete or archive this file after you have updated the site and shipped both stores.
+### Push registration flag (after TestFlight smoke test)
+
+Set `NEXT_PUBLIC_PUSH_REGISTER=true` in Vercel if token registration is stable. Keep `PUSH_SEND_ENABLED=false` until FCM/APNs send is configured.
+
+Delete or archive this file after site + both stores are updated.

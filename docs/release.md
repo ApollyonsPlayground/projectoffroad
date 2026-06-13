@@ -74,18 +74,24 @@ On Mac after sync: `npm run ios:sync-version` (updates Xcode project + Info.plis
 
 ## iOS TestFlight release (macOS / MacinCloud)
 
+**Full checklist:** [macincloud-native-release.md](macincloud-native-release.md)
+
 1. On **macOS** (from repo root):
    - `npm install`
    - `npx cap sync ios`
-   - `npm run ios:verify-plugins` (must pass — checks Camera, Geolocation, Push in Podfile/SPM)
-   - `npm run ios:camera` and `npm run ios:location` (Info.plist permission strings)
+   - `npm run ios:verify-plugins` (must pass — Camera, Geolocation, Push, LocalNotifications, and more)
+   - `npm run ios:camera`, `npm run ios:location`, `npm run ios:push-entitlements`, `npm run ios:entitlements`
    - `npx cap open ios` → open **`App.xcworkspace`**, not `.xcodeproj`
+   - Enable **Push Notifications** capability in Xcode if not present
 2. In Xcode:
    - Product → **Clean Build Folder**, then **Archive** (required after plugin changes)
    - Distribute App → App Store Connect → Upload
 3. App Store Connect → TestFlight:
    - wait for Processing to finish
    - enable Internal/External testing
+4. Commit `ios/` to GitLab after successful verify (exclude `Pods/`, `DerivedData/`)
+
+**Push:** place `google-services.json` in `android/app/` for Android FCM (gitignored). Set `NEXT_PUBLIC_PUSH_REGISTER=true` on Vercel only after TestFlight confirms stable registration.
 
 ## GitHub Actions note
 

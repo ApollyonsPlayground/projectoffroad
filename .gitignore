@@ -42,3 +42,10 @@ next-env.d.ts
 -e 
 # build output
 /dist
+
+# Capacitor iOS (commit project, not build artifacts)
+ios/App/Pods/
+ios/App/App/build/
+ios/App/App/DerivedData/
+ios/DerivedData/
+**/xcuserdata/

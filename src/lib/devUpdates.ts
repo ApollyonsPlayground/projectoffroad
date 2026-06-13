@@ -1,5 +1,5 @@
 /** Bump when shipping a user-facing release — keep in sync with app-version.json / What's new modal. */
-export const DEV_UPDATES_VERSION = '2026-06-12';
+export const DEV_UPDATES_VERSION = '2026-06-13';
 
 export type DevUpdateTag = 'new' | 'improved' | 'fix';
 
@@ -28,6 +28,37 @@ export type DevUpdateRelease = {
 export const DEV_UPDATES: DevUpdateRelease[] = [
   {
     version: DEV_UPDATES_VERSION,
+    date: 'June 13, 2026',
+    title: 'App 1.0.9 — native camera, location & notifications',
+    items: [
+      {
+        tag: 'fix',
+        title: 'Native photo & video',
+        summary:
+          'Posts, messages, profile photos, and stories now use your phone’s built-in camera and photo library — required for a smooth App Store experience.',
+      },
+      {
+        tag: 'improved',
+        title: 'Live map GPS',
+        summary:
+          'Share my location on active runs uses native GPS permission prompts on iPhone and Android.',
+      },
+      {
+        tag: 'improved',
+        title: 'Push notification readiness',
+        summary:
+          'The app can register for push alerts when enabled. Run reminders still work as on-device notifications.',
+      },
+      {
+        tag: 'improved',
+        title: 'Post composer',
+        summary:
+          'Creating a post keeps the feed steady while you type — less disorienting on mobile.',
+      },
+    ],
+  },
+  {
+    version: '2026-06-12',
     date: 'June 12, 2026',
     title: 'App 1.0.8 — themes, guest invites & native polish',
     items: [

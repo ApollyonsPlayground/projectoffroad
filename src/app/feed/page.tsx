@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -56,6 +56,10 @@ import {
 } from '@/lib/media/mobileSafeCapture';
 import { useMediaPicker } from '@/hooks/useMediaPicker';
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
+import {
+  getMediaActionSheetPending,
+  subscribeMediaActionSheet,
+} from '@/lib/media/mediaActionSheetState';
 
 // ─── NewPostDrawer ─────────────────────────────────────────────────────────────
 
@@ -77,7 +81,13 @@ function NewPostDrawer({ open, onClose, onPosted }: {
   const [keyboardInset, setKeyboardInset] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  useBodyScrollLock(open);
+  const mediaSheetOpen = useSyncExternalStore(
+    subscribeMediaActionSheet,
+    () => getMediaActionSheetPending() !== null,
+    () => false
+  );
+
+  useBodyScrollLock(open && !mediaSheetOpen);
 
   useEffect(() => {
     setMounted(true);
