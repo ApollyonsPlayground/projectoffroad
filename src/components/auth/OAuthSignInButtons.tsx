@@ -45,6 +45,7 @@ export function OAuthSignInButtons({ mode }: OAuthSignInButtonsProps) {
       setAppleLoading(false);
       return;
     }
+    setAppleLoading(false);
     if (isIosNative()) {
       window.location.assign('/feed/');
     }

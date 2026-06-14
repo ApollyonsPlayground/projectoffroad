@@ -12,14 +12,6 @@ function randomNonce(length = 32): string {
   return result;
 }
 
-async function sha256Hex(value: string): Promise<string> {
-  const data = new TextEncoder().encode(value);
-  const hash = await crypto.subtle.digest('SHA-256', data);
-  return Array.from(new Uint8Array(hash))
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('');
-}
-
 function isPluginMissingOnIos(message: string): boolean {
   const lower = message.toLowerCase();
   return lower.includes('not implemented on ios') || lower.includes('unimplemented');
@@ -46,6 +38,9 @@ function formatAppleSupabaseError(message: string, code?: string): string {
   const detail = [c, raw].filter(Boolean).join(': ');
 
   const lower = `${raw} ${c}`.toLowerCase();
+  if (lower.includes('nonce') && lower.includes('mismatch')) {
+    return 'Apple sign-in failed (nonce verification). Deploy the latest app update and try again.';
+  }
   if (lower.includes('client') || lower.includes('audience') || lower.includes('invalid claim')) {
     return (
       'Supabase rejected the Apple token. Dashboard → Authentication → Providers → Apple → Client IDs must include com.socaloffroaders.app (your iOS bundle ID). ' +
@@ -69,10 +64,10 @@ export async function appleNativeAuth(
 ): Promise<{ error: string | null }> {
   try {
     const rawNonce = randomNonce();
-    const hashedNonce = await sha256Hex(rawNonce);
 
+    // Capawesome hashes the nonce for Apple internally — pass raw, not SHA-256 hex.
     const result = await AppleSignIn.signIn({
-      nonce: hashedNonce,
+      nonce: rawNonce,
       scopes: [SignInScope.Email, SignInScope.FullName],
     });
 
@@ -80,10 +75,12 @@ export async function appleNativeAuth(
       return { error: 'Apple sign-in did not return an identity token.' };
     }
 
+    // Do not pass `nonce` to Supabase: hosted GoTrue compares hex vs Apple's base64url
+    // nonce claim and returns "Nonces mismatch" even with correct Client IDs.
+    // Apple still validates nonce in the ID token; Supabase verifies JWT signature + aud.
     const credentials = {
       provider: 'apple' as const,
       token: result.idToken,
-      nonce: rawNonce,
     };
 
     const { error } =
