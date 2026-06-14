@@ -72,6 +72,7 @@ export async function appleNativeAuth(
 
     if (error) {
       const raw = error.message ?? '';
+      const errCode = (error as { code?: string }).code ?? '';
       if (raw.toLowerCase().includes('invalid grant') || raw.toLowerCase().includes('code verifier')) {
         return {
           error:
@@ -85,7 +86,7 @@ export async function appleNativeAuth(
         };
       }
       return {
-        error: formatOAuthAuthError(raw, {
+        error: formatOAuthAuthError(raw || errCode, {
           code: (error as { code?: string }).code,
           provider: 'apple',
           linking: mode === 'link',

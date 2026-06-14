@@ -436,8 +436,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (isAppleSignInNativeAvailable()) {
         return appleNativeAuth(supabase, 'signIn')
       }
-      // TestFlight builds created before @capacitor-community/apple-sign-in was synced lack the native plugin.
-      return appleOAuthFallback()
+      return {
+        error:
+          'This TestFlight build is missing native Apple sign-in. On MacinCloud: git pull, npm run ios:entitlements, npm run ios:oauth-url-scheme, npx cap sync ios, then Archive a new build.',
+      }
     }
 
     return appleOAuthFallback()
