@@ -11,20 +11,29 @@ import { SITE_SUPPORT_EMAIL } from '@/lib/siteContact';
 
 export default function DeleteAccountPage() {
   const router = useRouter();
-  const { user, loading: authLoading, signOut, isConfigured } = useAuth();
+  const { user, loading: authLoading, signOut, isConfigured, supabaseClient } = useAuth();
   const { showToast } = useToast();
   const [confirmed, setConfirmed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   async function handleDelete() {
-    if (!confirmed || submitting) return;
+    if (!confirmed || submitting || !supabaseClient) return;
     setSubmitting(true);
     try {
+      const { data: sessionData } = await supabaseClient.auth.getSession();
+      const token = sessionData.session?.access_token?.trim();
+      if (!token) {
+        showToast('Sign in to delete your account.', 'error');
+        setSubmitting(false);
+        return;
+      }
+
       const res = await fetch('/api/account/delete/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'X-Requested-With': 'SoCalOffroaders',
+          Authorization: `Bearer ${token}`,
         },
         credentials: 'same-origin',
         body: JSON.stringify({ confirm: true }),
