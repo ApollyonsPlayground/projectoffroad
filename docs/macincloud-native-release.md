@@ -110,13 +110,10 @@ With **new TestFlight build** + **fresh web deploy**:
 ### Android FCM
 
 - Firebase console → add Android app `com.socaloffroaders.app`
-- Download `google-services.json` → `android/app/google-services.json` on Windows build machine (never commit)
+- Download `google-services.json` → **`android/app/google-services.json`** (not `android/app/src/`)
+- Rebuild AAB after moving file
 
-### Enable client registration
-
-Vercel env: `NEXT_PUBLIC_PUSH_REGISTER=true` (only after no crash on TestFlight)
-
-Server send stays off until configured: `PUSH_SEND_ENABLED=false`
+See **[push-setup.md](push-setup.md)** for Vercel env vars and full push checklist.
 
 ## Cursor on MacinCloud
 

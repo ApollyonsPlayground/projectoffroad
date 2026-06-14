@@ -56,7 +56,13 @@ cd android
 .\gradlew.bat bundleRelease
 ```
 
-Output: `android/app/build/outputs/bundle/release/*.aab`
+Output (Gradle default):
+
+`android/app/build/outputs/bundle/release/app-release.aab`
+
+**Do not use** `android/app/release/` unless you copy the file there yourself — that folder is **not** updated by Gradle and often holds an older AAB.
+
+After `bundleRelease`, confirm the modified date on the file under `build/outputs/bundle/release/`. Upload **that** file to Play Console (version **1.0.9**, versionCode **10**).
 
 ### Version bump (required every native rebuild)
 
@@ -91,7 +97,7 @@ On Mac after sync: `npm run ios:sync-version` (updates Xcode project + Info.plis
    - enable Internal/External testing
 4. Commit `ios/` to GitLab after successful verify (exclude `Pods/`, `DerivedData/`)
 
-**Push:** place `google-services.json` in `android/app/` for Android FCM (gitignored). Set `NEXT_PUBLIC_PUSH_REGISTER=true` on Vercel only after TestFlight confirms stable registration.
+**Push:** see [push-setup.md](push-setup.md). Android: `android/app/google-services.json`. Vercel: `NEXT_PUBLIC_PUSH_REGISTER`, `PUSH_SEND_ENABLED`, `FIREBASE_SERVICE_ACCOUNT_JSON`.
 
 ## GitHub Actions note
 

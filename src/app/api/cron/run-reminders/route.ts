@@ -3,6 +3,9 @@ import { createClient } from '@supabase/supabase-js';
 import { getSupabaseUrl } from '@/utils/supabase/env';
 
 import { authorizeCronRequest } from '@/lib/api/security';
+import { isPushSendEnabled } from '@/lib/push/pushConfig';
+import { sendPushToUsers } from '@/lib/push/sendPush';
+import { runReminderPushPayload } from '@/lib/push/runReminderPushCopy';
 
 export const runtime = 'nodejs';
 
@@ -44,6 +47,7 @@ export async function GET(request: NextRequest) {
   }
 
   let queued = 0;
+  let pushesSent = 0;
   const rows = (runs ?? []) as { id: string; title: string; date: string; host_id: string | null }[];
 
   for (const run of rows) {
@@ -95,8 +99,11 @@ export async function GET(request: NextRequest) {
         });
         if (!insErr) {
           queued += 1;
-          // Remote push delivery intentionally disabled (PUSH_SEND_ENABLED !== true).
-          // run_reminder_deliveries rows are logged only until FCM/APNs send is implemented.
+          if (isPushSendEnabled()) {
+            const payload = runReminderPushPayload(run.title, run.id, bucket);
+            const result = await sendPushToUsers(admin, [userId], payload);
+            if (result.sent && result.delivered > 0) pushesSent += result.delivered;
+          }
         } else if (insErr.code !== '23505') {
           console.warn('[cron/run-reminders] insert', insErr);
         }
@@ -104,5 +111,5 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  return NextResponse.json({ ok: true, runs: rows.length, deliveriesQueued: queued });
+  return NextResponse.json({ ok: true, runs: rows.length, deliveriesQueued: queued, pushesSent });
 }
