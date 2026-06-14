@@ -1,8 +1,8 @@
 {
   "versionName": "1.3",
-  "androidVersionCode": 11,
-  "iosBuildNumber": "11",
+  "androidVersionCode": 12,
+  "iosBuildNumber": "12",
   "packageJsonVersion": "1.3.0",
-  "rebuildReason": "Play upload — FCM google-services fix, push notifications (versionCode 11)",
-  "lastBumped": "2026-06-13"
+  "rebuildReason": "TestFlight — iOS push (APNs/AppDelegate), location DB fix, Apple OAuth browser flow",
+  "lastBumped": "2026-06-15"
 }

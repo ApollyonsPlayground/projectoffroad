@@ -1,62 +1,127 @@
-# MacinCloud native release (iOS)
+# MacinCloud native release (iOS TestFlight)
 
-Use this checklist on your **remote Mac** (MacinCloud + Cursor) for a full Capacitor plugin sync and TestFlight upload.
+Use this checklist on your **MacinCloud Mac** (with Cursor) for a full Capacitor sync and TestFlight upload.
 
-## Before you start
+**Current target:** version **1.3**, build **12** (see `app-version.json`).
 
-- Latest code pushed to **GitLab** and **Vercel deployed** (native app loads JS from `https://socaloffroaders.com/`)
-- Apple Developer account access
-- Bundle ID: `com.socaloffroaders.app`
+## How this app ships
 
-## 1. Clone and install
+| Layer | What updates it |
+|-------|------------------|
+| **Web UI / API** | GitLab → Vercel (`https://socaloffroaders.com/`) — most fixes are web-only |
+| **Native shell** | TestFlight / Play — only when `ios/**`, `android/**`, or Capacitor plugins change |
+
+The iOS app is a **remote WebView** — it loads JS from production. **Deploy Vercel before testing** new web features on TestFlight.
+
+## Before you start (Windows)
+
+On your PC, push latest code so MacinCloud can pull it:
+
+```powershell
+cd c:\dev\projectoffroad
+git status
+git push gitlab main
+```
+
+Confirm Vercel deployed. Bundle ID: **`com.socaloffroaders.app`**.
+
+**Already configured (no redo unless broken):**
+
+- Vercel: `NEXT_PUBLIC_PUSH_REGISTER`, `PUSH_SEND_ENABLED`, Firebase service account (Android push works)
+- Supabase Apple sign-in + secret rotation
+- Android `google-services.json` at `android/app/google-services.json`
+
+**This build fixes on iPhone:**
+
+- Remote **push token registration** (AppDelegate + push entitlements + Xcode capability)
+- **Apple sign-in** (OAuth browser flow — no native Apple plugin)
+- Web-side **location sharing** + **Settings → Enable push notifications** (needs Vercel deploy)
+
+---
+
+## 1. Clone or open repo on MacinCloud
 
 ```bash
-git clone <your-gitlab-repo-url> ~/dev/projectoffroad
 cd ~/dev/projectoffroad
+```
+
+If that path fails, find the repo:
+
+```bash
+find ~ -maxdepth 4 -name "capacitor.config.ts" 2>/dev/null
+```
+
+Must contain `package.json` with `"name": "socaloffroadersv3"`.
+
+```bash
 git pull
 npm install
 ```
 
-**MacinCloud note:** this machine may already have the repo at `~/dev/projectoffroad` (not `~/projectoffroad`). See [macincloud-cursor-prompt.md](macincloud-cursor-prompt.md).
+See [macincloud-cursor-prompt.md](macincloud-cursor-prompt.md) — copy the **Agent prompt** into Cursor to run steps 2–6 automatically.
 
-## 2. Generate or sync iOS project
+---
+
+## 2. Sync iOS project
 
 ```bash
-npx cap add ios          # only first time (if ios/ folder missing)
+npx cap add ios    # only if ios/ folder missing
 npx cap sync ios
 ```
 
-## 3. Verify all plugins
+---
+
+## 3. Patch native iOS (required every fresh `ios/` or after plugin updates)
+
+Run all of these from repo root:
 
 ```bash
-npm run ios:verify-plugins
-```
-
-Must show OK for: Camera, Geolocation, Push, LocalNotifications, StatusBar, App, Browser, Haptics, Preferences, Info.plist keys, `aps-environment`, OAuth URL scheme, AppDelegate push hooks.
-
-If anything fails:
-
-```bash
+npm run ios:oauth-url-scheme      # Google OAuth return URL
+npm run ios:entitlements          # Sign in with Apple
+npm run ios:push-entitlements     # aps-environment in App.entitlements
+npm run ios:appdelegate-push      # Forward APNs token to Capacitor
 npm run ios:camera
 npm run ios:location
-npm run ios:push-entitlements
-npm run ios:appdelegate-push
-npm run ios:oauth-url-scheme
-npm run ios:entitlements
 npx cap sync ios
+```
+
+---
+
+## 4. Verify plugins (must pass before Archive)
+
+```bash
 npm run ios:verify-plugins
 ```
 
-## 4. Version sync
+Expected OK lines include: Camera, Geolocation, Push, LocalNotifications, `aps-environment`, OAuth URL scheme, **AppDelegate push hooks**.
+
+If anything is MISSING, re-run the matching script from step 3 and verify again.
+
+---
+
+## 5. Version sync
 
 ```bash
 npm run version:sync
 npm run ios:sync-version
 ```
 
-Confirm build number in Xcode matches `app-version.json` (`iosBuildNumber`).
+Confirm in Xcode: **MARKETING_VERSION 1.3**, **CURRENT_PROJECT_VERSION 12** (or whatever `app-version.json` shows).
 
-## 5. Xcode capabilities
+---
+
+## 6. Firebase APNs (one-time, for iOS push delivery)
+
+Android push uses FCM + `google-services.json`. **iOS also needs APNs in Firebase:**
+
+1. Apple Developer → **Keys** → create **APNs** key (`.p8`) — note Key ID + Team ID
+2. Firebase Console → Project settings → **Cloud Messaging** → upload APNs key
+
+Without this, the token may save but **Send iOS push test** will not deliver.
+
+---
+
+## 7. Xcode — capabilities and signing
 
 ```bash
 npx cap open ios
@@ -66,75 +131,79 @@ Open **`ios/App/App.xcworkspace`** (not `.xcodeproj`).
 
 Target **App** → **Signing & Capabilities**:
 
-- **Push Notifications** (click + Capability if missing)
-- **Sign in with Apple** (should exist after `ios:entitlements`)
+| Capability | Required |
+|------------|----------|
+| **Push Notifications** | Yes — click **+ Capability** if missing |
+| **Sign in with Apple** | Yes — after `ios:entitlements` |
 
-Confirm **Automatically manage signing** and your team are selected.
+- **Automatically manage signing** + your Apple Developer team
+- Bundle ID: `com.socaloffroaders.app`
 
-## 6. Archive and upload
+---
 
-1. Select **Any iOS Device (arm64)**
-2. Product → **Clean Build Folder**
-3. Product → **Archive**
-4. Distribute → **App Store Connect** → Upload
-5. App Store Connect → TestFlight → wait for processing → install on iPhone
+## 8. Archive and upload TestFlight
 
-## 7. Commit `ios/` to GitLab
+1. Scheme: **App**, destination: **Any iOS Device (arm64)**
+2. **Product → Clean Build Folder**
+3. **Product → Archive**
+4. **Distribute App → App Store Connect → Upload**
+5. [App Store Connect](https://appstoreconnect.apple.com) → TestFlight → wait for processing
+6. On iPhone: **delete old SoCal Offroaders** → install new build from TestFlight
 
-After verify passes and archive succeeds:
+---
+
+## 9. Commit `ios/` to GitLab (after successful verify + archive)
 
 ```bash
 git add ios/
-git commit -m "Add synced iOS Capacitor project with camera, location, push plugins"
-git push
+git commit -m "Sync iOS Capacitor project for TestFlight 1.3 (12)"
+git push gitlab main
 ```
 
 Do **not** commit `ios/App/Pods/`, `DerivedData/`, or signing secrets.
 
-## 8. Device QA (iPhone)
+---
 
-With **new TestFlight build** + **fresh web deploy**:
+## 10. Device QA on iPhone (build 12+)
 
-| Test | Steps |
-|------|-------|
-| Photo post | Feed → + → Add Photo/Video → Take Photo |
-| Video | Record Video (≤30s) |
-| Gallery | Choose from Library |
-| Location | Active run → Share my location → allow GPS |
-| Push | Sign in (if `NEXT_PUBLIC_PUSH_REGISTER=true`) → check Supabase `push_device_tokens` |
-| Local reminder | Host/join run with reminder → notification fires |
+Use account **awesomeflaregaming@gmail.com** for Apple sign-in tests.
 
-## Push setup (optional, after stable TestFlight)
+| Test | Steps | Pass criteria |
+|------|--------|----------------|
+| Apple sign-in | Log out → Sign in with Apple | Lands in app signed in |
+| Google sign-in | Sign in with Google | No “invalid address” after Continue |
+| Photo | Feed → + → Take Photo | No crash |
+| Location | Active run you joined → Share my location | Saves without error |
+| Push register | Settings → **Enable push notifications** | iOS prompt → allow |
+| Push token | — | Supabase `push_device_tokens`: `user_id` `5f62c706-e59a-416e-b4de-2d7945264f27`, `platform = ios` |
+| Push delivery | Admin (PC) → Send iOS push test | Notification on iPhone |
+| Club hero | Open a club with garage photos | Cover rotates through garage shots (web deploy) |
 
-### iOS APNs
+**Local run reminders** (72h/48h/24h) use on-device notifications — separate from FCM; no Mac build change needed.
 
-- Apple Developer → Keys → create APNs key (.p8)
-- Link to Firebase if using FCM for iOS
-
-### Android FCM
-
-- Firebase console → add Android app `com.socaloffroaders.app`
-- Download `google-services.json` → **`android/app/google-services.json`** (not `android/app/src/`)
-- Rebuild AAB after moving file
-
-See **[push-setup.md](push-setup.md)** for Vercel env vars and full push checklist.
-
-## Cursor on MacinCloud
-
-- Open the same repo in Cursor (your account is already signed in)
-- Use **[macincloud-cursor-prompt.md](macincloud-cursor-prompt.md)** — copy the Agent prompt into chat so Cursor runs all commands for you
-- Never paste Apple passwords or `.p8` keys into chat or git
+---
 
 ## Troubleshooting
 
 | Symptom | Fix |
 |---------|-----|
-| "Camera not implemented" | Old binary — upload new Archive; confirm `ios:verify-plugins` passed |
-| "Camera not implemented" + new binary | Hard refresh app / reinstall; confirm Vercel deployed new JS |
-| Verify script missing Podfile | Run `npx cap add ios && npx cap sync ios` |
-| Archive signing error | Xcode → Accounts → download profiles; check bundle ID |
-| Push registration crash | Leave `NEXT_PUBLIC_PUSH_REGISTER` off until fixed |
-| Google OAuth: "link doesn't exist" after Continue | Run `npm run ios:oauth-url-scheme`, Archive new TestFlight build |
-| Apple sign-in failed (native) | Supabase → Apple provider → add `com.socaloffroaders.app` under Client IDs; run `npm run ios:entitlements` |
+| `cd ~/projectoffroad` fails | Use `~/dev/projectoffroad` |
+| Verify: missing Podfile | `npx cap add ios && npx cap sync ios` |
+| “Camera not implemented” | New TestFlight binary + `ios:verify-plugins` passed |
+| Google OAuth broken on iPhone | `npm run ios:oauth-url-scheme` → new Archive |
+| Apple sign-in failed | Web OAuth flow — ensure Vercel deployed; Supabase Apple Client IDs include `com.socaloffroaders.app` |
+| Allowed notifications, no iOS token | `ios:appdelegate-push` + Push capability + new Archive; check Firebase APNs key |
+| Admin iOS push test: no token | Complete Settings → Enable push on iPhone first |
+| Admin iOS push test: fails to send | `PUSH_SEND_ENABLED` + `FIREBASE_SERVICE_ACCOUNT_JSON` on Vercel; APNs key in Firebase |
+| Location update failed | Web deploy + `npm run db:push` (unique constraint migration) — no new native build |
 
-See also [release.md](release.md).
+---
+
+## Cursor on MacinCloud
+
+- Sign into Cursor with your account
+- Open `~/dev/projectoffroad`
+- Paste the Agent prompt from **[macincloud-cursor-prompt.md](macincloud-cursor-prompt.md)**
+- Never paste Apple passwords or `.p8` keys into chat
+
+See also [release.md](release.md), [push-setup.md](push-setup.md).

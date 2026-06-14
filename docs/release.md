@@ -80,24 +80,24 @@ On Mac after sync: `npm run ios:sync-version` (updates Xcode project + Info.plis
 
 ## iOS TestFlight release (macOS / MacinCloud)
 
-**Full checklist:** [macincloud-native-release.md](macincloud-native-release.md)
+**Full checklist:** [macincloud-native-release.md](macincloud-native-release.md)  
+**Cursor one-shot prompt:** [macincloud-cursor-prompt.md](macincloud-cursor-prompt.md)
 
-1. On **macOS** (from repo root):
-   - `npm install`
-   - `npx cap sync ios`
-   - `npm run ios:verify-plugins` (must pass — Camera, Geolocation, Push, LocalNotifications, and more)
-   - `npm run ios:camera`, `npm run ios:location`, `npm run ios:push-entitlements`, `npm run ios:entitlements`
-   - `npx cap open ios` → open **`App.xcworkspace`**, not `.xcodeproj`
-   - Enable **Push Notifications** capability in Xcode if not present
-2. In Xcode:
-   - Product → **Clean Build Folder**, then **Archive** (required after plugin changes)
-   - Distribute App → App Store Connect → Upload
-3. App Store Connect → TestFlight:
-   - wait for Processing to finish
-   - enable Internal/External testing
-4. Commit `ios/` to GitLab after successful verify (exclude `Pods/`, `DerivedData/`)
+**Current native build:** `1.3` / iOS build **12** (see `app-version.json`).
 
-**Push:** see [push-setup.md](push-setup.md). Android: `android/app/google-services.json`. Vercel: `NEXT_PUBLIC_PUSH_REGISTER`, `PUSH_SEND_ENABLED`, `FIREBASE_SERVICE_ACCOUNT_JSON`.
+### Windows first
+
+1. `npm run version:sync` (if `app-version.json` changed)
+2. Push to GitLab + deploy Vercel
+
+### MacinCloud
+
+1. `git pull` → `npm install` → `npx cap sync ios`
+2. Run all `ios:*` patch scripts → `npm run ios:verify-plugins` (must pass)
+3. `npm run version:sync` → `npm run ios:sync-version`
+4. Xcode → **Push Notifications** capability → Archive → TestFlight
+
+**Push:** [push-setup.md](push-setup.md) — Vercel env already set; iOS needs APNs key in Firebase + this TestFlight binary.
 
 ## GitHub Actions note
 
