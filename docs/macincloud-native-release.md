@@ -2,7 +2,7 @@
 
 Use this checklist on your **MacinCloud Mac** (with Cursor) for a full Capacitor sync and TestFlight upload.
 
-**Current target:** version **2.0**, build **17** (see `app-version.json`).
+**Current target:** version **1.3**, build **16** (see `app-version.json`). **Next store upload:** **2.0** / build **17**.
 
 ## How this app ships
 
@@ -108,7 +108,7 @@ npm run version:sync
 npm run ios:sync-version
 ```
 
-Confirm in Xcode: **MARKETING_VERSION 2.0**, **CURRENT_PROJECT_VERSION 17** (or whatever `app-version.json` shows).
+Confirm in Xcode: **MARKETING_VERSION 1.3**, **CURRENT_PROJECT_VERSION 16** (must match live TestFlight until 2.0/17 ship).
 
 ---
 

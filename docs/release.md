@@ -83,7 +83,7 @@ On Mac after sync: `npm run ios:sync-version` (updates Xcode project + Info.plis
 **Full checklist:** [macincloud-native-release.md](macincloud-native-release.md)  
 **Cursor one-shot prompt:** [macincloud-cursor-prompt.md](macincloud-cursor-prompt.md)
 
-**Current native build:** `2.0` / build **17** (see `app-version.json`).
+**Current native build:** `1.3` / build **16**. **Next:** `2.0` / build **17** (see `app-version.json` → `nextRelease`).
 
 ### Windows first
 

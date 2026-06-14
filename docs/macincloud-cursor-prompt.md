@@ -7,13 +7,13 @@ Open this file on the **MacinCloud Mac** in Cursor. Copy the **Agent prompt** be
 ## Agent prompt (copy everything in the box)
 
 ```
-SoCal Offroaders — MacinCloud iOS TestFlight build 2.0 (17)
+SoCal Offroaders — MacinCloud iOS TestFlight build 1.3 (16)
 
 Repo path on this Mac is almost certainly:
   ~/dev/projectoffroad
 NOT ~/projectoffroad
 
-Goal: sync iOS native project, verify plugins (FCM + GoogleService-Info.plist in Xcode bundle), set version 2.0 build 17, then tell me when Xcode Archive is ready.
+Goal: sync iOS native project and verify plugins. Keep version 1.3 build 16 unless I explicitly ask for 2.0/17.
 
 Do ALL of this yourself in the terminal:
 
@@ -39,7 +39,7 @@ Do ALL of this yourself in the terminal:
    npm run ios:location
    npx cap sync ios
 
-6. Version sync (must show build 17):
+6. Version sync (must show build 16 unless shipping 2.0/17):
    npm run version:sync
    npm run ios:sync-version
 
@@ -63,7 +63,7 @@ Context:
 - App loads JS from https://socaloffroaders.com/ (Vercel must be deployed for web fixes)
 - Apple sign-in uses OAuth browser flow (not native Apple plugin)
 - Android push uses FCM token; iOS was saving APNs token (wrong). App now uses @capacitor-community/fcm for FCM on iOS.
-- iPhone needs GoogleService-Info.plist in Xcode bundle + APNs in Firebase + TestFlight build 17+
+- iPhone needs GoogleService-Info.plist in Xcode bundle + APNs in Firebase + current TestFlight build
 - After TestFlight: sign in as awesomeflaregaming@gmail.com → Settings → Enable push notifications
 - Verify Supabase push_device_tokens has platform=ios for user 5f62c706-e59a-416e-b4de-2d7945264f27
 - Firebase must have APNs .p8 key uploaded for iOS push delivery
@@ -90,7 +90,7 @@ npx cap open ios
 
 1. **`ios/App/App.xcworkspace`**
 2. Target **App** → **Signing & Capabilities** → **Push Notifications** + **Sign in with Apple**
-3. Version **2.0**, build **17**
+3. Version **1.3**, build **16** (next release: **2.0** / **17**)
 4. **Any iOS Device (arm64)** → Clean → Archive → Upload
 5. TestFlight → install on iPhone (delete old app first)
 

@@ -1,5 +1,5 @@
 /** Bump when shipping a user-facing release — keep in sync with app-version.json / What's new modal. */
-export const DEV_UPDATES_VERSION = '2026-06-15';
+export const DEV_UPDATES_VERSION = '2026-06-14';
 
 export type DevUpdateTag = 'new' | 'improved' | 'fix';
 
@@ -28,31 +28,6 @@ export type DevUpdateRelease = {
 export const DEV_UPDATES: DevUpdateRelease[] = [
   {
     version: DEV_UPDATES_VERSION,
-    date: 'June 15, 2026',
-    title: 'App 2.0 — notifications & stability',
-    items: [
-      {
-        tag: 'improved',
-        title: 'Push notifications on iPhone',
-        summary:
-          'Remote alerts work after allowing notifications. If you reinstalled the app, sign in and tap Allow when prompted, or use Settings → Enable push notifications.',
-      },
-      {
-        tag: 'fix',
-        title: 'iOS startup reliability',
-        summary:
-          'TestFlight builds no longer crash on launch when setting up Firebase messaging.',
-      },
-      {
-        tag: 'improved',
-        title: 'Version 2.0',
-        summary:
-          'Native apps and the website are aligned on version 2.0 (build 17) across iOS and Android.',
-      },
-    ],
-  },
-  {
-    version: '2026-06-14',
     date: 'June 14, 2026',
     title: 'App 1.3 — push notifications & FCM',
     items: [
