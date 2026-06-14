@@ -12,6 +12,26 @@ function randomNonce(length = 32): string {
   return result;
 }
 
+/** Apple ASAuthorizationAppleIDRequest.nonce must be SHA-256 of the raw nonce, hex-encoded. */
+async function sha256Hex(value: string): Promise<string> {
+  const data = new TextEncoder().encode(value);
+  const hash = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(hash))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+
+function decodeJwtPayload(token: string): Record<string, unknown> | null {
+  try {
+    const payload = token.split('.')[1];
+    if (!payload) return null;
+    const json = atob(payload.replace(/-/g, '+').replace(/_/g, '/'));
+    return JSON.parse(json) as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+}
+
 function isPluginMissingOnIos(message: string): boolean {
   const lower = message.toLowerCase();
   return lower.includes('not implemented on ios') || lower.includes('unimplemented');
@@ -32,27 +52,43 @@ function isUserCancel(message: string, code?: string): boolean {
   );
 }
 
-function formatAppleSupabaseError(message: string, code?: string): string {
+function formatAppleSupabaseError(
+  message: string,
+  code?: string,
+  idToken?: string,
+  status?: number
+): string {
   const raw = message.trim();
   const c = code?.trim() ?? '';
-  const detail = [c, raw].filter(Boolean).join(': ');
+  const detail = [status ? `HTTP ${status}` : '', c, raw].filter(Boolean).join(' · ');
 
   const lower = `${raw} ${c}`.toLowerCase();
   if (lower.includes('nonce') && lower.includes('mismatch')) {
     return 'Apple sign-in failed (nonce verification). Deploy the latest app update and try again.';
   }
   if (lower.includes('client') || lower.includes('audience') || lower.includes('invalid claim')) {
+    const aud = idToken ? decodeJwtPayload(idToken)?.aud : null;
+    const audHint = aud ? ` Token audience: ${String(aud)}.` : '';
     return (
-      'Supabase rejected the Apple token. Dashboard → Authentication → Providers → Apple → Client IDs must include com.socaloffroaders.app (your iOS bundle ID). ' +
+      `Supabase rejected the Apple token.${audHint} Client IDs must include com.socaloffroaders.app. ` +
       (detail ? `(${detail})` : '')
     );
   }
-  if (lower.includes('email') && lower.includes('already')) {
+  if (
+    code === 'email_exists' ||
+    lower.includes('already registered') ||
+    lower.includes('email already exists')
+  ) {
     return formatOAuthAuthError(raw, { code, provider: 'apple' });
   }
-  return detail
-    ? `Apple sign-in failed (${detail}). If Google works, add com.socaloffroaders.app to Supabase Apple Client IDs.`
-    : 'Apple sign-in failed. Add com.socaloffroaders.app to Supabase → Apple → Client IDs.';
+  if (detail) {
+    return `Apple sign-in failed (${detail}).`;
+  }
+  const aud = idToken ? decodeJwtPayload(idToken)?.aud : null;
+  if (aud) {
+    return `Apple sign-in failed. Token audience is ${String(aud)} — ensure it is listed in Supabase Apple Client IDs.`;
+  }
+  return 'Apple sign-in failed. Try Google sign-in, then connect Apple in Settings.';
 }
 
 export type AppleNativeAuthMode = 'signIn' | 'link';
@@ -64,10 +100,11 @@ export async function appleNativeAuth(
 ): Promise<{ error: string | null }> {
   try {
     const rawNonce = randomNonce();
+    const hashedNonce = await sha256Hex(rawNonce);
 
-    // Capawesome hashes the nonce for Apple internally — pass raw, not SHA-256 hex.
+    // Capawesome sets request.nonce as-is; Apple requires SHA-256 hex of the raw nonce.
     const result = await AppleSignIn.signIn({
-      nonce: rawNonce,
+      nonce: hashedNonce,
       scopes: [SignInScope.Email, SignInScope.FullName],
     });
 
@@ -75,15 +112,13 @@ export async function appleNativeAuth(
       return { error: 'Apple sign-in did not return an identity token.' };
     }
 
-    // Do not pass `nonce` to Supabase: hosted GoTrue compares hex vs Apple's base64url
-    // nonce claim and returns "Nonces mismatch" even with correct Client IDs.
-    // Apple still validates nonce in the ID token; Supabase verifies JWT signature + aud.
+    // Do not pass `nonce` to Supabase — hosted GoTrue hex vs base64url mismatch (see supabase/auth#2378).
     const credentials = {
       provider: 'apple' as const,
       token: result.idToken,
     };
 
-    const { error } =
+    const { data, error } =
       mode === 'link'
         ? await supabase.auth.linkIdentity(credentials)
         : await supabase.auth.signInWithIdToken(credentials);
@@ -91,6 +126,7 @@ export async function appleNativeAuth(
     if (error) {
       const raw = error.message ?? '';
       const errCode = (error as { code?: string }).code ?? '';
+      const status = (error as { status?: number }).status;
       if (raw.toLowerCase().includes('invalid grant') || raw.toLowerCase().includes('code verifier')) {
         return {
           error:
@@ -98,8 +134,12 @@ export async function appleNativeAuth(
         };
       }
       return {
-        error: formatAppleSupabaseError(raw, errCode),
+        error: formatAppleSupabaseError(raw, errCode, result.idToken, status),
       };
+    }
+
+    if (mode === 'signIn' && !data.session) {
+      return { error: 'Apple accepted but no session was saved. Close the app and try again.' };
     }
 
     if (mode === 'signIn') {
