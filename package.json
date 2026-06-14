@@ -33,7 +33,8 @@
     "version:sync": "node scripts/sync-app-version.mjs",
     "ios:sync-version": "bash scripts/ios-sync-version.sh",
     "apple:generate-secret": "node --env-file=.env.local scripts/apple-generate-client-secret.mjs",
-    "apple:sync-apple-secret": "node --env-file=.env.local scripts/apple-generate-client-secret.mjs --sync"
+    "apple:sync-apple-secret": "node --env-file=.env.local scripts/apple-generate-client-secret.mjs --sync",
+    "apple:vercel-env": "node --env-file=.env.local scripts/apple-vercel-env.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.3.1",

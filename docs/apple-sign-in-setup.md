@@ -58,8 +58,11 @@ npm run apple:generate-secret
 Or push directly to Supabase (no manual paste):
 
 ```bash
+npx supabase login   # once, if not already logged in via CLI
 npm run apple:sync-apple-secret
 ```
+
+On Windows, if you already ran `supabase login`, the sync script reads your CLI token from Credential Manager — you do **not** need `SUPABASE_ACCESS_TOKEN` in `.env.local`.
 
 **Vercel env alternative** — paste PEM into one line:
 
@@ -69,18 +72,28 @@ APPLE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nMIGT...\n-----END PRIVATE KEY---
 
 ## 4. Auto-rotation on Vercel (stops 6-month expiry pain)
 
-Add the same Apple vars + Management API token to **Vercel → Project → Environment Variables**:
+Add Apple vars to **Vercel → Project → Settings → Environment Variables → Production**:
 
 | Variable | Notes |
 |----------|--------|
-| `APPLE_TEAM_ID` | Apple Developer Team ID |
-| `APPLE_KEY_ID` | From Keys page |
-| `APPLE_SERVICES_ID` | Services ID identifier |
-| `APPLE_PRIVATE_KEY` | Full PEM with `\n` newlines |
+| `APPLE_TEAM_ID` | `T2G3L3K9SX` (your team) |
+| `APPLE_KEY_ID` | `2S8W552LQS` |
+| `APPLE_SERVICES_ID` | `com.socaloffroaders.signin` |
+| `APPLE_PRIVATE_KEY` | PEM on **one line** with `\n` between lines — see below |
 | `APPLE_BUNDLE_ID` | `com.socaloffroaders.app` |
-| `SUPABASE_ACCESS_TOKEN` | Personal access token (not service role) |
-| `SUPABASE_PROJECT_REF` | e.g. `abcdefghijklmnop` |
-| `CRON_SECRET` | Already used by other crons |
+| `SUPABASE_ACCESS_TOKEN` | Personal access token (you already have this on Vercel) |
+| `SUPABASE_PROJECT_REF` | `pvdqageridqjgxswcalm` |
+| `CRON_SECRET` | Same as your other crons |
+
+**Easy local prep** (writes a gitignored snippet; does not print the key in the terminal):
+
+```bash
+npm run apple:vercel-env
+```
+
+Open `.secrets/vercel-apple-env-snippet.txt`, copy `APPLE_PRIVATE_KEY` into Vercel, then **delete the snippet file**.
+
+In the Vercel UI, paste `APPLE_PRIVATE_KEY` as a single line — keep the literal `\n` characters between PEM lines (do not paste real line breaks unless Vercel accepts multiline secrets in your plan).
 
 Vercel cron **`/api/cron/apple-secret`** runs on the 1st of each month and PATCHes a fresh JWT into Supabase.
 

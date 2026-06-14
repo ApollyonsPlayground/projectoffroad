@@ -11,10 +11,13 @@
  *   APPLE_PRIVATE_KEY  — PEM contents (use \n for newlines in .env)
  *   APPLE_PRIVATE_KEY_PATH — optional path to AuthKey_XXXX.p8 (overrides APPLE_PRIVATE_KEY)
  *   APPLE_BUNDLE_ID — optional, default com.socaloffroaders.app
- *   SUPABASE_ACCESS_TOKEN, SUPABASE_PROJECT_REF (or NEXT_PUBLIC_SUPABASE_URL) for --sync
+ *   SUPABASE_ACCESS_TOKEN — optional if Supabase CLI is logged in (`supabase login`)
  */
 import { createSign } from 'crypto';
-import { readFileSync } from 'fs';
+import { execFileSync } from 'child_process';
+import { existsSync, readFileSync } from 'fs';
+import { homedir } from 'os';
+import { join } from 'path';
 
 const APPLE_CLIENT_SECRET_MAX_TTL_SECONDS = 15_777_000;
 
@@ -51,14 +54,66 @@ function generateAppleClientSecret({ teamId, keyId, servicesId, privateKeyPem })
   return `${signingInput}.${signature.toString('base64url')}`;
 }
 
+async function loadSupabaseAccessToken() {
+  const fromEnv = process.env.SUPABASE_ACCESS_TOKEN?.trim();
+  if (fromEnv) return fromEnv;
+
+  const tokenFile = join(homedir(), '.supabase', 'access-token');
+  if (existsSync(tokenFile)) {
+    const fromFile = readFileSync(tokenFile, 'utf8').trim();
+    if (fromFile) return fromFile;
+  }
+
+  if (process.platform === 'win32') {
+    const ps = `
+Add-Type @"
+using System;
+using System.Runtime.InteropServices;
+using System.Text;
+public class SupabaseCred {
+  [StructLayout(LayoutKind.Sequential, CharSet=CharSet.Unicode)]
+  public struct CREDENTIAL {
+    public int Flags; public int Type; public IntPtr TargetName; public IntPtr Comment;
+    public long LastWritten; public int CredentialBlobSize; public IntPtr CredentialBlob;
+    public int Persist; public int AttributeCount; public IntPtr Attributes; public IntPtr TargetAlias; public IntPtr UserName;
+  }
+  [DllImport("advapi32.dll", CharSet=CharSet.Unicode, SetLastError=true)]
+  public static extern bool CredRead(string target, int type, int reservedFlag, out IntPtr cred);
+  [DllImport("advapi32.dll")] public static extern void CredFree(IntPtr cred);
+  public static string Read(string target) {
+    IntPtr nCred;
+    if (!CredRead(target, 1, 0, out nCred)) return null;
+    var c = (CREDENTIAL)Marshal.PtrToStructure(nCred, typeof(CREDENTIAL));
+    var bytes = new byte[c.CredentialBlobSize];
+    Marshal.Copy(c.CredentialBlob, bytes, 0, c.CredentialBlobSize);
+    CredFree(nCred);
+    return Encoding.UTF8.GetString(bytes).Trim();
+  }
+}
+"@
+$t = [SupabaseCred]::Read('Supabase CLI:supabase')
+if ($t) { Write-Output $t }
+`;
+    const fromCred = execFileSync('powershell', ['-NoProfile', '-Command', ps], {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    }).trim();
+    if (fromCred.startsWith('sbp_')) return fromCred;
+  }
+
+  throw new Error(
+    'No Supabase access token. Run: npx supabase login — or set SUPABASE_ACCESS_TOKEN in .env.local (Dashboard → Account → Access Tokens).'
+  );
+}
+
 async function syncToSupabase({ secret, servicesId, bundleId }) {
-  const accessToken = process.env.SUPABASE_ACCESS_TOKEN?.trim();
+  const accessToken = await loadSupabaseAccessToken();
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() ?? '';
   const projectRef =
     process.env.SUPABASE_PROJECT_REF?.trim() ||
     (url ? new URL(url).hostname.split('.')[0] : '');
-  if (!accessToken || !projectRef) {
-    throw new Error('For --sync set SUPABASE_ACCESS_TOKEN and SUPABASE_PROJECT_REF (or NEXT_PUBLIC_SUPABASE_URL)');
+  if (!projectRef) {
+    throw new Error('Set SUPABASE_PROJECT_REF or NEXT_PUBLIC_SUPABASE_URL in .env.local');
   }
 
   const body = {
@@ -109,7 +164,7 @@ try {
     console.log(`Valid until: ${expiresAt}`);
   } else {
     console.log('# Paste into Supabase → Authentication → Providers → Apple → Secret Key');
-    console.log('# Or run with --sync after setting SUPABASE_ACCESS_TOKEN');
+    console.log('# Or run: npm run apple:sync-apple-secret (uses Supabase CLI login if available)');
     console.log('');
     console.log(secret);
     console.log('');
