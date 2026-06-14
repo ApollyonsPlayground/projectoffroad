@@ -36,13 +36,17 @@ Paste the **entire** service account JSON as one line in Vercel (or use multilin
 
 ## Verify registration
 
-1. Sign in on native app, allow notifications
-2. Supabase → `push_device_tokens` → row with your `user_id`
+1. Set `NEXT_PUBLIC_PUSH_REGISTER=true` on Vercel and redeploy (without this, the app never prompts for push).
+2. Install a native build with push entitlements (iOS TestFlight steps above; Android with `google-services.json`).
+3. Sign in on the native app → **Settings → Enable push notifications** → allow the system prompt.
+4. Supabase → `push_device_tokens` → row with your `user_id` and `platform` (`ios` or `android`).
+
+**Admin push test requires a token first.** If **Admin → Send iOS push test** returns “no token”, the iPhone has not registered yet — complete step 3 on the phone, confirm the Supabase row, then retry the admin test on desktop.
 
 ## Verify sending
 
 1. Set `PUSH_SEND_ENABLED=true` and `FIREBASE_SERVICE_ACCOUNT_JSON` on Vercel → redeploy
-2. **One-time test (iPhone):** sign in on TestFlight, allow notifications, confirm `push_device_tokens` has your row with `platform = ios`. On the site, open **Admin → Overview → Send iOS push test** (sends only to your own iOS token).
+2. **One-time test (iPhone):** complete registration above, confirm `push_device_tokens` has your row with `platform = ios`. On the site, open **Admin → Overview → Send iOS push test** (sends only to your own iOS token).
 3. Run reminders cron or wait for scheduled run reminder window
 4. Check Vercel function logs for `[push]` / `pushesSent` in cron response
 

@@ -16,6 +16,12 @@ export function describeRunLocationError(error: PostgrestError | Error | null): 
   const msg = error.message ?? '';
   const code = 'code' in error ? (error.code ?? '') : '';
 
+  if (
+    msg.toLowerCase().includes('no unique or exclusion constraint') ||
+    msg.toLowerCase().includes('on conflict')
+  ) {
+    return 'Location sharing is temporarily unavailable — try again in a few minutes after the app updates.';
+  }
   if (code === '42501' || msg.toLowerCase().includes('row-level security')) {
     return 'You cannot share location on this run. Join the run first, then try again.';
   }
@@ -68,30 +74,6 @@ export async function upsertMyRunLocation(
   });
 
   if (error) {
-    const rpcMissing =
-      error.code === 'PGRST202' ||
-      error.message?.includes('upsert_my_run_location') ||
-      error.message?.includes('Could not find the function');
-
-    if (rpcMissing) {
-      const userId = session.user.id;
-      const { error: upsertError } = await supabase.from('user_locations').upsert(
-        {
-          run_id: runId,
-          user_id: userId,
-          latitude,
-          longitude,
-          accuracy,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: 'run_id,user_id' }
-      );
-      if (upsertError) {
-        return { ok: false, message: describeRunLocationError(upsertError) };
-      }
-      return { ok: true };
-    }
-
     return { ok: false, message: describeRunLocationError(error) };
   }
 

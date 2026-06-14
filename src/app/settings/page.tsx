@@ -23,6 +23,9 @@ import { useToast } from '@/components/Toast';
 import { SITE_SUPPORT_EMAIL } from '@/lib/siteContact';
 import { resolvePublicDisplayName } from '@/lib/profileDisplay';
 import { ThemePicker } from '@/components/theme/ThemePicker';
+import { isCapacitorNative } from '@/utils/capacitator/isNative';
+import { isPushRegistrationEnabled } from '@/lib/push/pushConfig';
+import { registerNativePushWithResult } from '@/lib/push/registerNativePush';
 
 type DmAllow = 'everyone' | 'nobody';
 
@@ -39,6 +42,9 @@ export default function SettingsPage() {
   const [blockedRows, setBlockedRows] = useState<{ blocked_id: string; label: string }[]>([]);
   const [loadingBlocks, setLoadingBlocks] = useState(false);
   const [syncGoogleName, setSyncGoogleName] = useState(false);
+  const [pushBusy, setPushBusy] = useState(false);
+
+  const showNativePushButton = isCapacitorNative() && isPushRegistrationEnabled();
 
   useEffect(() => {
     if (!profile) return;
@@ -117,6 +123,23 @@ export default function SettingsPage() {
   const toggleRunTimeReminders = async (v: boolean) => {
     setNotifyRunTimeReminders(v);
     await persistPrefs({ notify_run_time_reminders: v });
+  };
+
+  const enablePushNotifications = async () => {
+    if (!user || !supabaseClient || pushBusy) return;
+    setPushBusy(true);
+    try {
+      const result = await registerNativePushWithResult(supabaseClient, user.id, { force: true });
+      const variant =
+        result.status === 'token_saved' || result.status === 'granted'
+          ? 'success'
+          : result.status === 'denied' || result.status === 'disabled'
+            ? 'info'
+            : 'error';
+      showToast(result.message, variant);
+    } finally {
+      setPushBusy(false);
+    }
   };
 
   const toggleClubs = async (v: boolean) => {
@@ -252,10 +275,20 @@ export default function SettingsPage() {
           </div>
           <p className="text-neutral-600 text-[11px] uppercase tracking-wider mb-3">
             Preferences are saved to your account. On the native app, run joiners can get local reminders at
-            about 72h, 48h, and 24h before start when enabled below. Remote push alerts require a
-            current native app build with Firebase configured — update from the store if allowing
-            notifications crashes the app.
+            about 72h, 48h, and 24h before start when enabled below. Remote push alerts need a current native
+            build — use the button below to allow notifications on this device.
           </p>
+          {showNativePushButton && user ? (
+            <button
+              type="button"
+              onClick={() => void enablePushNotifications()}
+              disabled={pushBusy}
+              className="mb-4 w-full flex items-center justify-center gap-2 rounded-lg border border-primary/40 bg-primary/10 px-4 py-3 text-[13px] font-bold text-primary hover:bg-primary/15 disabled:opacity-60"
+            >
+              {pushBusy ? <Loader2 size={16} className="animate-spin" /> : <Bell size={16} />}
+              {pushBusy ? 'Enabling…' : 'Enable push notifications'}
+            </button>
+          ) : null}
           <div className="space-y-3">
             <label className="flex items-center justify-between cursor-pointer">
               <span className="text-neutral-400">New runs in my area</span>
