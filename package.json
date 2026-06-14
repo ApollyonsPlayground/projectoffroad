@@ -31,7 +31,9 @@
     "ios:verify-plugins": "bash scripts/ios-verify-capacitor-plugins.sh",
     "ios:location": "bash scripts/ios-location-usage.sh",
     "version:sync": "node scripts/sync-app-version.mjs",
-    "ios:sync-version": "bash scripts/ios-sync-version.sh"
+    "ios:sync-version": "bash scripts/ios-sync-version.sh",
+    "apple:generate-secret": "node --env-file=.env.local scripts/apple-generate-client-secret.mjs",
+    "apple:sync-apple-secret": "node --env-file=.env.local scripts/apple-generate-client-secret.mjs --sync"
   },
   "dependencies": {
     "@capacitor/android": "^8.3.1",

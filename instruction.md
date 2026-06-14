@@ -54,26 +54,17 @@ After step 4, retry **Continue with Google** on `/login`.
 
 ### Apple Sign In (Supabase)
 
-On **iPhone and Android (TestFlight / Play)**, Apple sign-in uses the **same in-app browser OAuth flow as Google** (Supabase → Apple → `/auth/callback/` → app deep link). On **web**, Apple uses that same OAuth callback. Configure **Services ID + secret** in Supabase (not just the bundle ID).
+On **iPhone and Android**, Apple uses the **same in-app browser OAuth flow as Google**. You need a **Services ID** + **secret JWT** from your `.p8` key (the key file does not expire; the JWT does — auto-rotated monthly on Vercel).
 
-1. **Apple Developer** → **Certificates, Identifiers & Profiles**:
-   - **Identifiers** → **App IDs** → `com.socaloffroaders.app` → enable **Sign In with Apple**.
-   - **Identifiers** → **Services IDs** (for web OAuth) → enable **Sign In with Apple** → **Return URLs**:
-     - `https://<YOUR_PROJECT_REF>.supabase.co/auth/v1/callback`
-   - **Keys** → **Sign In with Apple** key (`.p8`) → note **Key ID** and **Team ID**.
+**Full setup:** see [`docs/apple-sign-in-setup.md`](docs/apple-sign-in-setup.md)
 
-2. **Supabase Dashboard** → **Authentication** → **Providers** → **Apple**:
-   - Enable Apple.
-   - **Client IDs**: comma-separated list must include your **Services ID** (required for OAuth on iPhone/Android/web) **and** **`com.socaloffroaders.app`** (bundle ID, optional for future native id-token flow). Example:
-     - `com.yourorg.web.signin,com.socaloffroaders.app`
-   - **Secret Key** = JWT from `.p8` (required for OAuth; rotate ~every 6 months).
-   - If Apple on iPhone fails while Google works, the usual cause is a missing **Services ID**, **secret key**, or **Return URL** on the Services ID in Apple Developer.
+Quick steps:
 
-3. **Redirect URLs** (web OAuth): include `https://socaloffroaders.com/auth/callback/` like Google.
-
-4. **TestFlight**: Xcode → **Sign in with Apple** capability + `npm run ios:entitlements` on Mac.
-
-5. **Workaround:** Sign in with **Google** on iPhone, then **Settings → Connected accounts → Connect Apple**.
+1. Apple Developer: App ID + **Services ID** + **Sign in with Apple** key (`.p8`) → note Team ID, Key ID, Services ID.
+2. Services ID **Return URL**: `https://<PROJECT_REF>.supabase.co/auth/v1/callback`
+3. Generate secret: `npm run apple:generate-secret` (paste into Supabase) **or** `npm run apple:sync-apple-secret`
+4. Vercel env: `APPLE_*` + `SUPABASE_ACCESS_TOKEN` → monthly cron rotates secret (`/api/cron/apple-secret`)
+5. Supabase **Redirect URLs**: `https://socaloffroaders.com/auth/callback/`
 
 **Apple relay email:** Users may hide their email; Supabase still gets a stable `user.id`. On **web OAuth**, Apple often does **not** send full name in later responses (first authorization only in native flows). The app still seeds `users.name` from metadata when present; otherwise use **Edit profile** or onboarding if you need a display name.
 
