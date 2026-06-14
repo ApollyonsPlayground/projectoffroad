@@ -4,8 +4,10 @@ Remote push uses **Firebase Cloud Messaging (FCM)** for delivery to Android and 
 
 ## Architecture
 
-1. **App** (`NEXT_PUBLIC_PUSH_REGISTER=true`) — Capacitor registers device token → Supabase `push_device_tokens`
+1. **App** (native, default on) — Capacitor registers device token → Supabase `push_device_tokens`. Optional: set `NEXT_PUBLIC_PUSH_REGISTER=false` on Vercel to disable registration during a bad build.
 2. **Server** (`PUSH_SEND_ENABLED=true`) — Vercel cron/API calls Firebase Admin → FCM → user device
+
+**Local run reminders** (72h / 48h / 24h before a run) use `@capacitor/local-notifications` on the device. They do **not** need `NEXT_PUBLIC_PUSH_REGISTER` or `PUSH_SEND_ENABLED`. Android “notifications working” often means these local reminders, not remote FCM push.
 
 ## Android native
 
@@ -26,8 +28,8 @@ Remote push uses **Firebase Cloud Messaging (FCM)** for delivery to Android and 
 
 | Variable | When | Value |
 |----------|------|--------|
-| `NEXT_PUBLIC_PUSH_REGISTER` | App token registration | `true` |
-| `PUSH_SEND_ENABLED` | Server may send pushes | `true` (only after Firebase service account is set) |
+| `NEXT_PUBLIC_PUSH_REGISTER` | Opt-out only | Default **on**. Set `false` to disable token registration during a bad build. |
+| `PUSH_SEND_ENABLED` | Server may send remote pushes | `true` (only after Firebase service account is set) |
 | `FIREBASE_SERVICE_ACCOUNT_JSON` | Server send | Full JSON from Firebase → Project settings → Service accounts → Generate new private key |
 
 Paste the **entire** service account JSON as one line in Vercel (or use multiline if supported). Redeploy after adding.
@@ -36,12 +38,13 @@ Paste the **entire** service account JSON as one line in Vercel (or use multilin
 
 ## Verify registration
 
-1. Set `NEXT_PUBLIC_PUSH_REGISTER=true` on Vercel and redeploy (without this, the app never prompts for push).
-2. Install a native build with push entitlements (iOS TestFlight steps above; Android with `google-services.json`).
-3. Sign in on the native app → **Settings → Enable push notifications** → allow the system prompt.
-4. Supabase → `push_device_tokens` → row with your `user_id` and `platform` (`ios` or `android`).
+1. Install a native build with push entitlements (iOS TestFlight steps above; Android with `google-services.json`).
+2. Sign in on the native app → **Settings → Enable push notifications** → allow the system prompt.
+3. Supabase → `push_device_tokens` → row with your `user_id` and `platform` (`ios` or `android`).
 
-**Admin push test requires a token first.** If **Admin → Send iOS push test** returns “no token”, the iPhone has not registered yet — complete step 3 on the phone, confirm the Supabase row, then retry the admin test on desktop.
+Token registration is **on by default** — no Vercel env var unless you set `NEXT_PUBLIC_PUSH_REGISTER=false`.
+
+**Admin push test requires a token first.** If **Admin → Send iOS push test** returns “no token”, the iPhone has not registered yet — complete step 2 on the phone, confirm the Supabase row, then retry the admin test on desktop. **Sending** the test also needs `PUSH_SEND_ENABLED=true` and `FIREBASE_SERVICE_ACCOUNT_JSON` on Vercel.
 
 ## Verify sending
 

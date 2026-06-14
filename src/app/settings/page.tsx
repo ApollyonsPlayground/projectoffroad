@@ -24,7 +24,6 @@ import { SITE_SUPPORT_EMAIL } from '@/lib/siteContact';
 import { resolvePublicDisplayName } from '@/lib/profileDisplay';
 import { ThemePicker } from '@/components/theme/ThemePicker';
 import { isCapacitorNative } from '@/utils/capacitator/isNative';
-import { isPushRegistrationEnabled } from '@/lib/push/pushConfig';
 import { registerNativePushWithResult } from '@/lib/push/registerNativePush';
 
 type DmAllow = 'everyone' | 'nobody';
@@ -43,8 +42,6 @@ export default function SettingsPage() {
   const [loadingBlocks, setLoadingBlocks] = useState(false);
   const [syncGoogleName, setSyncGoogleName] = useState(false);
   const [pushBusy, setPushBusy] = useState(false);
-
-  const showNativePushButton = isCapacitorNative() && isPushRegistrationEnabled();
 
   useEffect(() => {
     if (!profile) return;
@@ -274,11 +271,11 @@ export default function SettingsPage() {
             <h2 className="text-foreground font-bold uppercase tracking-wide">Notifications</h2>
           </div>
           <p className="text-neutral-600 text-[11px] uppercase tracking-wider mb-3">
-            Preferences are saved to your account. On the native app, run joiners can get local reminders at
-            about 72h, 48h, and 24h before start when enabled below. Remote push alerts need a current native
-            build — use the button below to allow notifications on this device.
+            Preferences are saved to your account. Run time reminders (72h / 48h / 24h) are scheduled on your
+            phone and work without any server setup. Remote push alerts (admin tests, server-sent reminders)
+            need the button below plus a current native build.
           </p>
-          {showNativePushButton && user ? (
+          {isCapacitorNative() && user ? (
             <button
               type="button"
               onClick={() => void enablePushNotifications()}

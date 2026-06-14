@@ -1,9 +1,16 @@
-/** Server-side remote push delivery. Keep false until FCM/APNs credentials are configured. */
+/** Server-side remote push delivery (admin test, run-reminder cron). */
 export function isPushSendEnabled(): boolean {
   return process.env.PUSH_SEND_ENABLED?.trim().toLowerCase() === 'true';
 }
 
-/** Client-side token registration — off by default until push is stable (was crashing on allow). */
+/**
+ * Client-side FCM/APNs token registration on native sign-in and Settings.
+ * Default: on. Set NEXT_PUBLIC_PUSH_REGISTER=false on Vercel to disable (e.g. during a bad build).
+ *
+ * Note: local run reminders (@capacitor/local-notifications) do not use this flag.
+ */
 export function isPushRegistrationEnabled(): boolean {
-  return process.env.NEXT_PUBLIC_PUSH_REGISTER?.trim().toLowerCase() === 'true';
+  const raw = process.env.NEXT_PUBLIC_PUSH_REGISTER?.trim().toLowerCase();
+  if (raw === 'false') return false;
+  return true;
 }
