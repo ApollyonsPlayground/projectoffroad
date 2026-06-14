@@ -6,7 +6,6 @@ import { useToast } from '@/components/Toast';
 import { AppleSignInButton } from '@/components/auth/AppleSignInButton';
 import { AppleSignInBetaTeaser } from '@/components/auth/AppleSignInBetaTeaser';
 import { GoogleSignInButton } from '@/components/auth/GoogleSignInButton';
-import { isIosNative } from '@/utils/capacitator/isIosNative';
 import {
   getOAuthSignInVisibility,
   oauthSignInSubtitle,
@@ -43,12 +42,8 @@ export function OAuthSignInButtons({ mode }: OAuthSignInButtonsProps) {
     if (err) {
       showToast(err, 'error');
       setAppleLoading(false);
-      return;
     }
-    setAppleLoading(false);
-    if (isIosNative()) {
-      window.location.assign('/feed/');
-    }
+    // OAuth: session completes via deep link (appUrlOpen). Native id-token path would redirect here.
   }
 
   if (!visibility) return null;

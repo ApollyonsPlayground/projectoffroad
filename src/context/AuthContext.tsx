@@ -5,9 +5,6 @@ import type { User, SupabaseClient } from '@supabase/supabase-js'
 import { createBrowserSupabaseClient } from '@/utils/supabase/client'
 import { ensureStoragePublicObjectUrl } from '@/lib/supabase/storagePublicUrl'
 import { isCapacitorNative } from '@/utils/capacitator/isNative'
-import { isIosNative } from '@/utils/capacitator/isIosNative'
-import { appleNativeAuth } from '@/utils/auth/appleNativeSignIn'
-import { isAppleSignInNativeAvailable } from '@/utils/auth/appleSignInNativeAvailable'
 import { formatOAuthAuthError } from '@/utils/auth/oauthIdentityErrors'
 import { assignUniqueUsername } from '@/lib/username/generateUsername'
 import { markDisclaimerAccepted } from '@/lib/disclaimerStorage'
@@ -423,26 +420,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function signInWithApple() {
-    if (!supabase) return { error: 'Supabase is not configured.' }
-
-    const appleOAuthFallback = () =>
-      signInWithOAuthProvider(
-        'apple',
-        'Apple sign-in is disabled or incomplete in Supabase. Dashboard → Authentication → Providers → Apple: enable and add Client IDs (com.socaloffroaders.app for iOS; Services ID + secret for web) — see instruction.md.',
-        'Could not start Apple sign-in (empty auth URL). Use Safari or Chrome (not an in-app browser), or disable strict tracking/ad blockers for this site.'
-      )
-
-    if (isIosNative()) {
-      if (isAppleSignInNativeAvailable()) {
-        return appleNativeAuth(supabase, 'signIn')
-      }
-      return {
-        error:
-          'This TestFlight build is missing native Apple sign-in. On MacinCloud: git pull, npm run ios:entitlements, npm run ios:oauth-url-scheme, npx cap sync ios, then Archive a new build.',
-      }
-    }
-
-    return appleOAuthFallback()
+    return signInWithOAuthProvider(
+      'apple',
+      'Apple sign-in is disabled or incomplete in Supabase. Dashboard → Authentication → Providers → Apple: enable it, add your Services ID + secret (.p8 JWT), and list com.socaloffroaders.app plus the Services ID under Client IDs — see instruction.md.',
+      'Could not start Apple sign-in (empty auth URL). Close other apps, then try again. If it keeps failing, confirm Supabase Apple provider has a Services ID and secret key.'
+    )
   }
 
   async function linkGoogle(nextAfterLogin?: string) {
@@ -460,25 +442,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const session = (await supabase.auth.getSession()).data.session
     if (!session?.user) {
       return { error: 'Sign in first, then connect accounts in Settings.' }
-    }
-
-    if (isIosNative() && isAppleSignInNativeAvailable()) {
-      const result = await appleNativeAuth(supabase, 'link')
-      if (!result.error) {
-        const { data: guestRow } = await supabase
-          .from('users')
-          .select('is_guest')
-          .eq('id', session.user.id)
-          .maybeSingle()
-        if ((guestRow as { is_guest?: boolean } | null)?.is_guest) {
-          try {
-            await completeGuestUpgrade()
-          } catch (e) {
-            console.warn('[Auth] guest upgrade after Apple link:', e)
-          }
-        }
-      }
-      return result
     }
 
     return linkWithOAuthProvider(

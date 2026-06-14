@@ -96,12 +96,18 @@ if check_file "$PLIST" "Run: npx cap sync ios"; then
   done
 fi
 
-# Push entitlement
+# Push + Sign in with Apple entitlements
 if [[ -f "$ENTITLEMENTS" ]]; then
   if /usr/libexec/PlistBuddy -c "Print :aps-environment" "$ENTITLEMENTS" >/dev/null 2>&1; then
     echo "OK entitlements: aps-environment"
   else
     echo "MISSING entitlements: aps-environment — run npm run ios:push-entitlements"
+    fail=1
+  fi
+  if /usr/libexec/PlistBuddy -c "Print :com.apple.developer.applesignin" "$ENTITLEMENTS" >/dev/null 2>&1; then
+    echo "OK entitlements: com.apple.developer.applesignin"
+  else
+    echo "MISSING entitlements: com.apple.developer.applesignin — run npm run ios:entitlements"
     fail=1
   fi
 else

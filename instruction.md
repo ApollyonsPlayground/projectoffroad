@@ -54,7 +54,7 @@ After step 4, retry **Continue with Google** on `/login`.
 
 ### Apple Sign In (Supabase)
 
-On **iPhone (TestFlight)**, the app uses **native** Sign in with Apple → `signInWithIdToken` (not Safari). On **web**, Apple uses the same OAuth callback as Google. Configure **both** in Supabase.
+On **iPhone and Android (TestFlight / Play)**, Apple sign-in uses the **same in-app browser OAuth flow as Google** (Supabase → Apple → `/auth/callback/` → app deep link). On **web**, Apple uses that same OAuth callback. Configure **Services ID + secret** in Supabase (not just the bundle ID).
 
 1. **Apple Developer** → **Certificates, Identifiers & Profiles**:
    - **Identifiers** → **App IDs** → `com.socaloffroaders.app` → enable **Sign In with Apple**.
@@ -64,10 +64,10 @@ On **iPhone (TestFlight)**, the app uses **native** Sign in with Apple → `sign
 
 2. **Supabase Dashboard** → **Authentication** → **Providers** → **Apple**:
    - Enable Apple.
-   - **Client IDs** (critical for native iOS): comma-separated list must include **`com.socaloffroaders.app`** (iOS bundle ID) **and** your web **Services ID** if you use Apple on the website. Example:
-     - `com.socaloffroaders.app,com.yourorg.web.signin`
-   - Without the bundle ID, native Apple on TestFlight fails with a generic “sign in failed” while Google still works.
-   - **Secret Key** = JWT from `.p8` (for web OAuth only; rotate ~every 6 months).
+   - **Client IDs**: comma-separated list must include your **Services ID** (required for OAuth on iPhone/Android/web) **and** **`com.socaloffroaders.app`** (bundle ID, optional for future native id-token flow). Example:
+     - `com.yourorg.web.signin,com.socaloffroaders.app`
+   - **Secret Key** = JWT from `.p8` (required for OAuth; rotate ~every 6 months).
+   - If Apple on iPhone fails while Google works, the usual cause is a missing **Services ID**, **secret key**, or **Return URL** on the Services ID in Apple Developer.
 
 3. **Redirect URLs** (web OAuth): include `https://socaloffroaders.com/auth/callback/` like Google.
 

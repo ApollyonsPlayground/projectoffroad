@@ -32,6 +32,18 @@ function decodeJwtPayload(token: string): Record<string, unknown> | null {
   }
 }
 
+function isNativePluginFailure(message: string): boolean {
+  const lower = message.toLowerCase().trim();
+  return lower === 'sign in failed.' || lower === 'sign in failed';
+}
+
+function nativePluginFailureHelp(): string {
+  return (
+    'Native Apple sign-in failed before reaching Supabase (missing Sign in with Apple entitlement or stale TestFlight build). ' +
+    'The app now uses browser Apple sign-in on iPhone — deploy the latest site and try again.'
+  );
+}
+
 function isPluginMissingOnIos(message: string): boolean {
   const lower = message.toLowerCase();
   return lower.includes('not implemented on ios') || lower.includes('unimplemented');
@@ -161,6 +173,7 @@ export async function appleNativeAuth(
     const msg = err?.message ?? String(e);
     if (isUserCancel(msg, err?.code)) return { error: null };
     if (isPluginMissingOnIos(msg)) return { error: pluginMissingHelp() };
+    if (isNativePluginFailure(msg)) return { error: nativePluginFailureHelp() };
     return { error: msg || 'Apple sign-in failed.' };
   }
 }
