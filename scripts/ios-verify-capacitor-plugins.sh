@@ -30,6 +30,7 @@ PODS=(
   CapacitorCamera
   CapacitorGeolocation
   CapacitorPushNotifications
+  CapacitorCommunityFcm
   CapacitorLocalNotifications
   CapacitorStatusBar
   CapacitorApp
@@ -55,6 +56,7 @@ SPM_PLUGINS=(
   CapacitorCamera
   CapacitorGeolocation
   CapacitorPushNotifications
+  CapacitorCommunityFcm
   CapacitorLocalNotifications
   CapacitorStatusBar
   CapacitorApp
@@ -133,6 +135,15 @@ if [[ -n "$APP_DELEGATE" && -f "$APP_DELEGATE" ]]; then
     echo "MISSING AppDelegate push hooks — run npm run ios:appdelegate-push"
     fail=1
   fi
+fi
+
+# Firebase iOS (FCM token — required for server push; APNs token alone is not enough)
+GOOGLE_PLIST="$ROOT/ios/App/App/GoogleService-Info.plist"
+if [[ -f "$GOOGLE_PLIST" ]]; then
+  echo "OK Firebase: GoogleService-Info.plist"
+else
+  echo "MISSING Firebase: GoogleService-Info.plist — run npm run ios:google-services-plist"
+  fail=1
 fi
 
 if [[ $fail -ne 0 ]]; then

@@ -3,6 +3,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { isNativePluginAvailable } from '@/lib/capacitor/isPluginAvailable';
 import { isCapacitorNative } from '@/utils/capacitator/isNative';
 import { isPushRegistrationEnabled } from '@/lib/push/pushConfig';
+import { obtainFcmDeviceToken } from '@/lib/push/obtainFcmToken';
 
 export type PushPlatform = 'ios' | 'android';
 
@@ -23,16 +24,6 @@ let listenersBound = false;
 let registerInFlight = false;
 let registeredUserId: string | null = null;
 let currentToken: string | null = null;
-let activeUserId: string | null = null;
-let activeSupabase: SupabaseClient | null = null;
-let pendingRegistration:
-  | {
-      resolve: (result: PushRegistrationResult) => void;
-      reject: (err: unknown) => void;
-      userId: string;
-      tokenSaved: boolean;
-    }
-  | null = null;
 
 function pushPlatform(): PushPlatform | null {
   const p = Capacitor.getPlatform();
@@ -78,56 +69,14 @@ export function getRegisteredPushToken(): string | null {
   return currentToken;
 }
 
-function resolvePending(result: PushRegistrationResult): void {
-  const pending = pendingRegistration;
-  pendingRegistration = null;
-  pending?.resolve(result);
-}
-
-function failPending(message: string): void {
-  registeredUserId = null;
-  resolvePending({ status: 'error', message });
-}
-
-async function ensurePushListeners(): Promise<void> {
+async function ensurePushErrorListener(): Promise<void> {
   if (listenersBound) return;
   listenersBound = true;
 
   const { PushNotifications } = await import('@capacitor/push-notifications');
 
-  await PushNotifications.addListener('registration', (ev) => {
-    const token = ev.value?.trim();
-    if (!token || !activeUserId || !activeSupabase) return;
-    const plat = pushPlatform();
-    if (!plat) return;
-    currentToken = token;
-    void upsertPushDeviceToken(activeSupabase, activeUserId, token, plat)
-      .then(() => {
-        registeredUserId = activeUserId;
-        if (pendingRegistration?.userId === activeUserId) {
-          pendingRegistration.tokenSaved = true;
-          resolvePending({
-            status: 'token_saved',
-            message: 'Push notifications enabled.',
-          });
-        }
-      })
-      .catch((err) => {
-        const msg = err instanceof Error ? err.message : 'Could not save device token.';
-        console.warn('[push] token upsert failed', err);
-        failPending(msg);
-      });
-  });
-
   await PushNotifications.addListener('registrationError', (err) => {
-    const msg =
-      typeof err === 'object' && err && 'error' in err && typeof err.error === 'string'
-        ? err.error
-        : 'Push registration failed on this device.';
-    console.warn('[push] registration failed', err);
-    failPending(
-      `${msg} Install the latest TestFlight build with push entitlements, or update from the store.`
-    );
+    console.warn('[push] native registration failed', err);
   });
 
   await PushNotifications.addListener('pushNotificationReceived', () => {
@@ -173,14 +122,12 @@ export async function registerNativePushWithResult(
     return { status: 'token_saved', message: 'Push notifications are already enabled on this device.' };
   }
 
-  activeUserId = userId;
-  activeSupabase = sb;
   registerInFlight = true;
   registeredUserId = null;
 
   try {
     const { PushNotifications } = await import('@capacitor/push-notifications');
-    await ensurePushListeners();
+    await ensurePushErrorListener();
 
     const existingPerm = await PushNotifications.checkPermissions();
     const perm =
@@ -189,34 +136,25 @@ export async function registerNativePushWithResult(
         : await PushNotifications.requestPermissions();
 
     if (perm.receive !== 'granted') {
-      registeredUserId = null;
       return {
         status: 'denied',
         message: `Notifications are blocked. ${platformSettingsHint()}`,
       };
     }
 
-    const waitForToken = new Promise<PushRegistrationResult>((resolve, reject) => {
-      pendingRegistration = { resolve, reject, userId, tokenSaved: false };
-      window.setTimeout(() => {
-        if (!pendingRegistration || pendingRegistration.userId !== userId) return;
-        if (pendingRegistration.tokenSaved) return;
-        pendingRegistration = null;
-        resolve({
-          status: 'granted',
-          message:
-            'Notification permission granted. Your device is registering — try again in a few seconds if admin tests still fail.',
-        });
-      }, 12_000);
-    });
-
+    // Required before FCM.getToken() on iOS (registers for APNs under the hood).
     await PushNotifications.register();
 
-    const tokenResult = await waitForToken;
-    if (tokenResult.status === 'token_saved') {
-      registeredUserId = userId;
-    }
-    return tokenResult;
+    const fcmToken = await obtainFcmDeviceToken();
+    await upsertPushDeviceToken(sb, userId, fcmToken, platform);
+
+    currentToken = fcmToken;
+    registeredUserId = userId;
+
+    return {
+      status: 'token_saved',
+      message: 'Push notifications enabled.',
+    };
   } catch (err) {
     registeredUserId = null;
     const msg = err instanceof Error ? err.message : 'Push registration failed.';
@@ -224,9 +162,6 @@ export async function registerNativePushWithResult(
     return { status: 'error', message: msg };
   } finally {
     registerInFlight = false;
-    if (pendingRegistration?.userId === userId) {
-      pendingRegistration = null;
-    }
   }
 }
 
@@ -241,10 +176,7 @@ export async function registerNativePush(sb: SupabaseClient, userId: string): Pr
 }
 
 export async function unregisterNativePush(sb: SupabaseClient): Promise<void> {
-  activeUserId = null;
-  activeSupabase = null;
   registeredUserId = null;
-  pendingRegistration = null;
   const token = currentToken;
   currentToken = null;
   if (!token) return;

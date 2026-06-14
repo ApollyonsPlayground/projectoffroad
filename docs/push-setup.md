@@ -17,12 +17,17 @@ Remote push uses **Firebase Cloud Messaging (FCM)** for delivery to Android and 
 
 ## iOS native
 
+**Why Android push worked but iOS did not:** `@capacitor/push-notifications` returns an **FCM token** on Android but an **APNs token** on iOS. The server sends via **Firebase Admin**, which needs **FCM tokens on both platforms**. The app now uses `@capacitor-community/fcm` to fetch the FCM token on iOS after APNs registration.
+
 1. Apple Developer → Keys → APNs key (`.p8`)
 2. Firebase → Project settings → Cloud Messaging → upload APNs key (+ Key ID + Team ID)
-3. On Mac: `npm run ios:push-entitlements` + Xcode → **Push Notifications** capability
-4. On Mac: `npm run ios:appdelegate-push` (forwards APNs token to Capacitor)
-5. On Mac: `npm run ios:oauth-url-scheme` + `npm run ios:entitlements` (sign-in)
-6. Archive new TestFlight build — **web/Vercel alone cannot fix iOS sign-in or push registration**
+3. Firebase → Project settings → **Your iOS app** → download **`GoogleService-Info.plist`**
+4. Copy to **`ios/App/App/GoogleService-Info.plist`** (verify: `npm run ios:google-services-plist`)
+5. On Mac: `npm install` → `npx cap sync ios` (pulls in CapacitorCommunityFcm)
+6. On Mac: `npm run ios:push-entitlements` + Xcode → **Push Notifications** capability
+7. On Mac: `npm run ios:appdelegate-push` (forwards APNs token to Capacitor)
+8. `npm run ios:verify-plugins` (must show OK for FCM + GoogleService-Info.plist)
+9. Archive new TestFlight build — **web/Vercel alone cannot fix iOS push**
 
 ## Vercel environment variables
 

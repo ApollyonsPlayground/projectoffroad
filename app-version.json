@@ -1,8 +1,8 @@
 {
   "versionName": "1.3",
-  "androidVersionCode": 12,
-  "iosBuildNumber": "12",
+  "androidVersionCode": 13,
+  "iosBuildNumber": "13",
   "packageJsonVersion": "1.3.0",
-  "rebuildReason": "TestFlight — iOS push (APNs/AppDelegate), location DB fix, Apple OAuth browser flow",
+  "rebuildReason": "iOS push — FCM token via @capacitor-community/fcm + GoogleService-Info.plist",
   "lastBumped": "2026-06-15"
 }

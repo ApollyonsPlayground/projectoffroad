@@ -28,6 +28,7 @@
     "ios:push-entitlements": "bash scripts/ios-push-entitlements.sh",
     "ios:oauth-url-scheme": "bash scripts/ios-oauth-url-scheme.sh",
     "ios:appdelegate-push": "bash scripts/ios-appdelegate-push.sh",
+    "ios:google-services-plist": "bash scripts/ios-google-services-plist.sh",
     "ios:verify-plugins": "bash scripts/ios-verify-capacitor-plugins.sh",
     "ios:location": "bash scripts/ios-location-usage.sh",
     "version:sync": "node scripts/sync-app-version.mjs",
@@ -37,6 +38,7 @@
     "apple:vercel-env": "node --env-file=.env.local scripts/apple-vercel-env.mjs"
   },
   "dependencies": {
+    "@capacitor-community/fcm": "^8.1.0",
     "@capacitor/android": "^8.3.1",
     "@capacitor/app": "^8.1.0",
     "@capacitor/browser": "^8.0.3",

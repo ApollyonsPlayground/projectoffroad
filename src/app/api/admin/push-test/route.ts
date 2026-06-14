@@ -60,10 +60,27 @@ export async function POST(request: Request) {
         platform,
         hint:
           result.reason === 'no_tokens'
-            ? `No ${platform} token for your account. Open the native app, sign in, and allow notifications.`
+            ? `No ${platform} token for your account. Open the native app → Settings → Enable push notifications. iOS needs GoogleService-Info.plist + TestFlight build 13+.`
             : 'Check Vercel env vars and redeploy.',
       },
       { status }
+    );
+  }
+
+  if (result.failed > 0 && result.delivered === 0) {
+    return NextResponse.json(
+      {
+        ok: false,
+        reason: 'fcm_rejected',
+        platform,
+        tokenCount: result.tokenCount,
+        errors: result.errors,
+        hint:
+          platform === 'ios'
+            ? 'FCM rejected the iOS token. Re-enable push on iPhone (Settings) after TestFlight build with GoogleService-Info.plist and APNs key in Firebase.'
+            : 'FCM rejected the token. Try re-registering push on the device.',
+      },
+      { status: 502 }
     );
   }
 

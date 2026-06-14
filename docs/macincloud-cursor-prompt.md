@@ -13,7 +13,7 @@ Repo path on this Mac is almost certainly:
   ~/dev/projectoffroad
 NOT ~/projectoffroad
 
-Goal: sync iOS native project, verify all Capacitor plugins (especially push + OAuth + Apple), set version 1.3 build 12, then tell me when Xcode Archive is ready.
+Goal: sync iOS native project, verify plugins (FCM + GoogleService-Info.plist), set version 1.3 build 13, then tell me when Xcode Archive is ready.
 
 Do ALL of this yourself in the terminal:
 
@@ -24,7 +24,11 @@ Do ALL of this yourself in the terminal:
 
 3. npx cap sync ios
 
-4. Run native patch scripts:
+4. Place Firebase iOS config (if missing):
+   npm run ios:google-services-plist
+   (Download GoogleService-Info.plist from Firebase → iOS app com.socaloffroaders.app → copy to ios/App/App/)
+
+5. Run native patch scripts:
    npm run ios:oauth-url-scheme
    npm run ios:entitlements
    npm run ios:push-entitlements
@@ -33,7 +37,7 @@ Do ALL of this yourself in the terminal:
    npm run ios:location
    npx cap sync ios
 
-5. Version sync (must show build 12):
+5. Version sync (must show build 13):
    npm run version:sync
    npm run ios:sync-version
 
@@ -56,7 +60,8 @@ Do not commit secrets. Do not git push unless I ask.
 Context:
 - App loads JS from https://socaloffroaders.com/ (Vercel must be deployed for web fixes)
 - Apple sign-in uses OAuth browser flow (not native Apple plugin)
-- Android push + Vercel env already work; iPhone needs AppDelegate push hooks + entitlements + new binary
+- Android push uses FCM token; iOS was saving APNs token (wrong). App now uses @capacitor-community/fcm for FCM on iOS.
+- iPhone needs GoogleService-Info.plist + APNs in Firebase + TestFlight build 13+
 - After TestFlight: sign in as awesomeflaregaming@gmail.com → Settings → Enable push notifications
 - Verify Supabase push_device_tokens has platform=ios for user 5f62c706-e59a-416e-b4de-2d7945264f27
 - Firebase must have APNs .p8 key uploaded for iOS push delivery
