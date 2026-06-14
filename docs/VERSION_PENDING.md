@@ -1,44 +1,44 @@
 # Version bump — action required (Noah)
 
 **Last code bump:** 2026-06-15  
-**Native version:** `1.3` (Android **versionCode 12**, iOS build **12**)  
-**Why:** New TestFlight build on MacinCloud — iOS push registration, location constraint fix, verified Apple sign-in.
+**Native version:** `2.0` (Android **versionCode 17**, iOS build **17**)  
+**Why:** Major version sync — iOS push/FCM stable on TestFlight; align all stores to build 17.
 
 ## Version lockstep (Android ↔ iOS)
 
 | Field | Android | iOS (Mac `ios:sync-version`) |
 |-------|---------|------------------------------|
-| User-visible | `versionName` **1.3** | MARKETING_VERSION **1.3** |
-| Store build integer | `versionCode` **12** | CURRENT_PROJECT_VERSION **12** |
+| User-visible | `versionName` **2.0** | MARKETING_VERSION **2.0** |
+| Store build integer | `versionCode` **17** | CURRENT_PROJECT_VERSION **17** |
 
 `npm run version:sync` sets `iosBuildNumber` = `androidVersionCode`.
 
 ## Already updated in code
 
-- `app-version.json`
-- Run `npm run version:sync` on Windows (updates `android/app/build.gradle`)
+- `app-version.json` → **2.0** / build **17**
+- `npm run version:sync` → `android/app/build.gradle`, `package.json` **2.0.0**
 - On Mac: `npm run ios:sync-version` after pull
+
+## Remotes
+
+| Remote | Role |
+|--------|------|
+| **gitlab** | Vercel deploy source of truth |
+| **origin** (GitHub) | Mirror — was behind; push `main` to sync |
 
 ## You still do
 
-### Windows (before MacinCloud)
+### Windows
 
-1. **Push to GitLab** so Mac gets latest code + docs
-2. **Deploy web** to Vercel (location fix, club hero rotation, push Settings button — no native rebuild needed for those)
+1. Confirm Vercel deployed after push
+2. Optional: upload Android AAB to Play (versionCode **17**, versionName **2.0**)
 
-### MacinCloud (TestFlight)
-
-Follow **[macincloud-native-release.md](macincloud-native-release.md)** or paste the Agent prompt from **[macincloud-cursor-prompt.md](macincloud-cursor-prompt.md)**.
+### MacinCloud / GitHub Actions iOS (TestFlight)
 
 1. `git pull` → `npm install` → `npx cap sync ios`
-2. Run all `ios:*` scripts → `npm run ios:verify-plugins` (must pass)
-3. `npm run version:sync` → `npm run ios:sync-version` (confirm build **12**)
+2. Run all `ios:*` scripts → `npm run ios:verify-plugins`
+3. `npm run version:sync` → `npm run ios:sync-version` (confirm build **17**, version **2.0**)
 4. Xcode → Archive → Upload TestFlight
-5. On iPhone: delete old app → install build **12** → Sign in with Apple → Settings → Enable push notifications
-6. Supabase `push_device_tokens`: `user_id` `5f62c706-e59a-416e-b4de-2d7945264f27` (`awesomeflaregaming@gmail.com`) should get `platform = ios`
+5. iPhone: install build **17** → sign in → allow notifications when prompted
 
-### Android (optional, later)
-
-New Play upload only if you want versionCode **12** on Play — not required for this TestFlight-only pass.
-
-Delete or archive this file after TestFlight is live and verified.
+Delete or archive this file after TestFlight + Play are live at **2.0 (17)**.

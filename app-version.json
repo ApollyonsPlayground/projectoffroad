@@ -1,8 +1,8 @@
 {
-  "versionName": "1.3",
-  "androidVersionCode": 14,
-  "iosBuildNumber": "14",
-  "packageJsonVersion": "1.3.0",
-  "rebuildReason": "Fix iOS startup crash — defer FCM Firebase init + bundle GoogleService-Info.plist in Xcode",
+  "versionName": "2.0",
+  "androidVersionCode": 17,
+  "iosBuildNumber": "17",
+  "packageJsonVersion": "2.0.0",
+  "rebuildReason": "Version 2.0 — align Android, iOS, and package.json after push/FCM fixes",
   "lastBumped": "2026-06-15"
 }
