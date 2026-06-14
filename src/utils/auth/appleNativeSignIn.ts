@@ -35,8 +35,29 @@ function isUserCancel(message: string, code?: string): boolean {
   return (
     lower.includes('cancel') ||
     lower.includes('1001') ||
-    lower.includes('authorization error')
+    lower.includes('user canceled') ||
+    lower.includes('user cancelled')
   );
+}
+
+function formatAppleSupabaseError(message: string, code?: string): string {
+  const raw = message.trim();
+  const c = code?.trim() ?? '';
+  const detail = [c, raw].filter(Boolean).join(': ');
+
+  const lower = `${raw} ${c}`.toLowerCase();
+  if (lower.includes('client') || lower.includes('audience') || lower.includes('invalid claim')) {
+    return (
+      'Supabase rejected the Apple token. Dashboard → Authentication → Providers → Apple → Client IDs must include com.socaloffroaders.app (your iOS bundle ID). ' +
+      (detail ? `(${detail})` : '')
+    );
+  }
+  if (lower.includes('email') && lower.includes('already')) {
+    return formatOAuthAuthError(raw, { code, provider: 'apple' });
+  }
+  return detail
+    ? `Apple sign-in failed (${detail}). If Google works, add com.socaloffroaders.app to Supabase Apple Client IDs.`
+    : 'Apple sign-in failed. Add com.socaloffroaders.app to Supabase → Apple → Client IDs.';
 }
 
 export type AppleNativeAuthMode = 'signIn' | 'link';
@@ -76,21 +97,11 @@ export async function appleNativeAuth(
       if (raw.toLowerCase().includes('invalid grant') || raw.toLowerCase().includes('code verifier')) {
         return {
           error:
-            'Sign-in session expired. Close the app completely, reopen, and try Google sign-in again.',
-        };
-      }
-      if (raw.toLowerCase().includes('client') || raw.toLowerCase().includes('audience')) {
-        return {
-          error:
-            'Apple sign-in rejected by Supabase. Dashboard → Authentication → Providers → Apple: enable and add com.socaloffroaders.app under Client IDs.',
+            'Sign-in session expired. Close the app completely, reopen, and try again.',
         };
       }
       return {
-        error: formatOAuthAuthError(raw || errCode, {
-          code: (error as { code?: string }).code,
-          provider: 'apple',
-          linking: mode === 'link',
-        }),
+        error: formatAppleSupabaseError(raw, errCode),
       };
     }
 
