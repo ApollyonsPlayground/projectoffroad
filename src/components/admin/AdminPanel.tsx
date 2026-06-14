@@ -146,37 +146,41 @@ export function AdminPanel({ variant, onCloseDrawer }: Props) {
     setStats(j?.counts ?? {});
   }, [token, authHeaders]);
 
-  const sendIosPushTest = useCallback(async () => {
-    if (!token || pushTestBusy) return;
-    setPushTestBusy(true);
-    try {
-      const res = await fetch('/api/admin/push-test', {
-        method: 'POST',
-        headers: { ...authHeaders(), 'Content-Type': 'application/json' },
-        body: JSON.stringify({ platform: 'ios' }),
-      });
-      const j = await parseJsonSafe<{
-        ok?: boolean;
-        delivered?: number;
-        failed?: number;
-        errors?: string[];
-        hint?: string;
-        error?: string;
-      }>(res);
-      if (!res.ok || !j?.ok) {
-        showToast(j?.hint ?? j?.error ?? await fetchErrorMessage(res), 'error');
-        return;
+  const sendPushTest = useCallback(
+    async (platform: 'ios' | 'android') => {
+      if (!token || pushTestBusy) return;
+      setPushTestBusy(true);
+      try {
+        const res = await fetch('/api/admin/push-test', {
+          method: 'POST',
+          headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+          body: JSON.stringify({ platform }),
+        });
+        const j = await parseJsonSafe<{
+          ok?: boolean;
+          delivered?: number;
+          failed?: number;
+          errors?: string[];
+          hint?: string;
+          error?: string;
+        }>(res);
+        if (!res.ok || !j?.ok) {
+          showToast(j?.hint ?? j?.error ?? await fetchErrorMessage(res), 'error');
+          return;
+        }
+        const label = platform === 'android' ? 'Android' : 'iPhone';
+        showToast(
+          j.failed
+            ? `Push sent to ${j.delivered} ${label} device(s); ${j.failed} failed.`
+            : `Push sent to your ${label} (${j.delivered} device).`,
+          j.failed ? 'error' : 'success'
+        );
+      } finally {
+        setPushTestBusy(false);
       }
-      showToast(
-        j.failed
-          ? `Push sent to ${j.delivered} device(s); ${j.failed} failed.`
-          : `Push sent to your iPhone (${j.delivered} device).`,
-        j.failed ? 'error' : 'success'
-      );
-    } finally {
-      setPushTestBusy(false);
-    }
-  }, [token, authHeaders, pushTestBusy, showToast]);
+    },
+    [token, authHeaders, pushTestBusy, showToast]
+  );
 
   const loadClubs = useCallback(async () => {
     if (!token) return;
@@ -490,7 +494,21 @@ export function AdminPanel({ variant, onCloseDrawer }: Props) {
             <button
               type="button"
               disabled={pushTestBusy || !token}
-              onClick={() => void sendIosPushTest()}
+              onClick={() => void sendPushTest('android')}
+              className="w-full text-left bg-card border border-border hover:border-primary/40 disabled:opacity-50 rounded-xl p-4 transition-colors"
+            >
+              <p className="font-bold text-foreground mb-1 flex items-center gap-2">
+                {pushTestBusy ? <Loader2 className="animate-spin" size={16} /> : <Bell size={16} />}
+                Send Android push test
+              </p>
+              <p className="text-[12px] text-muted-foreground">
+                One notification to your account&apos;s Android token only. Play build + allow notifications required.
+              </p>
+            </button>
+            <button
+              type="button"
+              disabled={pushTestBusy || !token}
+              onClick={() => void sendPushTest('ios')}
               className="w-full text-left bg-card border border-border hover:border-primary/40 disabled:opacity-50 rounded-xl p-4 transition-colors"
             >
               <p className="font-bold text-foreground mb-1 flex items-center gap-2">
