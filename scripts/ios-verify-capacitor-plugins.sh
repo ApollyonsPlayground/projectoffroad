@@ -119,6 +119,16 @@ if [[ -f "$PLIST" ]]; then
   fi
 fi
 
+APP_DELEGATE="$(find "$ROOT/ios/App" -name 'AppDelegate.swift' -print -quit 2>/dev/null || true)"
+if [[ -n "$APP_DELEGATE" && -f "$APP_DELEGATE" ]]; then
+  if grep -q 'capacitorDidRegisterForRemoteNotifications' "$APP_DELEGATE"; then
+    echo "OK AppDelegate: Capacitor push hooks"
+  else
+    echo "MISSING AppDelegate push hooks — run npm run ios:appdelegate-push"
+    fail=1
+  fi
+fi
+
 if [[ $fail -ne 0 ]]; then
   echo ""
   echo "Fix failures above, then: Xcode → Clean Build Folder → Archive." >&2

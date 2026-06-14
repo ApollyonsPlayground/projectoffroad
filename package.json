@@ -27,6 +27,7 @@
     "ios:camera": "bash scripts/ios-camera-usage.sh",
     "ios:push-entitlements": "bash scripts/ios-push-entitlements.sh",
     "ios:oauth-url-scheme": "bash scripts/ios-oauth-url-scheme.sh",
+    "ios:appdelegate-push": "bash scripts/ios-appdelegate-push.sh",
     "ios:verify-plugins": "bash scripts/ios-verify-capacitor-plugins.sh",
     "ios:location": "bash scripts/ios-location-usage.sh",
     "version:sync": "node scripts/sync-app-version.mjs",

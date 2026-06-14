@@ -16,9 +16,11 @@ Remote push uses **Firebase Cloud Messaging (FCM)** for delivery to Android and 
 ## iOS native
 
 1. Apple Developer → Keys → APNs key (`.p8`)
-2. Firebase → Project settings → Cloud Messaging → upload APNs key
-3. Xcode → Push Notifications capability
-4. `npm run ios:push-entitlements` on Mac
+2. Firebase → Project settings → Cloud Messaging → upload APNs key (+ Key ID + Team ID)
+3. On Mac: `npm run ios:push-entitlements` + Xcode → **Push Notifications** capability
+4. On Mac: `npm run ios:appdelegate-push` (forwards APNs token to Capacitor)
+5. On Mac: `npm run ios:oauth-url-scheme` + `npm run ios:entitlements` (sign-in)
+6. Archive new TestFlight build — **web/Vercel alone cannot fix iOS sign-in or push registration**
 
 ## Vercel environment variables
 

@@ -30,7 +30,7 @@ npx cap sync ios
 npm run ios:verify-plugins
 ```
 
-Must show OK for: Camera, Geolocation, Push, LocalNotifications, StatusBar, App, Browser, Haptics, Preferences, Info.plist keys, `aps-environment`.
+Must show OK for: Camera, Geolocation, Push, LocalNotifications, StatusBar, App, Browser, Haptics, Preferences, Info.plist keys, `aps-environment`, OAuth URL scheme, AppDelegate push hooks.
 
 If anything fails:
 
@@ -38,6 +38,7 @@ If anything fails:
 npm run ios:camera
 npm run ios:location
 npm run ios:push-entitlements
+npm run ios:appdelegate-push
 npm run ios:oauth-url-scheme
 npm run ios:entitlements
 npx cap sync ios
