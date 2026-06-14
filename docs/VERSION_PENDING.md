@@ -1,61 +1,31 @@
 # Version bump — action required (Noah)
 
 **Last code bump:** 2026-06-13  
-**Native version:** `1.0.9` (Android `versionCode` **10**, iOS build **10**)  
-**Why:** Native Capacitor plugins — camera/photo/video, geolocation, push registration, local notifications.
+**Native version:** `1.3` (Android **versionCode 11**, iOS build **11**)  
+**Why:** Play upload — FCM + push; versionCode 10 already used on Play.
 
-## Already updated in code (agent)
+## Version lockstep (Android ↔ iOS)
+
+| Field | Android | iOS (Mac `ios:sync-version`) |
+|-------|---------|------------------------------|
+| User-visible | `versionName` **1.3** | MARKETING_VERSION **1.3** |
+| Store build integer | `versionCode` **11** | CURRENT_PROJECT_VERSION **11** |
+
+`npm run version:sync` auto-sets `iosBuildNumber` = `androidVersionCode`.
+
+## Already updated in code
 
 - `app-version.json`
 - `android/app/build.gradle` (via `npm run version:sync`)
-- `package.json` version
-- `src/lib/devUpdates.ts` — version `2026-06-13`, App **1.0.9** release notes
-- Native JS: `@capacitor/camera`, geolocation hardening, `PushRegistration` wired in layout
-- Removed `@capacitor/action-sheet` dependency
-- `scripts/ios-push-entitlements.sh`, expanded `ios:verify-plugins`
+- `package.json` → `1.3.0`
+- `src/lib/devUpdates.ts`
 
 ## You still do
 
-1. **Deploy web** to Vercel (GitLab push) — required before native testing picks up new JS
-2. Force-stop / refresh app on test devices after deploy
+1. **Deploy web** to Vercel (GitLab push)
+2. **Signed AAB** from `android/app/build/outputs/bundle/release/app-release.aab` → Play Console (**1.3**, code **11**)
+3. **MacinCloud:** `git pull` → `npm run ios:sync-version` → Archive → TestFlight (same **1.3** / build **11**)
 
-## Native rebuild (after web deploy)
+See [push-setup.md](push-setup.md) for Vercel Firebase env vars.
 
-### Windows — Android
-
-```powershell
-cd c:\dev\projectoffroad
-npm install
-npm run version:sync
-npm run android:sync
-cd android
-.\gradlew.bat bundleRelease
-```
-
-Optional for push tokens: place `google-services.json` in `android/app/` (not in git).
-
-### MacinCloud — iOS
-
-See **[docs/macincloud-native-release.md](macincloud-native-release.md)** for full steps.
-
-```bash
-npm install
-npx cap add ios          # only if ios/ missing
-npx cap sync ios
-npm run ios:verify-plugins
-npm run ios:camera
-npm run ios:location
-npm run ios:push-entitlements
-npm run ios:entitlements
-npm run version:sync
-npm run ios:sync-version
-npx cap open ios
-# Xcode: Push Notifications capability → Clean → Archive → TestFlight
-# Commit ios/ to GitLab after verify passes
-```
-
-### Push registration flag (after TestFlight smoke test)
-
-Set `NEXT_PUBLIC_PUSH_REGISTER=true` in Vercel if token registration is stable. Keep `PUSH_SEND_ENABLED=false` until FCM/APNs send is configured.
-
-Delete or archive this file after site + both stores are updated.
+Delete or archive this file after both stores are updated.
