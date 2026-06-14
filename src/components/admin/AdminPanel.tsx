@@ -19,6 +19,7 @@ import {
   Calendar,
   ExternalLink,
   Vote,
+  Bell,
 } from 'lucide-react';
 import { VotingAdminPanel } from '@/components/admin/VotingAdminPanel';
 import { motion } from 'framer-motion';
@@ -108,6 +109,7 @@ export function AdminPanel({ variant, onCloseDrawer }: Props) {
   const [posts, setPosts] = useState<AdminPostRow[]>([]);
   const [users, setUsers] = useState<AdminUserRow[]>([]);
   const [userQuery, setUserQuery] = useState('');
+  const [pushTestBusy, setPushTestBusy] = useState(false);
 
   const authHeaders = useCallback((): Record<string, string> => {
     if (!token) return {};
@@ -143,6 +145,38 @@ export function AdminPanel({ variant, onCloseDrawer }: Props) {
     const j = await parseJsonSafe<{ counts?: Record<string, number> }>(res);
     setStats(j?.counts ?? {});
   }, [token, authHeaders]);
+
+  const sendIosPushTest = useCallback(async () => {
+    if (!token || pushTestBusy) return;
+    setPushTestBusy(true);
+    try {
+      const res = await fetch('/api/admin/push-test', {
+        method: 'POST',
+        headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ platform: 'ios' }),
+      });
+      const j = await parseJsonSafe<{
+        ok?: boolean;
+        delivered?: number;
+        failed?: number;
+        errors?: string[];
+        hint?: string;
+        error?: string;
+      }>(res);
+      if (!res.ok || !j?.ok) {
+        showToast(j?.hint ?? j?.error ?? await fetchErrorMessage(res), 'error');
+        return;
+      }
+      showToast(
+        j.failed
+          ? `Push sent to ${j.delivered} device(s); ${j.failed} failed.`
+          : `Push sent to your iPhone (${j.delivered} device).`,
+        j.failed ? 'error' : 'success'
+      );
+    } finally {
+      setPushTestBusy(false);
+    }
+  }, [token, authHeaders, pushTestBusy, showToast]);
 
   const loadClubs = useCallback(async () => {
     if (!token) return;
@@ -453,6 +487,20 @@ export function AdminPanel({ variant, onCloseDrawer }: Props) {
                 Vercel usage & deployments · Supabase disk & API analytics · Sightengine status
               </p>
             </Link>
+            <button
+              type="button"
+              disabled={pushTestBusy || !token}
+              onClick={() => void sendIosPushTest()}
+              className="w-full text-left bg-card border border-border hover:border-primary/40 disabled:opacity-50 rounded-xl p-4 transition-colors"
+            >
+              <p className="font-bold text-foreground mb-1 flex items-center gap-2">
+                {pushTestBusy ? <Loader2 className="animate-spin" size={16} /> : <Bell size={16} />}
+                Send iOS push test
+              </p>
+              <p className="text-[12px] text-muted-foreground">
+                One notification to your account&apos;s iPhone token only. Requires TestFlight sign-in + allow notifications.
+              </p>
+            </button>
             <button
               type="button"
               onClick={() => {

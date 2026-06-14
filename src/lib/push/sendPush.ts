@@ -10,8 +10,8 @@ export type PushPayload = {
 };
 
 export type PushSendResult =
-  | { sent: false; reason: 'disabled' | 'not_configured' | 'no_tokens' }
-  | { sent: true; delivered: number; failed: number };
+  | { sent: false; reason: 'disabled' | 'not_configured' | 'no_tokens'; tokenCount?: number }
+  | { sent: true; delivered: number; failed: number; tokenCount: number; errors?: string[] };
 
 function getFirebaseApp(): App | null {
   const raw = process.env.FIREBASE_SERVICE_ACCOUNT_JSON?.trim();
@@ -71,32 +71,46 @@ export async function sendPushToTokens(
   };
 
   const result = await messaging.sendEachForMulticast(message);
+  const errors = result.responses
+    .filter((r) => !r.success && r.error?.message)
+    .map((r) => r.error!.message)
+    .slice(0, 5);
   return {
     sent: true,
     delivered: result.successCount,
     failed: result.failureCount,
+    tokenCount: unique.length,
+    errors: errors.length > 0 ? errors : undefined,
   };
 }
+
+export type PushSendOptions = {
+  platform?: 'ios' | 'android';
+};
 
 /** Load tokens for users and send a push (service-role Supabase client). */
 export async function sendPushToUsers(
   admin: SupabaseClient,
   userIds: string[],
-  payload: PushPayload
+  payload: PushPayload,
+  options?: PushSendOptions
 ): Promise<PushSendResult> {
   const ids = [...new Set(userIds.filter(Boolean))];
-  if (ids.length === 0) return { sent: false, reason: 'no_tokens' };
+  if (ids.length === 0) return { sent: false, reason: 'no_tokens', tokenCount: 0 };
 
-  const { data, error } = await admin
-    .from('push_device_tokens')
-    .select('token')
-    .in('user_id', ids);
+  let query = admin.from('push_device_tokens').select('token').in('user_id', ids);
+  if (options?.platform) {
+    query = query.eq('platform', options.platform);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     console.error('[push] token lookup failed', error);
-    return { sent: false, reason: 'no_tokens' };
+    return { sent: false, reason: 'no_tokens', tokenCount: 0 };
   }
 
   const tokens = (data ?? []).map((row) => String((row as { token: string }).token));
+  if (tokens.length === 0) return { sent: false, reason: 'no_tokens', tokenCount: 0 };
   return sendPushToTokens(tokens, payload);
 }

@@ -40,8 +40,9 @@ Paste the **entire** service account JSON as one line in Vercel (or use multilin
 ## Verify sending
 
 1. Set `PUSH_SEND_ENABLED=true` and `FIREBASE_SERVICE_ACCOUNT_JSON` on Vercel → redeploy
-2. Run reminders cron or wait for scheduled run reminder window
-3. Check Vercel function logs for `[push]` / `pushesSent` in cron response
+2. **One-time test (iPhone):** sign in on TestFlight, allow notifications, confirm `push_device_tokens` has your row with `platform = ios`. On the site, open **Admin → Overview → Send iOS push test** (sends only to your own iOS token).
+3. Run reminders cron or wait for scheduled run reminder window
+4. Check Vercel function logs for `[push]` / `pushesSent` in cron response
 
 ## Local run reminders
 
