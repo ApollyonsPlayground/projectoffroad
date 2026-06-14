@@ -8,6 +8,8 @@ import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/db/supabase';
 import BottomNav from '@/components/BottomNav';
 import ClubGarage from '@/components/clubs/ClubGarage';
+import { ClubHeroRotator } from '@/components/clubs/ClubHeroRotator';
+import { publicClubGarageUrl } from '@/lib/clubs/clubGarageUrl';
 import { useToast } from '@/components/Toast';
 import { ensureStoragePublicObjectUrl } from '@/lib/supabase/storagePublicUrl';
 import { resolvePublicDisplayName } from '@/lib/profileDisplay';
@@ -105,6 +107,7 @@ export default function ClubDetailPage() {
   const [editSaving, setEditSaving] = useState(false);
   const [bannerUploading, setBannerUploading] = useState(false);
   const [logoUploading, setLogoUploading] = useState(false);
+  const [garageHeroUrls, setGarageHeroUrls] = useState<string[]>([]);
   const [editForm, setEditForm] = useState({
     name: '',
     description: '',
@@ -120,7 +123,23 @@ export default function ClubDetailPage() {
     fetchClub();
     fetchRuns();
     fetchMembers();
+    void fetchGarageHeroPhotos();
   }, [clubId]);
+
+  async function fetchGarageHeroPhotos() {
+    if (!sb || !clubId) return;
+    const { data } = await sb
+      .from('club_garage_photos')
+      .select('storage_path')
+      .eq('club_id', clubId)
+      .order('created_at', { ascending: false })
+      .limit(24);
+    setGarageHeroUrls(
+      (data ?? [])
+        .map((row) => publicClubGarageUrl(String((row as { storage_path: string }).storage_path)))
+        .filter(Boolean)
+    );
+  }
 
   // After membership status resolves, refetch runs so members can see club-only runs.
   useEffect(() => {
@@ -496,18 +515,17 @@ export default function ClubDetailPage() {
       <div className="max-w-4xl mx-auto">
         {/* Cover / background photo */}
         <div className="relative h-44 sm:h-52 md:h-56 overflow-hidden border-b border-border bg-muted">
-          {club.banner_image ? (
-            <img
-              src={club.banner_image}
-              alt=""
-              className="absolute inset-0 w-full h-full object-cover"
-            />
-          ) : (
+          <ClubHeroRotator
+            bannerImage={club.banner_image}
+            garagePhotoUrls={garageHeroUrls}
+            alt={`${club.name} cover`}
+          />
+          {!club.banner_image && garageHeroUrls.length === 0 ? (
             <div
               className="absolute inset-0 bg-gradient-to-br from-zinc-800 via-zinc-900 to-zinc-950"
               aria-hidden
             />
-          )}
+          ) : null}
           <div className="absolute inset-0 bg-gradient-to-t from-background via-background/25 to-transparent" />
           {isClubOwner && (
             <>
@@ -840,6 +858,7 @@ export default function ClubDetailPage() {
             currentUserId={user?.id ?? null}
             canUpload={canGarageUpload}
             isClubOwner={isClubOwner}
+            onPhotosChanged={() => void fetchGarageHeroPhotos()}
           />
         )}
 

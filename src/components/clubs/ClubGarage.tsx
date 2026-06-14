@@ -20,14 +20,12 @@ type Props = {
   currentUserId: string | null;
   canUpload: boolean;
   isClubOwner: boolean;
+  onPhotosChanged?: () => void;
 };
 
-function publicGarageUrl(path: string): string {
-  const base = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/$/, '') ?? '';
-  return `${base}/storage/v1/object/public/club-garage/${encodeURI(path)}`;
-}
+import { publicClubGarageUrl } from '@/lib/clubs/clubGarageUrl';
 
-export default function ClubGarage({ clubId, currentUserId, canUpload, isClubOwner }: Props) {
+export default function ClubGarage({ clubId, currentUserId, canUpload, isClubOwner, onPhotosChanged }: Props) {
   const { showToast } = useToast();
   const [photos, setPhotos] = useState<GaragePhoto[]>([]);
   const [loading, setLoading] = useState(true);
@@ -86,6 +84,7 @@ export default function ClubGarage({ clubId, currentUserId, canUpload, isClubOwn
 
       showToast('Photo added to club garage', 'success');
       await load();
+      onPhotosChanged?.();
     } catch (err) {
       console.error(err);
       showToast(err instanceof Error ? err.message : 'Upload failed', 'error');
@@ -119,6 +118,7 @@ export default function ClubGarage({ clubId, currentUserId, canUpload, isClubOwn
 
       showToast('Photo removed', 'success');
       await load();
+      onPhotosChanged?.();
     } catch (err) {
       showToast(err instanceof Error ? err.message : 'Could not delete', 'error');
     }
@@ -169,7 +169,7 @@ export default function ClubGarage({ clubId, currentUserId, canUpload, isClubOwn
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             {photos.map((photo) => (
               <div key={photo.id} className="relative aspect-square rounded-lg overflow-hidden bg-muted border border-border group">
-                <img src={publicGarageUrl(photo.storage_path)} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                <img src={publicClubGarageUrl(photo.storage_path)} alt="" className="absolute inset-0 w-full h-full object-cover" />
                 {currentUserId && (photo.user_id === currentUserId || isClubOwner) && (
                   <button
                     type="button"
