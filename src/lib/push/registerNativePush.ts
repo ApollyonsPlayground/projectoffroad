@@ -130,10 +130,11 @@ export async function registerNativePushWithResult(
     await ensurePushErrorListener();
 
     const existingPerm = await PushNotifications.checkPermissions();
-    const perm =
-      existingPerm.receive === 'granted'
-        ? existingPerm
-        : await PushNotifications.requestPermissions();
+    let perm = existingPerm;
+    // iOS only shows the system dialog when status is "prompt" (first install).
+    if (existingPerm.receive !== 'granted') {
+      perm = await PushNotifications.requestPermissions();
+    }
 
     if (perm.receive !== 'granted') {
       return {

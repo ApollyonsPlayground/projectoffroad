@@ -5,38 +5,50 @@ import { Capacitor } from '@capacitor/core';
 import { useAuth } from '@/context/AuthContext';
 import { isCapacitorNative } from '@/utils/capacitator/isNative';
 import { isPushRegistrationEnabled } from '@/lib/push/pushConfig';
+import { needsOnboardingWizard } from '@/lib/ui/onboarding';
 import { registerNativePush, unregisterNativePush } from '@/lib/push/registerNativePush';
 
+/** Wait for cold-start splash / routing before the iOS permission dialog. */
+const IOS_PUSH_PROMPT_DELAY_MS = 2_500;
+
 /**
- * Silent native push token registration on sign-in (Android).
- * iOS requires GoogleService-Info.plist in the Xcode bundle — use Settings → Enable push notifications.
+ * Native push token registration after sign-in. Triggers the system notification
+ * permission prompt on first launch; iOS is delayed slightly so it does not overlap the splash.
  */
 export function PushRegistration() {
-  const { user, supabaseClient } = useAuth();
-  const lastUserId = useRef<string | null>(null);
+  const { user, profile, loading, supabaseClient } = useAuth();
+  const activeUserId = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!isPushRegistrationEnabled() || !isCapacitorNative() || !supabaseClient) return;
+    if (!isPushRegistrationEnabled() || !isCapacitorNative() || !supabaseClient || loading) return;
 
     const userId = user?.id ?? null;
 
     if (!userId) {
-      if (lastUserId.current) {
+      if (activeUserId.current) {
         void unregisterNativePush(supabaseClient);
-        lastUserId.current = null;
+        activeUserId.current = null;
       }
       return;
     }
 
-    // iOS: manual registration only (Settings) so Firebase is not initialized before plist is bundled.
-    if (Capacitor.getPlatform() === 'ios') {
-      lastUserId.current = userId;
-      return;
-    }
+    if (needsOnboardingWizard(profile)) return;
 
-    lastUserId.current = userId;
-    void registerNativePush(supabaseClient, userId);
-  }, [user?.id, supabaseClient]);
+    const isIos = Capacitor.getPlatform() === 'ios';
+    const delayMs = isIos ? IOS_PUSH_PROMPT_DELAY_MS : 0;
+    let cancelled = false;
+
+    const timer = window.setTimeout(() => {
+      if (cancelled) return;
+      activeUserId.current = userId;
+      void registerNativePush(supabaseClient, userId);
+    }, delayMs);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [user?.id, profile, loading, supabaseClient]);
 
   return null;
 }
