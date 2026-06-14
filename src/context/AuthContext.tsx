@@ -213,6 +213,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
           if (error) {
             console.warn('[Auth] exchangeCodeForSession:', error.message)
+            const login = new URL('/login/', window.location.origin)
+            login.searchParams.set('error', 'auth_callback')
+            login.searchParams.set('message', encodeURIComponent(error.message))
+            window.location.assign(login.toString())
             return
           }
 

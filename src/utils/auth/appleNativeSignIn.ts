@@ -72,6 +72,12 @@ export async function appleNativeAuth(
 
     if (error) {
       const raw = error.message ?? '';
+      if (raw.toLowerCase().includes('invalid grant') || raw.toLowerCase().includes('code verifier')) {
+        return {
+          error:
+            'Sign-in session expired. Close the app completely, reopen, and try Google sign-in again.',
+        };
+      }
       if (raw.toLowerCase().includes('client') || raw.toLowerCase().includes('audience')) {
         return {
           error:

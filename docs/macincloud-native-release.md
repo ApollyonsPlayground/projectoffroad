@@ -38,6 +38,7 @@ If anything fails:
 npm run ios:camera
 npm run ios:location
 npm run ios:push-entitlements
+npm run ios:oauth-url-scheme
 npm run ios:entitlements
 npx cap sync ios
 npm run ios:verify-plugins
@@ -130,5 +131,7 @@ See **[push-setup.md](push-setup.md)** for Vercel env vars and full push checkli
 | Verify script missing Podfile | Run `npx cap add ios && npx cap sync ios` |
 | Archive signing error | Xcode → Accounts → download profiles; check bundle ID |
 | Push registration crash | Leave `NEXT_PUBLIC_PUSH_REGISTER` off until fixed |
+| Google OAuth: "link doesn't exist" after Continue | Run `npm run ios:oauth-url-scheme`, Archive new TestFlight build |
+| Apple sign-in failed (native) | Supabase → Apple provider → add `com.socaloffroaders.app` under Client IDs; run `npm run ios:entitlements` |
 
 See also [release.md](release.md).

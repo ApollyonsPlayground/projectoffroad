@@ -109,6 +109,16 @@ else
   fail=1
 fi
 
+# OAuth deep link (Google / Apple web fallback)
+if [[ -f "$PLIST" ]]; then
+  if /usr/libexec/PlistBuddy -c "Print :CFBundleURLTypes:0:CFBundleURLSchemes:0" "$PLIST" 2>/dev/null | grep -qx "com.socaloffroaders.app"; then
+    echo "OK Info.plist: OAuth URL scheme com.socaloffroaders.app"
+  else
+    echo "MISSING Info.plist: OAuth URL scheme — run npm run ios:oauth-url-scheme"
+    fail=1
+  fi
+fi
+
 if [[ $fail -ne 0 ]]; then
   echo ""
   echo "Fix failures above, then: Xcode → Clean Build Folder → Archive." >&2

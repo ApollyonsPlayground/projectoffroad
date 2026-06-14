@@ -94,6 +94,8 @@ export async function GET(request: Request) {
         <a class="btn" href="${androidIntent ?? deep.toString()}" id="continue">Continue in the app</a>
         <p class="muted">
           Tap the button above to return to the app and finish sign-in.
+          If Safari says the address is invalid, install the latest TestFlight build
+          (the app must register the <code>com.socaloffroaders.app</code> link handler).
         </p>
         <script>
           (function() {
