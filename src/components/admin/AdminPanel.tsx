@@ -22,6 +22,7 @@ import {
   Bell,
 } from 'lucide-react';
 import { VotingAdminPanel } from '@/components/admin/VotingAdminPanel';
+import { AppleSecretAdminCard } from '@/components/admin/AppleSecretAdminCard';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/Toast';
@@ -481,6 +482,8 @@ export function AdminPanel({ variant, onCloseDrawer }: Props) {
                 </div>
               ))}
             </div>
+
+            <AppleSecretAdminCard token={token} authHeaders={authHeaders} />
 
             <Link
               href="/admin/monitoring"

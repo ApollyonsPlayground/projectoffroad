@@ -138,6 +138,26 @@ async function syncToSupabase({ secret, servicesId, bundleId }) {
   }
 }
 
+async function recordRotation({ expiresAt, servicesId, keyId }) {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+  if (!url || !serviceKey) return;
+
+  const { createClient } = await import('@supabase/supabase-js');
+  const admin = createClient(url, serviceKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  const { error } = await admin.from('apple_sign_in_secret_rotations').insert({
+    expires_at: expiresAt,
+    rotated_by: 'cli',
+    services_id: servicesId,
+    key_id: keyId,
+  });
+  if (error && error.code !== '42P01') {
+    console.warn('Could not log rotation (run db:push):', error.message);
+  }
+}
+
 function required(name) {
   const v = process.env[name]?.trim();
   if (!v) throw new Error(`Missing env: ${name}`);
@@ -158,6 +178,7 @@ try {
 
   if (sync) {
     await syncToSupabase({ secret, servicesId, bundleId });
+    await recordRotation({ expiresAt, servicesId, keyId });
     console.log('Synced Apple client secret to Supabase Auth.');
     console.log(`Services ID: ${servicesId}`);
     console.log(`Bundle ID (additional): ${bundleId}`);

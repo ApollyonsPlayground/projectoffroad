@@ -1,11 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import {
-  generateAppleClientSecret,
-  patchSupabaseAppleAuthConfig,
-  readAppleSignInKeyConfigFromEnv,
-  readSupabaseManagementConfigFromEnv,
-} from '@/lib/apple/clientSecret';
+import { createClient } from '@supabase/supabase-js';
+import { rotateAppleSignInSecret } from '@/lib/apple/rotateSecret';
 import { authorizeCronRequest } from '@/lib/api/security';
+import { getSupabaseUrl } from '@/utils/supabase/env';
 
 export const runtime = 'nodejs';
 
@@ -18,58 +15,30 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const apple = readAppleSignInKeyConfigFromEnv();
-  if (!apple) {
-    return NextResponse.json(
-      {
-        error: 'Missing Apple key env vars',
-        hint: 'Set APPLE_TEAM_ID, APPLE_KEY_ID, APPLE_SERVICES_ID, APPLE_PRIVATE_KEY on Vercel.',
-      },
-      { status: 503 }
-    );
-  }
+  const url = getSupabaseUrl();
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+  const admin =
+    url && serviceKey
+      ? createClient(url, serviceKey, {
+          auth: { persistSession: false, autoRefreshToken: false },
+        })
+      : undefined;
 
-  const mgmt = readSupabaseManagementConfigFromEnv();
-  if (!mgmt) {
-    return NextResponse.json(
-      {
-        error: 'Missing Supabase Management API config',
-        hint: 'Set SUPABASE_ACCESS_TOKEN (dashboard → Account → Access Tokens) and SUPABASE_PROJECT_REF.',
-      },
-      { status: 503 }
-    );
-  }
-
-  let secret: string;
-  try {
-    secret = generateAppleClientSecret(apple);
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
-    console.error('[cron/apple-secret] generate', msg);
-    return NextResponse.json({ error: 'Could not sign Apple client secret', detail: msg }, { status: 500 });
-  }
-
-  const result = await patchSupabaseAppleAuthConfig({
-    projectRef: mgmt.projectRef,
-    accessToken: mgmt.accessToken,
-    servicesId: apple.servicesId,
-    secret,
-    bundleId: apple.bundleId,
-  });
+  const result = await rotateAppleSignInSecret('cron', admin);
 
   if (!result.ok) {
-    console.error('[cron/apple-secret] patch', result.status, result.error);
+    console.error('[cron/apple-secret]', result.error, result.hint ?? '');
     return NextResponse.json(
-      { error: 'Supabase Management API rejected the update', status: result.status },
-      { status: 502 }
+      { error: result.error, hint: result.hint },
+      { status: result.status }
     );
   }
 
-  console.info('[cron/apple-secret] rotated Apple client secret; valid until', result.expiresAt);
+  console.info('[cron/apple-secret] rotated; valid until', result.expiresAt);
   return NextResponse.json({
     ok: true,
-    servicesId: apple.servicesId,
-    bundleId: apple.bundleId ?? null,
+    servicesId: result.servicesId,
+    bundleId: result.bundleId,
     expiresAt: result.expiresAt,
   });
 }
