@@ -11,11 +11,13 @@ Use this checklist on your **remote Mac** (MacinCloud + Cursor) for a full Capac
 ## 1. Clone and install
 
 ```bash
-git clone <your-gitlab-repo-url> ~/projectoffroad
-cd ~/projectoffroad
+git clone <your-gitlab-repo-url> ~/dev/projectoffroad
+cd ~/dev/projectoffroad
 git pull
 npm install
 ```
+
+**MacinCloud note:** this machine may already have the repo at `~/dev/projectoffroad` (not `~/projectoffroad`). See [macincloud-cursor-prompt.md](macincloud-cursor-prompt.md).
 
 ## 2. Generate or sync iOS project
 
@@ -120,7 +122,7 @@ See **[push-setup.md](push-setup.md)** for Vercel env vars and full push checkli
 ## Cursor on MacinCloud
 
 - Open the same repo in Cursor (your account is already signed in)
-- Use Agent to run commands and fix `ios:verify-plugins` failures
+- Use **[macincloud-cursor-prompt.md](macincloud-cursor-prompt.md)** — copy the Agent prompt into chat so Cursor runs all commands for you
 - Never paste Apple passwords or `.p8` keys into chat or git
 
 ## Troubleshooting
