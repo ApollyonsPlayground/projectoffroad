@@ -252,8 +252,9 @@ export default function SettingsPage() {
           </div>
           <p className="text-neutral-600 text-[11px] uppercase tracking-wider mb-3">
             Preferences are saved to your account. On the native app, run joiners can get local reminders at
-            about 72h, 48h, and 24h before start when enabled below. Remote push is temporarily
-            disabled while we fix a crash on the permission prompt — no push alerts are sent.
+            about 72h, 48h, and 24h before start when enabled below. Remote push alerts require a
+            current native app build with Firebase configured — update from the store if allowing
+            notifications crashes the app.
           </p>
           <div className="space-y-3">
             <label className="flex items-center justify-between cursor-pointer">

@@ -1,11 +1,14 @@
 import { Capacitor } from '@capacitor/core';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { isNativePluginAvailable } from '@/lib/capacitor/isPluginAvailable';
 import { isCapacitorNative } from '@/utils/capacitator/isNative';
 import { isPushRegistrationEnabled } from '@/lib/push/pushConfig';
 
 export type PushPlatform = 'ios' | 'android';
 
 let listenersBound = false;
+let registerInFlight = false;
+let registeredUserId: string | null = null;
 let currentToken: string | null = null;
 let activeUserId: string | null = null;
 let activeSupabase: SupabaseClient | null = null;
@@ -51,11 +54,18 @@ export async function registerNativePush(sb: SupabaseClient, userId: string): Pr
   if (!isPushRegistrationEnabled() || !isCapacitorNative()) return;
   const platform = pushPlatform();
   if (!platform) return;
+  if (registeredUserId === userId || registerInFlight) return;
+  if (!isNativePluginAvailable('PushNotifications')) {
+    console.warn('[push] PushNotifications plugin not available in this native build');
+    return;
+  }
 
   activeUserId = userId;
   activeSupabase = sb;
+  registerInFlight = true;
 
-  const { PushNotifications } = await import('@capacitor/push-notifications');
+  try {
+    const { PushNotifications } = await import('@capacitor/push-notifications');
 
   if (!listenersBound) {
     listenersBound = true;
@@ -89,11 +99,18 @@ export async function registerNativePush(sb: SupabaseClient, userId: string): Pr
   if (perm.receive !== 'granted') return;
 
   await PushNotifications.register();
+  registeredUserId = userId;
+  } catch (err) {
+    console.warn('[push] registration failed', err);
+  } finally {
+    registerInFlight = false;
+  }
 }
 
 export async function unregisterNativePush(sb: SupabaseClient): Promise<void> {
   activeUserId = null;
   activeSupabase = null;
+  registeredUserId = null;
   const token = currentToken;
   currentToken = null;
   if (!token) return;
