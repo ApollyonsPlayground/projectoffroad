@@ -32,6 +32,7 @@ Do ALL of this yourself in the terminal:
    npm run ios:oauth-url-scheme
    npm run ios:entitlements
    npm run ios:push-entitlements
+   npm run ios:info-push-background
    npm run ios:appdelegate-push
    npm run ios:appdelegate-firebase
    npm run ios:google-services-plist
@@ -76,7 +77,7 @@ Context:
 ```bash
 cd ~/dev/projectoffroad
 git pull && npm install && npx cap sync ios
-npm run ios:oauth-url-scheme && npm run ios:entitlements && npm run ios:push-entitlements
+npm run ios:oauth-url-scheme && npm run ios:entitlements && npm run ios:push-entitlements && npm run ios:info-push-background
 npm run ios:appdelegate-push && npm run ios:appdelegate-firebase && npm run ios:google-services-plist
 npm run ios:camera && npm run ios:location
 npx cap sync ios

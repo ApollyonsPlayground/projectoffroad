@@ -78,10 +78,11 @@ Run all of these from repo root:
 ```bash
 npm run ios:oauth-url-scheme      # Google OAuth return URL
 npm run ios:entitlements          # Sign in with Apple
-npm run ios:push-entitlements     # aps-environment in App.entitlements
+npm run ios:push-entitlements     # aps-environment production
+npm run ios:info-push-background  # UIBackgroundModes remote-notification
 npm run ios:appdelegate-push      # Forward APNs token to Capacitor
-npm run ios:appdelegate-firebase    # Remove duplicate FirebaseApp.configure()
-npm run ios:google-services-plist   # Verify plist + add to Xcode Copy Bundle Resources
+npm run ios:appdelegate-firebase  # Remove duplicate FirebaseApp.configure()
+npm run ios:google-services-plist # Firebase plist + Xcode Copy Bundle Resources
 npm run ios:camera
 npm run ios:location
 npx cap sync ios

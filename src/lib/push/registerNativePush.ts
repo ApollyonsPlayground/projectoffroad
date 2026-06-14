@@ -4,6 +4,7 @@ import { isNativePluginAvailable } from '@/lib/capacitor/isPluginAvailable';
 import { isCapacitorNative } from '@/utils/capacitator/isNative';
 import { isPushRegistrationEnabled } from '@/lib/push/pushConfig';
 import { obtainFcmDeviceToken } from '@/lib/push/obtainFcmToken';
+import { waitForApnsRegistration } from '@/lib/push/waitForApnsRegistration';
 
 export type PushPlatform = 'ios' | 'android';
 
@@ -145,6 +146,10 @@ export async function registerNativePushWithResult(
 
     // Required before FCM.getToken() on iOS (registers for APNs under the hood).
     await PushNotifications.register();
+
+    if (platform === 'ios') {
+      await waitForApnsRegistration();
+    }
 
     const fcmToken = await obtainFcmDeviceToken();
     await upsertPushDeviceToken(sb, userId, fcmToken, platform);

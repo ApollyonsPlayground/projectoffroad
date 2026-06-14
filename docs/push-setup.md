@@ -28,8 +28,10 @@ Remote push uses **Firebase Cloud Messaging (FCM)** for delivery to Android and 
 7. On Mac: `npm install` → `npx cap sync ios` (pulls in CapacitorCommunityFcm + patch)
 6. On Mac: `npm run ios:push-entitlements` + Xcode → **Push Notifications** capability
 7. On Mac: `npm run ios:appdelegate-push` (forwards APNs token to Capacitor)
-8. `npm run ios:verify-plugins` (must show OK for FCM + GoogleService-Info.plist)
+8. `npm run ios:verify-plugins` (must show OK for FCM, plist in Copy Bundle Resources, **aps-environment production**, AppDelegate push hooks)
 9. Archive new TestFlight build — **web/Vercel alone cannot fix iOS push**
+
+**TestFlight push checklist:** `aps-environment` must be **production** (not development). `GoogleService-Info.plist` must be in **Copy Bundle Resources**. AppDelegate must forward APNs tokens (`ios:appdelegate-push`).
 
 ## Vercel environment variables
 

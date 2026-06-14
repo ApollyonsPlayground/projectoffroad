@@ -135,6 +135,45 @@ if [[ -n "$APP_DELEGATE" && -f "$APP_DELEGATE" ]]; then
     echo "MISSING AppDelegate push hooks — run npm run ios:appdelegate-push"
     fail=1
   fi
+  if grep -q 'FirebaseApp.configure' "$APP_DELEGATE"; then
+    echo "WARN AppDelegate: FirebaseApp.configure() present — run npm run ios:appdelegate-firebase (duplicate init crashes or breaks FCM)"
+    fail=1
+  else
+    echo "OK AppDelegate: no duplicate FirebaseApp.configure"
+  fi
+else
+  echo "MISSING AppDelegate.swift — run npx cap sync ios"
+  fail=1
+fi
+
+# FCM startup patch (defer Firebase configure)
+FCM_PATCH="$ROOT/patches/@capacitor-community+fcm+8.1.0.patch"
+if [[ -f "$FCM_PATCH" ]]; then
+  echo "OK patch: @capacitor-community/fcm (deferred Firebase init)"
+else
+  echo "MISSING patch: $FCM_PATCH — npm install should apply via patch-package"
+  fail=1
+fi
+
+# Background push mode
+if [[ -f "$PLIST" ]]; then
+  if /usr/libexec/PlistBuddy -c "Print :UIBackgroundModes" "$PLIST" 2>/dev/null | grep -q "remote-notification"; then
+    echo "OK Info.plist: UIBackgroundModes remote-notification"
+  else
+    echo "MISSING Info.plist: UIBackgroundModes remote-notification — run npm run ios:info-push-background"
+    fail=1
+  fi
+fi
+
+# aps-environment must be production for TestFlight
+if [[ -f "$ENTITLEMENTS" ]]; then
+  APS="$(/usr/libexec/PlistBuddy -c "Print :aps-environment" "$ENTITLEMENTS" 2>/dev/null || true)"
+  if [[ "$APS" == "production" ]]; then
+    echo "OK entitlements: aps-environment production (TestFlight)"
+  elif [[ "$APS" == "development" ]]; then
+    echo "WARN entitlements: aps-environment is development — TestFlight push may fail; run npm run ios:push-entitlements"
+    fail=1
+  fi
 fi
 
 # Firebase iOS (FCM token — required for server push; APNs token alone is not enough)
@@ -158,9 +197,11 @@ fi
 if [[ $fail -ne 0 ]]; then
   echo ""
   echo "Fix failures above, then: Xcode → Clean Build Folder → Archive." >&2
+  echo "iOS push also needs: Firebase APNs .p8 key uploaded, GoogleService-Info.plist in bundle, Settings → Enable push on device." >&2
   exit 1
 fi
 
 echo ""
 echo "All native plugin checks passed."
-echo "If the app still says 'not implemented', upload a new TestFlight/Play build."
+echo "On device: sign in → allow notifications → check Supabase push_device_tokens (platform=ios)."
+echo "If admin push test fails but token exists, verify Firebase Cloud Messaging → APNs key."

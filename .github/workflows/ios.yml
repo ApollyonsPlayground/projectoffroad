@@ -78,19 +78,42 @@ jobs:
       - name: Install JS dependencies
         run: npm ci
 
-      - name: Scaffold iOS (SPM — clean tree every run)
+      - name: Scaffold iOS (SPM — preserve Firebase plist from repo)
         run: |
           set -euxo pipefail
+          FIREBASE_BACKUP=""
+          if [[ -f ios/App/App/GoogleService-Info.plist ]]; then
+            FIREBASE_BACKUP="$(mktemp)"
+            cp ios/App/App/GoogleService-Info.plist "$FIREBASE_BACKUP"
+          fi
           rm -rf ios
           npx cap add ios
-          ls -la ios/App
+          npx cap sync ios
+          if [[ -n "$FIREBASE_BACKUP" ]]; then
+            cp "$FIREBASE_BACKUP" ios/App/App/GoogleService-Info.plist
+          fi
           test -d ios/App/App.xcodeproj
 
-      - name: Capacitor sync (iOS)
-        run: npx cap sync ios
+      - name: iOS native patches (push, Firebase, entitlements)
+        run: |
+          set -euxo pipefail
+          npm run ios:oauth-url-scheme
+          npm run ios:entitlements
+          npm run ios:push-entitlements
+          npm run ios:info-push-background
+          npm run ios:appdelegate-push
+          npm run ios:appdelegate-firebase
+          npm run ios:google-services-plist
+          npm run ios:camera
+          npm run ios:location
+          npx cap sync ios
 
-      - name: Sign in with Apple entitlement
-        run: bash scripts/ios-enable-apple-sign-in.sh
+      - name: Verify iOS plugins (must pass)
+        run: npm run ios:verify-plugins
+
+      - name: Capacitor sync (iOS) — skip duplicate
+        if: false
+        run: npx cap sync ios
 
       - name: Xcode project / schemes
         working-directory: ios/App

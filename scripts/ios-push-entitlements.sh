@@ -25,7 +25,7 @@ if [[ ! -f "$ENTITLEMENTS" ]]; then
 		<string>Default</string>
 	</array>
 	<key>aps-environment</key>
-	<string>development</string>
+	<string>production</string>
 </dict>
 </plist>
 EOF
@@ -33,12 +33,13 @@ EOF
 fi
 
 if /usr/libexec/PlistBuddy -c "Print :aps-environment" "$ENTITLEMENTS" >/dev/null 2>&1; then
-  /usr/libexec/PlistBuddy -c "Set :aps-environment development" "$ENTITLEMENTS"
-  echo "Updated aps-environment to development (TestFlight/debug)"
+  /usr/libexec/PlistBuddy -c "Set :aps-environment production" "$ENTITLEMENTS"
+  echo "Updated aps-environment to production (TestFlight / App Store)"
 else
-  /usr/libexec/PlistBuddy -c "Add :aps-environment string development" "$ENTITLEMENTS"
-  echo "Added aps-environment development"
+  /usr/libexec/PlistBuddy -c "Add :aps-environment string production" "$ENTITLEMENTS"
+  echo "Added aps-environment production"
 fi
 
 echo "OK: push entitlement in $ENTITLEMENTS"
 echo "Next: Xcode → App target → Signing & Capabilities → + Push Notifications"
+echo "Note: For local Xcode debug-only installs, you may need development — use TestFlight for push testing."
