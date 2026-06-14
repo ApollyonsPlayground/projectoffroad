@@ -1,8 +1,8 @@
 {
-  "versionName": "1.0.9",
-  "androidVersionCode": 10,
-  "iosBuildNumber": "10",
-  "packageJsonVersion": "0.1.9",
-  "rebuildReason": "Native camera/photo/video, geolocation, push + local notifications — full Capacitor plugin sync for App Store",
+  "versionName": "1.3",
+  "androidVersionCode": 11,
+  "iosBuildNumber": "11",
+  "packageJsonVersion": "1.3.0",
+  "rebuildReason": "Play upload — FCM google-services fix, push notifications (versionCode 11)",
   "lastBumped": "2026-06-13"
 }

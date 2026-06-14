@@ -1,5 +1,5 @@
 /** Bump when shipping a user-facing release — keep in sync with app-version.json / What's new modal. */
-export const DEV_UPDATES_VERSION = '2026-06-13';
+export const DEV_UPDATES_VERSION = '2026-06-14';
 
 export type DevUpdateTag = 'new' | 'improved' | 'fix';
 
@@ -28,6 +28,31 @@ export type DevUpdateRelease = {
 export const DEV_UPDATES: DevUpdateRelease[] = [
   {
     version: DEV_UPDATES_VERSION,
+    date: 'June 14, 2026',
+    title: 'App 1.3 — push notifications & FCM',
+    items: [
+      {
+        tag: 'new',
+        title: 'Remote push notifications',
+        summary:
+          'Run reminders and alerts can reach your phone when notifications are enabled. Allow notifications when prompted after sign-in.',
+      },
+      {
+        tag: 'improved',
+        title: 'Android reliability',
+        summary:
+          'Updated native build for Google Play (version 1.3) with proper Firebase messaging support.',
+      },
+      {
+        tag: 'fix',
+        title: 'Native photo & video',
+        summary:
+          'Camera and gallery picking for posts, messages, and profile photos uses your phone’s built-in apps.',
+      },
+    ],
+  },
+  {
+    version: '2026-06-13',
     date: 'June 13, 2026',
     title: 'App 1.0.9 — native camera, location & notifications',
     items: [
