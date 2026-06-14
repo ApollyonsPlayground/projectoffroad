@@ -336,12 +336,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { error: disabledHelp }
       }
 
-      return {
-        error: formatOAuthAuthError(raw, {
-          code: (error as { code?: string }).code,
-          provider,
-        }),
+      const formatted = formatOAuthAuthError(raw, {
+        code: (error as { code?: string }).code,
+        provider,
+      })
+      if (
+        provider === 'apple' &&
+        formatted === 'Sign-in failed. Please try again.' &&
+        (error as { code?: string }).code
+      ) {
+        return {
+          error: `Apple sign-in failed (${(error as { code?: string }).code}). Check Supabase → Apple provider has Services ID, secret key (.p8), and Client IDs.`,
+        }
       }
+      return { error: formatted }
     }
 
     if (data?.url) {

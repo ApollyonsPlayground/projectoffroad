@@ -6,11 +6,15 @@ import { useToast } from '@/components/Toast';
 import { AppleSignInButton } from '@/components/auth/AppleSignInButton';
 import { AppleSignInBetaTeaser } from '@/components/auth/AppleSignInBetaTeaser';
 import { GoogleSignInButton } from '@/components/auth/GoogleSignInButton';
+import { isCapacitorNative } from '@/utils/capacitator/isNative';
 import {
   getOAuthSignInVisibility,
   oauthSignInSubtitle,
   type OAuthSignInVisibility,
 } from '@/utils/auth/oauthSignInPlatform';
+
+/** Bump when Apple/Google auth flow changes — visible on login so TestFlight can confirm fresh JS loaded. */
+export const AUTH_SIGNIN_FLOW_ID = 'apple-oauth-browser-v2';
 
 type OAuthSignInButtonsProps = {
   mode: 'login' | 'register';
@@ -42,8 +46,11 @@ export function OAuthSignInButtons({ mode }: OAuthSignInButtonsProps) {
     if (err) {
       showToast(err, 'error');
       setAppleLoading(false);
+      return;
     }
-    // OAuth: session completes via deep link (appUrlOpen). Native id-token path would redirect here.
+    if (isCapacitorNative()) {
+      showToast('Opening Apple sign-in — finish in the browser sheet, then return to the app.', 'info');
+    }
   }
 
   if (!visibility) return null;
@@ -111,6 +118,11 @@ export function OAuthSignInButtons({ mode }: OAuthSignInButtonsProps) {
         <p className="text-[11px] text-muted-foreground text-center max-w-[240px] leading-relaxed">
           By continuing you agree to our community guidelines.
         </p>
+        {visibility.platform === 'ios' ? (
+          <p className="text-[10px] text-muted-foreground/70 text-center" aria-hidden="true">
+            Auth {AUTH_SIGNIN_FLOW_ID}
+          </p>
+        ) : null}
       </div>
     </>
   );
