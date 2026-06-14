@@ -18,6 +18,11 @@ if [[ -f "$PLIST" ]]; then
   else
     echo "WARN: GoogleService-Info.plist BUNDLE_ID may not match com.socaloffroaders.app" >&2
   fi
+  if [[ -f "$ROOT/ios/App/App.xcodeproj/project.pbxproj" ]]; then
+    bash "$ROOT/scripts/ios-google-services-xcode.sh"
+  else
+    echo "WARN: ios/App/App.xcodeproj not found — run npx cap sync ios, then npm run ios:google-services-xcode" >&2
+  fi
   exit 0
 fi
 

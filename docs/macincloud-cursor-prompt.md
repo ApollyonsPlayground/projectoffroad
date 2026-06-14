@@ -7,13 +7,13 @@ Open this file on the **MacinCloud Mac** in Cursor. Copy the **Agent prompt** be
 ## Agent prompt (copy everything in the box)
 
 ```
-SoCal Offroaders — MacinCloud iOS TestFlight build 1.3 (12)
+SoCal Offroaders — MacinCloud iOS TestFlight build 1.3 (14)
 
 Repo path on this Mac is almost certainly:
   ~/dev/projectoffroad
 NOT ~/projectoffroad
 
-Goal: sync iOS native project, verify plugins (FCM + GoogleService-Info.plist), set version 1.3 build 13, then tell me when Xcode Archive is ready.
+Goal: sync iOS native project, verify plugins (FCM + GoogleService-Info.plist in Xcode bundle), set version 1.3 build 14, then tell me when Xcode Archive is ready.
 
 Do ALL of this yourself in the terminal:
 
@@ -33,18 +33,20 @@ Do ALL of this yourself in the terminal:
    npm run ios:entitlements
    npm run ios:push-entitlements
    npm run ios:appdelegate-push
+   npm run ios:appdelegate-firebase
+   npm run ios:google-services-plist
    npm run ios:camera
    npm run ios:location
    npx cap sync ios
 
-5. Version sync (must show build 13):
+6. Version sync (must show build 14):
    npm run version:sync
    npm run ios:sync-version
 
-6. Verify — fix any MISSING and re-run until all OK:
+7. Verify — fix any MISSING and re-run until all OK:
    npm run ios:verify-plugins
 
-7. Report:
+8. Report:
    - MARKETING_VERSION and CURRENT_PROJECT_VERSION from ios:sync-version
    - Full ios:verify-plugins output
    - Any errors
@@ -61,7 +63,7 @@ Context:
 - App loads JS from https://socaloffroaders.com/ (Vercel must be deployed for web fixes)
 - Apple sign-in uses OAuth browser flow (not native Apple plugin)
 - Android push uses FCM token; iOS was saving APNs token (wrong). App now uses @capacitor-community/fcm for FCM on iOS.
-- iPhone needs GoogleService-Info.plist + APNs in Firebase + TestFlight build 13+
+- iPhone needs GoogleService-Info.plist in Xcode bundle + APNs in Firebase + TestFlight build 14+
 - After TestFlight: sign in as awesomeflaregaming@gmail.com → Settings → Enable push notifications
 - Verify Supabase push_device_tokens has platform=ios for user 5f62c706-e59a-416e-b4de-2d7945264f27
 - Firebase must have APNs .p8 key uploaded for iOS push delivery
@@ -75,7 +77,8 @@ Context:
 cd ~/dev/projectoffroad
 git pull && npm install && npx cap sync ios
 npm run ios:oauth-url-scheme && npm run ios:entitlements && npm run ios:push-entitlements
-npm run ios:appdelegate-push && npm run ios:camera && npm run ios:location
+npm run ios:appdelegate-push && npm run ios:appdelegate-firebase && npm run ios:google-services-plist
+npm run ios:camera && npm run ios:location
 npx cap sync ios
 npm run version:sync && npm run ios:sync-version && npm run ios:verify-plugins
 npx cap open ios
@@ -87,7 +90,7 @@ npx cap open ios
 
 1. **`ios/App/App.xcworkspace`**
 2. Target **App** → **Signing & Capabilities** → **Push Notifications** + **Sign in with Apple**
-3. Version **1.3**, build **12**
+3. Version **1.3**, build **14**
 4. **Any iOS Device (arm64)** → Clean → Archive → Upload
 5. TestFlight → install on iPhone (delete old app first)
 

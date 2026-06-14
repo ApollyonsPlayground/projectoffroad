@@ -1,8 +1,8 @@
 {
   "versionName": "1.3",
-  "androidVersionCode": 13,
-  "iosBuildNumber": "13",
+  "androidVersionCode": 14,
+  "iosBuildNumber": "14",
   "packageJsonVersion": "1.3.0",
-  "rebuildReason": "iOS push — FCM token via @capacitor-community/fcm + GoogleService-Info.plist",
+  "rebuildReason": "Fix iOS startup crash — defer FCM Firebase init + bundle GoogleService-Info.plist in Xcode",
   "lastBumped": "2026-06-15"
 }

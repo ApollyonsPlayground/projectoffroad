@@ -22,8 +22,10 @@ Remote push uses **Firebase Cloud Messaging (FCM)** for delivery to Android and 
 1. Apple Developer → Keys → APNs key (`.p8`)
 2. Firebase → Project settings → Cloud Messaging → upload APNs key (+ Key ID + Team ID)
 3. Firebase → Project settings → **Your iOS app** → download **`GoogleService-Info.plist`**
-4. Copy to **`ios/App/App/GoogleService-Info.plist`** (verify: `npm run ios:google-services-plist`)
-5. On Mac: `npm install` → `npx cap sync ios` (pulls in CapacitorCommunityFcm)
+4. Copy to **`ios/App/App/GoogleService-Info.plist`**
+5. On Mac: `npm run ios:google-services-plist` (also adds plist to Xcode **Copy Bundle Resources**)
+6. On Mac: `npm run ios:appdelegate-firebase` (removes duplicate `FirebaseApp.configure()` if present)
+7. On Mac: `npm install` → `npx cap sync ios` (pulls in CapacitorCommunityFcm + patch)
 6. On Mac: `npm run ios:push-entitlements` + Xcode → **Push Notifications** capability
 7. On Mac: `npm run ios:appdelegate-push` (forwards APNs token to Capacitor)
 8. `npm run ios:verify-plugins` (must show OK for FCM + GoogleService-Info.plist)

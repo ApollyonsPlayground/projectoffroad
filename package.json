@@ -29,6 +29,8 @@
     "ios:oauth-url-scheme": "bash scripts/ios-oauth-url-scheme.sh",
     "ios:appdelegate-push": "bash scripts/ios-appdelegate-push.sh",
     "ios:google-services-plist": "bash scripts/ios-google-services-plist.sh",
+    "ios:google-services-xcode": "bash scripts/ios-google-services-xcode.sh",
+    "ios:appdelegate-firebase": "bash scripts/ios-appdelegate-firebase.sh",
     "ios:verify-plugins": "bash scripts/ios-verify-capacitor-plugins.sh",
     "ios:location": "bash scripts/ios-location-usage.sh",
     "version:sync": "node scripts/sync-app-version.mjs",

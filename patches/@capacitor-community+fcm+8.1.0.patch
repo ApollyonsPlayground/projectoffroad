@@ -1,0 +1,90 @@
+diff --git a/node_modules/@capacitor-community/fcm/ios/Plugin/Plugin.swift b/node_modules/@capacitor-community/fcm/ios/Plugin/Plugin.swift
+index b48c713..1a826f4 100644
+--- a/node_modules/@capacitor-community/fcm/ios/Plugin/Plugin.swift
++++ b/node_modules/@capacitor-community/fcm/ios/Plugin/Plugin.swift
+@@ -15,16 +15,26 @@ import FirebaseInstallations
+ @objc(FCMPlugin)
+ public class FCMPlugin: CAPPlugin, MessagingDelegate {
+     var fcmToken: String?
++    private var firebaseConfigured = false
+ 
+-    override public func load() {
+-        if FirebaseApp.app() == nil {
+-            FirebaseApp.configure()
++    private func ensureFirebaseReady() {
++        if !firebaseConfigured {
++            if FirebaseApp.app() == nil {
++                FirebaseApp.configure()
++            }
++            Messaging.messaging().delegate = self
++            firebaseConfigured = true
+         }
+-        Messaging.messaging().delegate = self
++    }
++
++    override public func load() {
++        // Defer FirebaseApp.configure() until push/FCM is used. Calling configure() at plugin
++        // load crashes on startup when GoogleService-Info.plist is not in the app bundle.
+         NotificationCenter.default.addObserver(self, selector: #selector(self.didRegisterWithToken(notification:)), name: .capacitorDidRegisterForRemoteNotifications, object: nil)
+     }
+ 
+     @objc func didRegisterWithToken(notification: NSNotification) {
++        ensureFirebaseReady()
+         guard let deviceToken = notification.object as? Data else {
+             return
+         }
+@@ -32,6 +42,7 @@ public class FCMPlugin: CAPPlugin, MessagingDelegate {
+     }
+ 
+     @objc func subscribeTo(_ call: CAPPluginCall) {
++        ensureFirebaseReady()
+         let topicName = call.getString("topic") ?? ""
+         Messaging.messaging().subscribe(toTopic: topicName) { error in
+             // print("Subscribed to weather topic")
+@@ -47,6 +58,7 @@ public class FCMPlugin: CAPPlugin, MessagingDelegate {
+     }
+ 
+     @objc func unsubscribeFrom(_ call: CAPPluginCall) {
++        ensureFirebaseReady()
+         let topicName = call.getString("topic") ?? ""
+         Messaging.messaging().unsubscribe(fromTopic: topicName) { error in
+             if (error) != nil {
+@@ -60,6 +72,7 @@ public class FCMPlugin: CAPPlugin, MessagingDelegate {
+     }
+ 
+     @objc func getToken(_ call: CAPPluginCall) {
++        ensureFirebaseReady()
+         if (fcmToken ?? "").isEmpty {
+             Messaging.messaging().token { token, error in
+                 if let error = error {
+@@ -81,6 +94,7 @@ public class FCMPlugin: CAPPlugin, MessagingDelegate {
+     }
+ 
+     @objc func refreshToken(_ call: CAPPluginCall) {
++        ensureFirebaseReady()
+         // Delete FCM Token on Firebase
+         FirebaseMessaging.Messaging.messaging().deleteData { error in
+             guard let error = error else {
+@@ -106,6 +120,7 @@ public class FCMPlugin: CAPPlugin, MessagingDelegate {
+     }
+ 
+     @objc func deleteInstance(_ call: CAPPluginCall) {
++        ensureFirebaseReady()
+         Installations.installations().delete { error in
+             if let error = error {
+                 print("Error deleting installation: \(error)")
+@@ -118,12 +133,14 @@ public class FCMPlugin: CAPPlugin, MessagingDelegate {
+     }
+ 
+     @objc func setAutoInit(_ call: CAPPluginCall) {
++        ensureFirebaseReady()
+         let enabled: Bool = call.getBool("enabled") ?? false
+         Messaging.messaging().isAutoInitEnabled = enabled
+         call.resolve()
+     }
+ 
+     @objc func isAutoInitEnabled(_ call: CAPPluginCall) {
++        ensureFirebaseReady()
+         call.resolve([
+             "enabled": Messaging.messaging().isAutoInitEnabled
+         ])

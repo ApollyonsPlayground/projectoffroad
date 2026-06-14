@@ -2,7 +2,7 @@
 
 Use this checklist on your **MacinCloud Mac** (with Cursor) for a full Capacitor sync and TestFlight upload.
 
-**Current target:** version **1.3**, build **12** (see `app-version.json`).
+**Current target:** version **1.3**, build **14** (see `app-version.json`).
 
 ## How this app ships
 
@@ -80,6 +80,8 @@ npm run ios:oauth-url-scheme      # Google OAuth return URL
 npm run ios:entitlements          # Sign in with Apple
 npm run ios:push-entitlements     # aps-environment in App.entitlements
 npm run ios:appdelegate-push      # Forward APNs token to Capacitor
+npm run ios:appdelegate-firebase    # Remove duplicate FirebaseApp.configure()
+npm run ios:google-services-plist   # Verify plist + add to Xcode Copy Bundle Resources
 npm run ios:camera
 npm run ios:location
 npx cap sync ios

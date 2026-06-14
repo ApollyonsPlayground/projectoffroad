@@ -1,13 +1,15 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import { Capacitor } from '@capacitor/core';
 import { useAuth } from '@/context/AuthContext';
 import { isCapacitorNative } from '@/utils/capacitator/isNative';
 import { isPushRegistrationEnabled } from '@/lib/push/pushConfig';
 import { registerNativePush, unregisterNativePush } from '@/lib/push/registerNativePush';
 
 /**
- * Silent native push token registration. No notifications are sent until server push is enabled.
+ * Silent native push token registration on sign-in (Android).
+ * iOS requires GoogleService-Info.plist in the Xcode bundle — use Settings → Enable push notifications.
  */
 export function PushRegistration() {
   const { user, supabaseClient } = useAuth();
@@ -23,6 +25,12 @@ export function PushRegistration() {
         void unregisterNativePush(supabaseClient);
         lastUserId.current = null;
       }
+      return;
+    }
+
+    // iOS: manual registration only (Settings) so Firebase is not initialized before plist is bundled.
+    if (Capacitor.getPlatform() === 'ios') {
+      lastUserId.current = userId;
       return;
     }
 

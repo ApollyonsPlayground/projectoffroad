@@ -139,11 +139,20 @@ fi
 
 # Firebase iOS (FCM token — required for server push; APNs token alone is not enough)
 GOOGLE_PLIST="$ROOT/ios/App/App/GoogleService-Info.plist"
+PBXPROJ="$ROOT/ios/App/App.xcodeproj/project.pbxproj"
 if [[ -f "$GOOGLE_PLIST" ]]; then
-  echo "OK Firebase: GoogleService-Info.plist"
+  echo "OK Firebase: GoogleService-Info.plist on disk"
 else
   echo "MISSING Firebase: GoogleService-Info.plist — run npm run ios:google-services-plist"
   fail=1
+fi
+if [[ -f "$PBXPROJ" ]]; then
+  if grep -q 'GoogleService-Info.plist in Resources' "$PBXPROJ"; then
+    echo "OK Firebase: GoogleService-Info.plist in Xcode Copy Bundle Resources"
+  else
+    echo "MISSING Firebase: plist not in Xcode target — run npm run ios:google-services-xcode"
+    fail=1
+  fi
 fi
 
 if [[ $fail -ne 0 ]]; then
