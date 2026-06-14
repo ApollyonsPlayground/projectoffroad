@@ -6,7 +6,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { MapContainer, TileLayer, CircleMarker, Popup, useMap } from 'react-leaflet';
+import { MapContainer, CircleMarker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import type { SupabaseClient, User } from '@supabase/supabase-js';
@@ -17,6 +17,12 @@ import {
   requestLocationAccess,
   watchDeviceLocation,
 } from '@/lib/location/requestDeviceLocation';
+import { upsertMyRunLocation } from '@/lib/location/upsertRunLocation';
+import {
+  LEAFLET_LAYERS_CONTROL_CLASS,
+  LeafletBasemapLayers,
+  MAP_BACKGROUND,
+} from '@/lib/maps/leafletBasemaps';
 
 const STALE_MS = 45 * 60 * 1000;
 const MIN_POST_INTERVAL_MS = 12_000;
@@ -156,26 +162,24 @@ export default function RunLiveMap({
   }, [stopWatch]);
 
   const postPosition = useCallback(
-    async (lat: number, lng: number, accuracy: number | null) => {
-      if (!user) return;
+    async (lat: number, lng: number, accuracy: number | null): Promise<boolean> => {
+      if (!user) return false;
       const now = Date.now();
-      if (now - lastPostRef.current < MIN_POST_INTERVAL_MS) return;
+      if (now - lastPostRef.current < MIN_POST_INTERVAL_MS) return true;
       lastPostRef.current = now;
-      const { error } = await supabaseClient.from('user_locations').upsert(
-        {
-          run_id: runId,
-          user_id: user.id,
-          latitude: lat,
-          longitude: lng,
-          accuracy,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: 'run_id,user_id' }
-      );
-      if (error) {
-        console.warn('user_locations upsert', error.message);
-        onToast?.('Could not update your location. Check connection.', 'error');
+
+      const result = await upsertMyRunLocation(supabaseClient, {
+        runId,
+        latitude: lat,
+        longitude: lng,
+        accuracy,
+      });
+      if (!result.ok) {
+        console.warn('user_locations upsert', result.message);
+        onToast?.(result.message, 'error');
+        return false;
       }
+      return true;
     },
     [supabaseClient, runId, user, onToast]
   );
@@ -202,7 +206,13 @@ export default function RunLiveMap({
       await requestLocationAccess();
       const first = await getDeviceLocation({ enableHighAccuracy: true, timeout: 12_000 });
 
-      await postPosition(first.latitude, first.longitude, first.accuracy);
+      const posted = await postPosition(first.latitude, first.longitude, first.accuracy);
+      if (!posted) {
+        throw new LocationAccessError(
+          'Could not save your location to this run. Make sure you joined the run, then try again.',
+          'unknown'
+        );
+      }
 
       const watch = await watchDeviceLocation(
         (pos) => {
@@ -265,18 +275,15 @@ export default function RunLiveMap({
         </div>
       </div>
 
-      <div className="h-[min(320px,55dvh)] w-full relative">
+      <div className={`h-[min(320px,55dvh)] w-full relative ${LEAFLET_LAYERS_CONTROL_CLASS}`}>
         <MapContainer
           center={defaultCenter}
           zoom={defaultZoom}
-          style={{ height: '100%', width: '100%', background: '#18181b' }}
+          style={{ height: '100%', width: '100%', background: MAP_BACKGROUND }}
           scrollWheelZoom
           zoomControl
         >
-          <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/">CARTO</a>'
-            url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-          />
+          <LeafletBasemapLayers />
           <FitBounds points={markerPoints} reference={refLatLng} />
 
           {refLatLng && (
@@ -317,18 +324,18 @@ export default function RunLiveMap({
                 <Popup className="run-live-map-popup" closeButton={false}>
                   <div
                     style={{
-                      background: '#18181b',
-                      border: '1px solid #3f3f46',
+                      background: '#fff',
+                      border: '1px solid #e4e4e7',
                       borderRadius: 10,
                       padding: '10px 12px',
                       minWidth: 160,
                     }}
                   >
-                    <p style={{ color: '#fff', fontWeight: 700, fontSize: 13, marginBottom: 4 }}>
+                    <p style={{ color: '#18181b', fontWeight: 700, fontSize: 13, marginBottom: 4 }}>
                       {nameByUserId.get(r.user_id) ?? 'Rider'}
                       {mine ? ' (you)' : ''}
                     </p>
-                    <p style={{ color: '#a1a1aa', fontSize: 11 }}>
+                    <p style={{ color: '#71717a', fontSize: 11 }}>
                       Updated {formatAge(r.updated_at)}
                     </p>
                   </div>

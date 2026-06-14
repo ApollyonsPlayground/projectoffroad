@@ -8,7 +8,7 @@
 
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import L from 'leaflet';
-import { MapContainer, TileLayer, CircleMarker, Popup, useMap, ZoomControl } from 'react-leaflet';
+import { MapContainer, CircleMarker, Popup, useMap, ZoomControl } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import {
   explorerTrailLngLat,
@@ -16,6 +16,11 @@ import {
   type DifficultyTier,
   type ExplorerTrail,
 } from '@/lib/trails/mapDbTrail';
+import {
+  LEAFLET_LAYERS_CONTROL_CLASS,
+  LeafletBasemapLayers,
+  MAP_BACKGROUND,
+} from '@/lib/maps/leafletBasemaps';
 
 interface TrailMapProps {
   /** Every loaded trail — pins include all rows that have coordinates (not narrowed by list filters). */
@@ -147,20 +152,17 @@ export default function TrailMap({ trails, listFilteredCount }: TrailMapProps) {
   const noCoords = Math.max(0, totalLoaded - plotted.length);
 
   return (
-    <div className="relative h-full w-full rounded-xl overflow-hidden border border-border">
+    <div className={`relative h-full w-full rounded-xl overflow-hidden border border-border ${LEAFLET_LAYERS_CONTROL_CLASS}`}>
       <MapContainer
         ref={mapRef}
         center={center}
         zoom={7}
-        style={{ height: '100%', width: '100%', background: '#18181b' }}
+        style={{ height: '100%', width: '100%', background: MAP_BACKGROUND }}
         scrollWheelZoom
         zoomControl={false}
         preferCanvas
       >
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/">CARTO</a>'
-          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-        />
+        <LeafletBasemapLayers />
 
         <ZoomControl position="bottomright" />
 
@@ -183,11 +185,11 @@ export default function TrailMap({ trails, listFilteredCount }: TrailMapProps) {
             <Popup className="trail-map-popup" closeButton={false}>
               <div
                 style={{
-                  background: '#18181b',
-                  border: '1px solid #3f3f46',
+                  background: '#fff',
+                  border: '1px solid #e4e4e7',
                   borderRadius: '10px',
                   padding: '8px 12px',
-                  color: '#fff',
+                  color: '#18181b',
                   fontSize: '12px',
                   fontWeight: 700,
                 }}
@@ -216,8 +218,8 @@ export default function TrailMap({ trails, listFilteredCount }: TrailMapProps) {
               <Popup className="trail-map-popup" closeButton={false}>
                 <div
                   style={{
-                    background: '#18181b',
-                    border: '1px solid #3f3f46',
+                    background: '#fff',
+                    border: '1px solid #e4e4e7',
                     borderRadius: '10px',
                     padding: '10px 12px',
                     minWidth: '180px',
@@ -226,7 +228,7 @@ export default function TrailMap({ trails, listFilteredCount }: TrailMapProps) {
                 >
                   <p
                     style={{
-                      color: '#fff',
+                      color: '#18181b',
                       fontWeight: 700,
                       fontSize: '13px',
                       marginBottom: '2px',
@@ -235,7 +237,7 @@ export default function TrailMap({ trails, listFilteredCount }: TrailMapProps) {
                   >
                     {trail.name}
                   </p>
-                  <p style={{ color: '#a1a1aa', fontSize: '11px', marginBottom: '6px' }}>
+                  <p style={{ color: '#71717a', fontSize: '11px', marginBottom: '6px' }}>
                     {trail.location}
                   </p>
                   <span
@@ -278,9 +280,9 @@ export default function TrailMap({ trails, listFilteredCount }: TrailMapProps) {
                         rel="noopener noreferrer"
                         style={{
                           display: 'inline-block',
-                          background: '#27272a',
-                          color: '#e4e4e7',
-                          border: '1px solid #52525b',
+                          background: '#f4f4f5',
+                          color: '#3f3f46',
+                          border: '1px solid #d4d4d8',
                           borderRadius: '6px',
                           fontSize: '11px',
                           fontWeight: 700,
@@ -315,8 +317,8 @@ export default function TrailMap({ trails, listFilteredCount }: TrailMapProps) {
           bottom: '12px',
           left: '12px',
           maxWidth: 'min(260px, calc(100% - 24px))',
-          background: 'rgba(9,9,11,0.9)',
-          border: '1px solid #3f3f46',
+          background: 'rgba(255,255,255,0.94)',
+          border: '1px solid #e4e4e7',
           borderRadius: '10px',
           padding: '8px 12px',
           zIndex: 1000,
@@ -339,7 +341,7 @@ export default function TrailMap({ trails, listFilteredCount }: TrailMapProps) {
                 border: '1.5px solid rgba(0,0,0,0.4)',
               }}
             />
-            <span style={{ color: '#a1a1aa', fontSize: '11px', fontWeight: 600 }}>{label}</span>
+            <span style={{ color: '#52525b', fontSize: '11px', fontWeight: 600 }}>{label}</span>
           </div>
         ))}
         <p style={{ color: '#71717a', fontSize: '10px', marginTop: '6px', fontWeight: 600, lineHeight: 1.35 }}>

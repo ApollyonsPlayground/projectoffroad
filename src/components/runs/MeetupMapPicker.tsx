@@ -2,29 +2,24 @@
 
 /**
  * Draggable meetup pin + tap map to move pin. Loaded with next/dynamic({ ssr: false }).
- * Basemaps: dark street (CARTO), Esri satellite, Esri satellite with place labels.
+ * Basemaps: satellite (default), satellite + labels, light street detail.
  */
 import { useCallback, useEffect, useMemo } from 'react';
 import {
   MapContainer,
-  TileLayer,
   Marker,
   useMap,
   useMapEvents,
-  LayersControl,
-  LayerGroup,
   ScaleControl,
 } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-
-const MAP_MAX_ZOOM = 20;
-const ESRI_MAX_NATIVE = 19;
-
-const ATTR_CARTO_DARK =
-  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/">CARTO</a>';
-const ATTR_ESRI =
-  'Tiles &copy; <a href="https://www.esri.com/">Esri</a> &mdash; Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community';
+import {
+  LEAFLET_LAYERS_CONTROL_CLASS,
+  LeafletBasemapLayers,
+  MAP_BACKGROUND,
+  MAP_MAX_ZOOM,
+} from '@/lib/maps/leafletBasemaps';
 
 function MapViewSync({
   center,
@@ -99,60 +94,20 @@ export default function MeetupMapPicker({
   const memoCenter = useMemo<[number, number]>(() => [cenLat, cenLng], [cenLat, cenLng]);
   const memoPos = useMemo<[number, number]>(() => [pinLat, pinLng], [pinLat, pinLng]);
 
-  const esriImageryUrl =
-    'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
-  const esriLabelsUrl =
-    'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}';
-
   return (
     <div
-      className="w-full rounded-xl overflow-hidden border border-border ring-1 ring-primary/20 [&_.leaflet-control-layers]:rounded-lg [&_.leaflet-control-layers]:border-border [&_.leaflet-control-layers]:bg-card [&_.leaflet-control-layers]:text-foreground [&_.leaflet-control-layers-toggle]:rounded-md"
+      className={`w-full rounded-xl overflow-hidden border border-border ring-1 ring-primary/20 ${LEAFLET_LAYERS_CONTROL_CLASS}`}
       style={{ height: heightPx }}
     >
       <MapContainer
         center={memoCenter}
         zoom={zoom}
         maxZoom={MAP_MAX_ZOOM}
-        style={{ height: '100%', width: '100%', background: '#18181b' }}
+        style={{ height: '100%', width: '100%', background: MAP_BACKGROUND }}
         scrollWheelZoom
         zoomControl
       >
-        <LayersControl position="topright">
-          <LayersControl.BaseLayer checked name="Map (dark)">
-            <TileLayer
-              attribution={ATTR_CARTO_DARK}
-              url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-              subdomains="abcd"
-              maxZoom={MAP_MAX_ZOOM}
-              maxNativeZoom={20}
-            />
-          </LayersControl.BaseLayer>
-          <LayersControl.BaseLayer name="Satellite">
-            <TileLayer
-              attribution={ATTR_ESRI}
-              url={esriImageryUrl}
-              maxZoom={MAP_MAX_ZOOM}
-              maxNativeZoom={ESRI_MAX_NATIVE}
-            />
-          </LayersControl.BaseLayer>
-          <LayersControl.BaseLayer name="Satellite + labels">
-            <LayerGroup>
-              <TileLayer
-                attribution={ATTR_ESRI}
-                url={esriImageryUrl}
-                maxZoom={MAP_MAX_ZOOM}
-                maxNativeZoom={ESRI_MAX_NATIVE}
-              />
-              <TileLayer
-                attribution={ATTR_ESRI}
-                url={esriLabelsUrl}
-                maxZoom={MAP_MAX_ZOOM}
-                maxNativeZoom={ESRI_MAX_NATIVE}
-                opacity={0.9}
-              />
-            </LayerGroup>
-          </LayersControl.BaseLayer>
-        </LayersControl>
+        <LeafletBasemapLayers />
         <ScaleControl position="bottomleft" imperial metric />
         <MapViewSync center={memoCenter} zoom={zoom} />
         <MapTap onTap={onPositionChange} />
