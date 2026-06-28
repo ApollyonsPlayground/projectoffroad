@@ -1,5 +1,6 @@
 'use client'
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react'
 import type { User, SupabaseClient } from '@supabase/supabase-js'
 import { createBrowserSupabaseClient } from '@/utils/supabase/client'
@@ -375,7 +376,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const redirectTo = buildOAuthRedirect(nextAfterLogin)
 
-    let oauth: Awaited<ReturnType<typeof supabase.auth.linkIdentity>>
+    let oauth: any
     try {
       oauth = await supabase.auth.linkIdentity({
         provider,

@@ -190,7 +190,6 @@ function NewPostDrawer({ open, onClose, onPosted }: {
         showToast('Videos must be 30 seconds or shorter', 'error');
         setMediaFile(null);
         setImagePreview(null);
-        if (mediaInputRef.current) mediaInputRef.current.value = '';
         return;
       }
 
@@ -200,7 +199,6 @@ function NewPostDrawer({ open, onClose, onPosted }: {
       showToast('Could not read video', 'error');
       setMediaFile(null);
       setImagePreview(null);
-      if (mediaInputRef.current) mediaInputRef.current.value = '';
     }
   };
 
@@ -970,8 +968,8 @@ function StoriesBar({ embedded = false }: { embedded?: boolean } = {}) {
           ]);
           if (activeRes.error && upcomingRes.error) continue;
 
-          const active = (!activeRes.error && activeRes.data ? activeRes.data : []) as Row[];
-          const upcoming = (!upcomingRes.error && upcomingRes.data ? upcomingRes.data : []) as Row[];
+          const active = (!activeRes.error && activeRes.data ? activeRes.data : []) as unknown as Row[];
+          const upcoming = (!upcomingRes.error && upcomingRes.data ? upcomingRes.data : []) as unknown as Row[];
           const seen = new Set(active.map((x) => x.id));
           const merged: Row[] = [
             ...active,
@@ -986,7 +984,7 @@ function StoriesBar({ embedded = false }: { embedded?: boolean } = {}) {
             .order('date', { ascending: true })
             .limit(8);
           if (!fallback.error && fallback.data?.length) {
-            return fallback.data as Row[];
+            return fallback.data as unknown as Row[];
           }
         }
         return [];

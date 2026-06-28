@@ -28,11 +28,11 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   metadataBase: new URL(
-    process.env.NEXT_PUBLIC_SITE_URL?.trim() || "https://socaloffroaders.com",
+    process.env.NEXT_PUBLIC_SITE_URL?.trim() || "https://socaloffroaders.org",
   ),
   title: "SoCalOffroaders | Community App",
   description:
-    "Southern California off-road community — trails, runs, and clubs. Official companion for socaloffroaders.com.",
+    "Southern California off-road community — trails, runs, and clubs. Official companion for socaloffroaders.org.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,

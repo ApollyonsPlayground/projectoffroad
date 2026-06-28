@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { getApps, initializeApp, cert, type App } from 'firebase-admin/app';
 import { getMessaging, type MulticastMessage } from 'firebase-admin/messaging';
@@ -25,7 +26,7 @@ function getFirebaseApp(): App | null {
       client_email?: string;
       private_key?: string;
     };
-    return initializeApp({ credential: cert(serviceAccount) });
+    return initializeApp({ credential: cert(serviceAccount as any) });
   } catch (err) {
     console.error('[push] invalid FIREBASE_SERVICE_ACCOUNT_JSON', err);
     return null;

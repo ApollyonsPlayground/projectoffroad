@@ -7,7 +7,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
  * (and use adb reverse if loading from a device).
  */
 const serverUrl =
-  process.env.CAPACITOR_SERVER_URL?.trim() || 'https://socaloffroaders.com/';
+  process.env.CAPACITOR_SERVER_URL?.trim() || 'https://socaloffroaders.org/';
 
 const config: CapacitorConfig = {
   appId: 'com.socaloffroaders.app',

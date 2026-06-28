@@ -1,10 +1,11 @@
-﻿/**
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/**
  * Run guest invite helpers (anonymous join via token link).
  */
 
 const SITE =
   (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_SITE_URL?.trim().replace(/\/$/, '')) ||
-  (typeof window !== 'undefined' ? window.location.origin : 'https://socaloffroaders.com');
+  (typeof window !== 'undefined' ? window.location.origin : 'https://socaloffroaders.org');
 
 const DISPLAY_NAME_RE = /^[a-zA-Z0-9](?:[a-zA-Z0-9 ]*[a-zA-Z0-9])?$/;
 const BLOCKED_WORDS = /(fuck|shit|asshole|nazi|rape)/i;
@@ -64,7 +65,7 @@ export function validateGuestDisplayName(name: string): string | null {
 }
 
 export async function previewGuestInvite(
-  supabase: { rpc: (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }> },
+  supabase: any,
   token: string
 ): Promise<GuestInvitePreview | null> {
   const { data, error } = await supabase.rpc('preview_run_guest_invite', { p_token: token });
@@ -73,7 +74,7 @@ export async function previewGuestInvite(
 }
 
 export async function fetchGuestInviteStatus(
-  supabase: { rpc: (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }> },
+  supabase: any,
   runId: string
 ): Promise<GuestInviteStatus> {
   const { data, error } = await supabase.rpc('get_run_guest_invite_status', { p_run_id: runId });
@@ -82,7 +83,7 @@ export async function fetchGuestInviteStatus(
 }
 
 export async function createGuestInvite(
-  supabase: { rpc: (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }> },
+  supabase: any,
   runId: string,
   maxGuests: number
 ): Promise<CreateGuestInviteResult> {
@@ -95,7 +96,7 @@ export async function createGuestInvite(
 }
 
 export async function revokeGuestInvite(
-  supabase: { rpc: (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }> },
+  supabase: any,
   runId: string
 ): Promise<void> {
   const { error } = await supabase.rpc('revoke_run_guest_invite', { p_run_id: runId });
@@ -103,7 +104,7 @@ export async function revokeGuestInvite(
 }
 
 export async function redeemGuestInvite(
-  supabase: { rpc: (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }> },
+  supabase: any,
   token: string,
   displayName: string
 ): Promise<RedeemGuestInviteResult> {

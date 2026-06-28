@@ -25,7 +25,7 @@ function locationGranted(status: { location?: string; coarseLocation?: string })
   return status.location === 'granted' || status.coarseLocation === 'granted';
 }
 
-function useCapacitorGeolocation(): boolean {
+function shouldUseCapacitorGeolocation(): boolean {
   return isCapacitorNative() && isNativePluginAvailable('Geolocation');
 }
 
@@ -92,7 +92,7 @@ async function requestBrowserLocationAccess(): Promise<void> {
  * On web, the system prompt is shown on the next {@link getDeviceLocation} call.
  */
 export async function requestLocationAccess(): Promise<void> {
-  if (useCapacitorGeolocation()) {
+  if (shouldUseCapacitorGeolocation()) {
     try {
       const check = await Geolocation.checkPermissions();
       if (locationGranted(check)) return;
@@ -146,7 +146,7 @@ export async function getDeviceLocation(options?: {
   const enableHighAccuracy = options?.enableHighAccuracy ?? true;
   const timeout = options?.timeout ?? 12_000;
 
-  if (useCapacitorGeolocation()) {
+  if (shouldUseCapacitorGeolocation()) {
     await requestLocationAccess();
     try {
       const pos = await Geolocation.getCurrentPosition({ enableHighAccuracy, timeout });
@@ -180,7 +180,7 @@ export async function watchDeviceLocation(
   const maximumAge = options?.maximumAge ?? 15_000;
   const timeout = options?.timeout ?? 30_000;
 
-  if (useCapacitorGeolocation()) {
+  if (shouldUseCapacitorGeolocation()) {
     try {
       await requestLocationAccess();
       const id = await Geolocation.watchPosition(

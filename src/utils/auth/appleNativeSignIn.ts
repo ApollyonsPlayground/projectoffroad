@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { AppleSignIn, ErrorCode, SignInScope } from '@capawesome/capacitor-apple-sign-in';
 import { formatOAuthAuthError } from '@/utils/auth/oauthIdentityErrors';
@@ -150,7 +151,7 @@ export async function appleNativeAuth(
       };
     }
 
-    if (mode === 'signIn' && !data.session) {
+    if (mode === 'signIn' && !(data as any).session) {
       return { error: 'Apple accepted but no session was saved. Close the app and try again.' };
     }
 

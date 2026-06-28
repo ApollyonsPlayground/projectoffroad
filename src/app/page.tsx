@@ -4,7 +4,7 @@ import { PublicHomeCtas } from '@/components/PublicHomeCtas';
 
 /** Must match the “Application home page” and privacy URL you enter in Google Cloud OAuth consent. */
 const PUBLIC_SITE =
-  process.env.NEXT_PUBLIC_SITE_URL?.trim().replace(/\/$/, '') || 'https://socaloffroaders.com';
+  process.env.NEXT_PUBLIC_SITE_URL?.trim().replace(/\/$/, '') || 'https://socaloffroaders.org';
 
 const PRIVACY_URL = `${PUBLIC_SITE}/privacy/`;
 const ACCOUNT_DELETE_URL = `${PUBLIC_SITE}/account/delete/`;

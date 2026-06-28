@@ -13,17 +13,22 @@ export type RunPublishErrorDisplay = {
 };
 
 type SupabaseLikeError = {
-  message?: string;
-  code?: string;
-  details?: string;
-  hint?: string;
+  message: string;
+  code: string;
+  details: string;
+  hint: string;
 };
 
 function asSupabaseError(err: unknown): SupabaseLikeError {
   if (!err || typeof err !== 'object') {
-    return { message: err == null ? '' : String(err) };
+    return {
+      message: err == null ? '' : String(err),
+      code: '',
+      details: '',
+      hint: '',
+    };
   }
-  const e = err as SupabaseLikeError;
+  const e = err as Partial<SupabaseLikeError>;
   return {
     message: e.message ?? '',
     code: e.code ?? '',

@@ -18,7 +18,7 @@ interface UserSearchRow {
   name: string | null
   username: string | null
   hide_display_name: boolean | null
-  email: string | null
+  email?: string | null
   location: string | null
 }
 
@@ -107,7 +107,6 @@ export default function SearchPage() {
             name: user.name,
             username: user.username,
             hide_display_name: user.hide_display_name,
-            email: user.email,
           }),
           subtitle: user.location || ''
         })
